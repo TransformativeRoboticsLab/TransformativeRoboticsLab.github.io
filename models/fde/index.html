@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FDE Metamaterial Foam Tests</title>
+  <link rel="icon" href="../../assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../../assets/site.css" />
+</head>
+<body>
+  <header class="site"><div class="wrap">
+    <a class="brand" href="../../"><img src="../../assets/icon.svg" alt="" />Transformative Robotics Lab</a>
+    <nav class="site"><a href="../../">Projects</a><a href="https://github.com/TransformativeRoboticsLab/FDE-Metamaterials">FDE-Metamaterials on GitHub</a></nav>
+  </div></header>
+  <main class="model">
+    <div class="stage"><div class="chart-area">
+      <div class="readout" id="hover">Loading…</div>
+      <canvas id="chart" aria-label="Test curves"></canvas>
+    </div></div>
+    <aside>
+      <h1>Fabrication-directed entanglement: compression tests</h1>
+      <p class="muted">Instron compression tests behind “Fabrication-Directed Entanglement for Designing Chiral and Anisotropic Metamaterial Foams”. The project topology-optimizes metamaterial unit cells for viscous thread printing. Compare homogeneous dense and sparse foams with the optimized metamaterial specimens; nominal stress and strain use each specimen’s recorded dimensions.</p>
+      <p class="muted" style="font-size:13px" id="count"></p>
+      <h2>Test group</h2>
+      <select id="group" style="width:100%"></select>
+      <h2>Axes</h2>
+      <select id="axes" style="width:100%"></select>
+      <h2>Specimens <button type="button" class="btn" id="all" style="padding:2px 8px;font-size:12px">all</button> <button type="button" class="btn" id="none" style="padding:2px 8px;font-size:12px">none</button></h2>
+      <div class="series-list" id="series"></div>
+      <h2>Selected specimens</h2>
+      <div id="table"></div>
+      <h2>Source</h2>
+      <p class="muted" style="font-size:13px">TransformativeRoboticsLab/FDE-Metamaterials, <code>data/instron_tests/</code> (Bluehill exports with specimen height, thickness and width).</p>
+    </aside>
+  </main>
+  <script src="../../assets/chart.js"></script>
+  <script src="../../assets/curves.js"></script>
+  <script>TRLCurves.mount({ data: "../../data/fde.json", stressFromDims: true, defaultGroup: "homogeneous_foams 250306" });</script>
+</body>
+</html>

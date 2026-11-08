@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Transformative Robotics Lab</title>
+  <meta name="description" content="Projects of the Transformative Robotics Lab at Northeastern University, each with an interactive model built from the project's own data or simulator." />
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="assets/site.css" />
+  <style>
+    .hero { padding: 40px 0 18px; }
+    .hero h1 { font-size: clamp(26px, 4vw, 38px); margin: 0 0 8px; letter-spacing: -0.01em; }
+    .hero p { max-width: 70ch; margin: 0; color: var(--muted); font-size: 16px; }
+    .filters { display: flex; gap: 6px; flex-wrap: wrap; margin: 22px 0 14px; }
+    .filters button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 18px; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; box-shadow: var(--shadow); }
+    .card[hidden] { display: none; }
+    .card .thumb { display: block; aspect-ratio: 16 / 10; background: #0b1220; position: relative; }
+    .card .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .card .thumb .empty { position: absolute; inset: 0; display: grid; place-items: center; color: #9aa3b2; font-size: 14px; background: repeating-linear-gradient(45deg, #151a23 0 12px, #12161e 12px 24px); }
+    .card .body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+    .card h2 { font-size: 18px; margin: 0; }
+    .card .sub { font-size: 13px; color: var(--muted); margin-top: -4px; }
+    .card p { margin: 0; font-size: 14.5px; }
+    .card .tags { display: flex; gap: 6px; flex-wrap: wrap; }
+    .card .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: auto; padding-top: 6px; }
+    .card a.thumb:hover img { transform: scale(1.02); transition: transform 0.2s; }
+  </style>
+</head>
+<body>
+  <header class="site"><div class="wrap">
+    <a class="brand" href="./"><img src="assets/icon.svg" alt="" />Transformative Robotics Lab</a>
+    <nav class="site">
+      <a href="#projects">Projects</a>
+      <a href="https://github.com/TransformativeRoboticsLab">GitHub</a>
+      <a href="https://coe.northeastern.edu/people/lipton-jeffrey/">Prof. Jeffrey Ian Lipton</a>
+    </nav>
+  </div></header>
+
+  <main class="wrap">
+    <section class="hero">
+      <h1>Transformative Robotics Lab</h1>
+      <p>We work on robotics, 3D printing and mechanical metamaterials, with applications in manufacturing, in the Department of Mechanical and Industrial Engineering at Northeastern University. Every project below links to an interactive model, built either from the project's simulator or directly from the data in its public repository.</p>
+    </section>
+
+    <div class="filters" role="group" aria-label="Filter projects" id="filters">
+      <button type="button" class="btn" data-f="all" aria-pressed="true">All</button>
+      <button type="button" class="btn" data-f="metamaterials" aria-pressed="false">Metamaterials</button>
+      <button type="button" class="btn" data-f="robots" aria-pressed="false">Robots &amp; mechanisms</button>
+      <button type="button" class="btn" data-f="fabrication" aria-pressed="false">Fabrication</button>
+    </div>
+
+    <section class="grid" id="projects" aria-label="Projects"></section>
+  </main>
+
+  <footer class="site"><div class="wrap">
+    Transformative Robotics Lab · Northeastern University ·
+    <a href="https://github.com/TransformativeRoboticsLab">github.com/TransformativeRoboticsLab</a>.
+    Interactive models load their data from this site; thumbnails are rendered from the same data.
+  </div></footer>
+
+  <script>
+  const PROJECTS = [
+    {
+      id: "rads", title: "Reconfigurable Auxetic Devices (RADs)", sub: "Engineered backlash as a source of compliance",
+      text: "Lattices of semi-rigid rotating-square cells whose compliance comes from clearance in the pin joints. The normalized backlash b/L sets how far a dilation command spreads (the die-off distance), so a few servos can shape a smooth surface. The simulator models pin clearance, contact, gravity and forces, and reproduces the paper's experiments.",
+      tags: ["metamaterials", "robots"], labels: ["Simulation", "RoboSoft 2027"],
+      thumb: "thumbs/rads.svg",
+      model: "https://transformativeroboticslab.github.io/Auxetic-Backlash-Model/web/index.html", modelLabel: "Open simulator",
+      extra: [["Paper experiments report", "https://transformativeroboticslab.github.io/Auxetic-Backlash-Model/report/rads_simulation_report.html"]],
+      repo: "Auxetic-Backlash-Model",
+    },
+    {
+      id: "trunc", title: "TRUNC", sub: "Cable-driven continuum arm",
+      text: "A cable-actuated arm whose inverse kinematics are learned from data. Motion capture recorded the end-effector pose for 6,000 sampled cable configurations; the learned models were then tested on circle, triangle and line trajectories. Explore the measured workspace and see the cable lengths behind any pose.",
+      tags: ["robots"], labels: ["Measured data", "3D"],
+      thumb: "thumbs/trunc.svg", model: "models/trunc/", modelLabel: "Explore workspace", repo: "TRUNC",
+    },
+    {
+      id: "fde", title: "Fabrication-Directed Entanglement", sub: "Chiral and anisotropic metamaterial foams",
+      text: "Topology optimization of metamaterial unit cells for viscous thread printing, targeting properties such as Poisson's ratio and bulk modulus. Compare compression tests of homogeneous dense and sparse foams with the optimized metamaterial specimens as stress–strain curves.",
+      tags: ["metamaterials", "fabrication"], labels: ["Measured data", "Compression tests"],
+      thumb: "thumbs/fde.svg", model: "models/fde/", modelLabel: "Explore tests", repo: "FDE-Metamaterials",
+    },
+    {
+      id: "vtp", title: "VTP Foam Durability", sub: "Wear, compression and shear of viscous-thread-printed foams",
+      text: "Viscous thread printing lets an extruded thread coil into a controlled-porosity foam. This work develops standards-based tests for abrasive wear, cyclic compression and shear durability of these foams. Browse printed PLA and TPU foams, coated laminates, long-cycle and bending tests, and copper-filled foams.",
+      tags: ["fabrication"], labels: ["Measured data", "Durability tests"],
+      thumb: "thumbs/vtp.svg", model: "models/vtp/", modelLabel: "Explore tests", repo: "vtp-foam-durability",
+    },
+    {
+      id: "fpm", title: "FPM Control", sub: "Rotary control and surface probing",
+      text: "Control software for an FPM system driven over serial with G-code, which probes surfaces by stepping down until a contact endstop triggers. View the probed grid surface and the radial scans that probe inward from points on a hemisphere.",
+      tags: ["robots"], labels: ["Measured data", "3D"],
+      thumb: "thumbs/fpm.svg", model: "models/fpm/", modelLabel: "View probe scans", repo: "FPM_control",
+    },
+    {
+      id: "capstan", title: "Capstan Design", sub: "Repository created, contents not yet published",
+      text: "The Capstan-Design repository holds only a placeholder README so far. An interactive model will appear here once its design files or data are published.",
+      tags: ["robots"], labels: ["Coming soon"], thumb: null, model: null, repo: "Capstan-Design",
+    },
+    {
+      id: "reprogrammable", title: "Reprogrammable Matter", sub: "Repository created, contents not yet published",
+      text: "The ReprogrammableMatter repository contains only a license so far. An interactive model will appear here once its code or data are published.",
+      tags: ["metamaterials"], labels: ["Coming soon"], thumb: null, model: null, repo: "ReprogrammableMatter",
+    },
+  ];
+
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const gh = (repo) => `https://github.com/TransformativeRoboticsLab/${repo}`;
+  function card(p) {
+    const thumb = p.thumb ? `<img src="${p.thumb}" alt="Preview of ${esc(p.title)}" loading="lazy" />` : `<div class="empty">No public model yet</div>`;
+    const thumbLink = p.model ? `<a class="thumb" href="${p.model}" aria-label="Open the ${esc(p.title)} model">${thumb}</a>` : `<div class="thumb">${thumb}</div>`;
+    return `<article class="card" data-tags="${p.tags.join(" ")}" id="${p.id}">
+      ${thumbLink}
+      <div class="body">
+        <h2>${esc(p.title)}</h2>
+        <div class="sub">${esc(p.sub)}</div>
+        <div class="tags">${p.labels.map((l) => `<span class="tag">${esc(l)}</span>`).join("")}</div>
+        <p>${esc(p.text)}</p>
+        <div class="actions">
+          ${p.model ? `<a class="btn primary" href="${p.model}">${esc(p.modelLabel)}</a>` : `<span class="btn" aria-disabled="true">Model coming soon</span>`}
+          ${(p.extra || []).map(([t, u]) => `<a class="btn" href="${u}">${esc(t)}</a>`).join("")}
+          <a class="btn" href="${gh(p.repo)}">GitHub</a>
+        </div>
+      </div>
+    </article>`;
+  }
+  const grid = document.getElementById("projects");
+  grid.innerHTML = PROJECTS.map(card).join("");
+  document.getElementById("filters").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-f]");
+    if (!b) return;
+    document.querySelectorAll("#filters [data-f]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    grid.querySelectorAll(".card").forEach((c) => { c.hidden = b.dataset.f !== "all" && !c.dataset.tags.split(" ").includes(b.dataset.f); });
+  });
+  </script>
+</body>
+</html>

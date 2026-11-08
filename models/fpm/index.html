@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FPM Probe Surface</title>
+  <link rel="icon" href="../../assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../../assets/site.css" />
+</head>
+<body>
+  <header class="site"><div class="wrap">
+    <a class="brand" href="../../"><img src="../../assets/icon.svg" alt="" />Transformative Robotics Lab</a>
+    <nav class="site"><a href="../../">Projects</a><a href="https://github.com/TransformativeRoboticsLab/FPM_control">FPM_control on GitHub</a></nav>
+  </div></header>
+  <main class="model">
+    <div class="stage" id="stage"><div class="overlay">Drag: orbit · Right-drag: pan · Wheel: zoom · Hover: read a probe hit</div></div>
+    <aside>
+      <h1>FPM surface probing</h1>
+      <p class="muted">Measured data from the FPM_control scripts. The machine is driven over serial with G-code (Marlin/Klipper). At each probe point it steps down until a contact endstop triggers and logs the trigger height. Two scan types are shown: a grid scan of a surface, and radial scans that probe inward from start points on a hemisphere.</p>
+      <h2>Scan</h2>
+      <select id="scan"></select>
+      <label>Height exaggeration <output id="exOut">×10</output><input id="ex" type="range" min="1" max="40" step="1" value="10" /></label>
+      <label id="vecRow"><input type="checkbox" id="vectors" checked /> Show probe vectors</label>
+      <h2>Readout</h2>
+      <div class="readout" id="read">Hover a point.</div>
+      <div class="readout" id="stats" style="margin-top:8px"></div>
+      <h2>Source</h2>
+      <p class="muted" style="font-size:13px">TransformativeRoboticsLab/FPM_control: <code>Data/surface_20260330_171551.csv</code> (x, y, z_trigger in mm) and the two <code>radial_probe_a_*_interactive.html</code> exports.</p>
+    </aside>
+  </main>
+  <script src="../../assets/three.min.js"></script>
+  <script>
+  (async function () {
+    const $ = (id) => document.getElementById(id), stage = $("stage");
+    const data = await (await fetch("../../data/fpm.json")).json();
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 10000); camera.up.set(0, 0, 1);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); stage.prepend(renderer.domElement);
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x666677, 1.0));
+    const sun = new THREE.DirectionalLight(0xffffff, 0.6); sun.position.set(100, -100, 200); scene.add(sun);
+    const group = new THREE.Group(); scene.add(group);
+    const pickables = [];
+    const cam = { r: 300, az: -0.9, el: 0.6, target: new THREE.Vector3() };
+
+    $("scan").innerHTML = `<option value="grid">Grid scan (${data.grid.rows.length} points)</option>` + data.radial.map((s, k) => `<option value="r${k}">Radial scan ${k + 1} (${(s.traces.find((t) => /hit/i.test(t.name)) || s.traces[0]).x.length} probes)</option>`).join("");
+    const color = (t) => { const c = new THREE.Color(); c.setHSL(0.66 - 0.66 * Math.max(0, Math.min(1, t)), 0.7, 0.5); return c; };
+
+    function clear() { while (group.children.length) { const o = group.children.pop(); o.geometry && o.geometry.dispose(); } pickables.length = 0; }
+    function buildGrid() {
+      const k = Number($("ex").value), rows = data.grid.rows;
+      const xs = [...new Set(rows.map((r) => r[0]))].sort((a, b) => a - b), ys = [...new Set(rows.map((r) => r[1]))].sort((a, b) => a - b);
+      const zs = rows.map((r) => r[2]), z0 = Math.min(...zs), z1 = Math.max(...zs), zm = zs.reduce((a, b) => a + b, 0) / zs.length;
+      const cx = (xs[0] + xs[xs.length - 1]) / 2, cy = (ys[0] + ys[ys.length - 1]) / 2;
+      const at = (x, y) => rows.find((r) => r[0] === x && r[1] === y);
+      const pos = [], col = [], idx = [];
+      ys.forEach((y) => xs.forEach((x) => { const r = at(x, y), z = r ? r[2] : zm; pos.push(x - cx, y - cy, (z - zm) * k); const c = color((z - z0) / (z1 - z0 || 1)); col.push(c.r, c.g, c.b); }));
+      for (let j = 0; j < ys.length - 1; j += 1) for (let i = 0; i < xs.length - 1; i += 1) { const a = j * xs.length + i, b = a + 1, c = a + xs.length, d = c + 1; idx.push(a, b, d, a, d, c); }
+      const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3)); g.setIndex(idx); g.computeVertexNormals();
+      group.add(new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, side: THREE.DoubleSide, roughness: 0.7 })));
+      group.add(new THREE.LineSegments(new THREE.WireframeGeometry(g), new THREE.LineBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.25 })));
+      const dxy = Math.min(xs[1] - xs[0] || 1, ys[1] - ys[0] || 1);
+      rows.forEach((r) => {
+        const m = new THREE.Mesh(new THREE.SphereGeometry(dxy * 0.08, 12, 8), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+        m.position.set(r[0] - cx, r[1] - cy, (r[2] - zm) * k); m.userData = { text: `grid probe at x ${r[0]} mm, y ${r[1]} mm\ntrigger height ${r[2].toFixed(2)} mm` };
+        group.add(m); pickables.push(m);
+      });
+      $("stats").textContent = `trigger height ${z0.toFixed(2)} – ${z1.toFixed(2)} mm (range ${(z1 - z0).toFixed(2)} mm)\nscan area ${xs[xs.length - 1] - xs[0]} × ${ys[ys.length - 1] - ys[0]} mm`;
+      cam.r = Math.max(xs[xs.length - 1] - xs[0], ys[ys.length - 1] - ys[0]) * 2.4;
+    }
+    function buildRadial(s) {
+      const k = Number($("ex").value);
+      const hits = s.traces.find((t) => /hit/i.test(t.name)), starts = s.traces.find((t) => /start/i.test(t.name)), vec = s.traces.find((t) => /vector/i.test(t.name));
+      const zs = hits.z.filter(Number.isFinite), z0 = Math.min(...zs), z1 = Math.max(...zs);
+      const pts = (t) => t.x.map((x, i) => [x, t.y[i], t.z[i]]);
+      hits.x.forEach((x, i) => {
+        const z = hits.z[i];
+        const m = new THREE.Mesh(new THREE.SphereGeometry(1.4, 10, 8), new THREE.MeshStandardMaterial({ color: color((z - z0) / (z1 - z0 || 1)) }));
+        m.position.set(x, hits.y[i], z * (k / 10)); m.userData = { text: `probe hit ${i + 1}\nx ${x.toFixed(2)}  y ${hits.y[i].toFixed(2)}  z ${z.toFixed(2)} mm` };
+        group.add(m); pickables.push(m);
+      });
+      if (starts) group.add(new THREE.Points(new THREE.BufferGeometry().setFromPoints(pts(starts).map((p) => new THREE.Vector3(p[0], p[1], p[2] * (k / 10)))), new THREE.PointsMaterial({ color: 0x9aa3b2, size: 3, sizeAttenuation: false })));
+      if (vec && $("vectors").checked) {
+        const v = pts(vec), seg = [];
+        for (let i = 0; i + 1 < v.length; i += 1) if (v.slice(i, i + 2).every((p) => p.every(Number.isFinite))) seg.push(new THREE.Vector3(v[i][0], v[i][1], v[i][2] * (k / 10)), new THREE.Vector3(v[i + 1][0], v[i + 1][1], v[i + 1][2] * (k / 10)));
+        group.add(new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(seg), new THREE.LineBasicMaterial({ color: 0x9aa3b2, transparent: true, opacity: 0.4 })));
+      }
+      const r = Math.max(...hits.x.map((x, i) => Math.hypot(x, hits.y[i])));
+      $("stats").textContent = `${hits.x.length} probe hits, z ${z0.toFixed(2)} – ${z1.toFixed(2)} mm\nscan radius ≈ ${r.toFixed(0)} mm (heights scaled ×${(k / 10).toFixed(1)})`;
+      cam.r = r * 3.2;
+    }
+    function build() {
+      clear();
+      const s = $("scan").value;
+      $("vecRow").hidden = s === "grid";
+      $("exOut").textContent = `×${$("ex").value}`;
+      if (s === "grid") buildGrid(); else buildRadial(data.radial[Number(s.slice(1))]);
+    }
+    ["scan", "ex", "vectors"].forEach((id) => $(id).addEventListener("input", build));
+
+    function place() { camera.position.set(cam.target.x + cam.r * Math.cos(cam.el) * Math.cos(cam.az), cam.target.y + cam.r * Math.cos(cam.el) * Math.sin(cam.az), cam.target.z + cam.r * Math.sin(cam.el)); camera.lookAt(cam.target); }
+    function resize() { const w = stage.clientWidth, h = stage.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+    const el = renderer.domElement; let drag = null;
+    el.addEventListener("contextmenu", (e) => e.preventDefault());
+    el.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY, pan: e.button === 2 || e.shiftKey }; el.setPointerCapture(e.pointerId); });
+    el.addEventListener("pointerup", () => { drag = null; });
+    const ray = new THREE.Raycaster();
+    el.addEventListener("pointermove", (e) => {
+      if (drag) {
+        const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
+        if (drag.pan) { const s = cam.r / 700; cam.target.add(new THREE.Vector3(-Math.sin(cam.az), Math.cos(cam.az), 0).multiplyScalar(-dx * s)); cam.target.z += dy * s; }
+        else { cam.az -= dx * 0.008; cam.el = Math.max(-1.4, Math.min(1.5, cam.el + dy * 0.008)); }
+        return;
+      }
+      const r = el.getBoundingClientRect();
+      ray.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), camera);
+      const hit = ray.intersectObjects(pickables)[0];
+      if (hit) $("read").textContent = hit.object.userData.text;
+    });
+    el.addEventListener("wheel", (e) => { e.preventDefault(); cam.r = Math.max(5, cam.r * Math.exp(e.deltaY * 0.0012)); }, { passive: false });
+    window.addEventListener("resize", resize);
+    build(); resize();
+    (function loop() { requestAnimationFrame(loop); place(); renderer.render(scene, camera); })();
+  })();
+  </script>
+</body>
+</html>
