@@ -1,0 +1,10 @@
+{
+  "RADs_patent": {
+    "summary": "Patent application describing lattices of rotating auxetic cells joined by pins with deliberate clearance (backlash), so that a few actuated cells can reconfigure the lattice into different surface shapes.",
+    "project": "Reconfigurable auxetic devices (RADs)",
+    "demo": "https://transformativeroboticslab.github.io/Auxetic-Backlash-Model/web/index.html",
+    "demoLabel": "Open RADs simulator",
+    "source": "abstract",
+    "fulltext": "https://patents.google.com/patent/US20260042530A1/en"
+  }
+}

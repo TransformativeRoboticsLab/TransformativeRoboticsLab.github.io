@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fractal Suction Gripper</title>
+  <link rel="icon" href="../../assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../../assets/site.css" />
+  <style>
+    .model aside input[type="range"] { width: 100%; }
+    .stage.split { display: grid; grid-template-rows: minmax(0, 3fr) minmax(0, 2fr); height: calc(100vh - 61px); }
+    .stage.split > div { position: relative; min-height: 0; overflow: hidden; }
+    .model .stage canvas#view, .model .stage canvas#chart { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    .chart-wrap { border-top: 1px solid var(--line); display: flex; flex-direction: column; padding: 6px 12px 4px; }
+    .chart-box { position: relative; flex: 1; min-height: 0; }
+    .legend { font-size: 12px; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; }
+    .legend i { display: inline-block; width: 14px; height: 3px; vertical-align: middle; margin-right: 4px; }
+    .label-ill { font-size: 12px; border-left: 3px solid var(--accent); padding: 4px 8px; background: var(--chip); border-radius: 4px; }
+    details.how li { font-size: 13px; }
+    @media (max-width: 860px) { .model { grid-template-rows: auto auto; } .stage.split { height: 88vh; } }
+  </style>
+</head>
+<body>
+  <header class="site"><div class="wrap">
+    <a class="brand" href="../../"><img src="../../assets/icon.svg" alt="" />Transformative Robotics Lab</a>
+    <nav class="site"><a href="../../">Projects</a><a href="https://doi.org/10.1109/lra.2024.3401138">Paper (IEEE RA-L)</a></nav>
+  </div></header>
+  <main class="model">
+    <div class="stage split" id="stage">
+      <div><canvas id="view"></canvas><div class="overlay" style="top:8px;bottom:auto">Green cup: sealed · red: no seal · grey: pivot joints. Drag in the view to change the approach angle.</div></div>
+      <div class="chart-wrap"><div class="legend" id="legend"></div><div class="chart-box"><canvas id="chart"></canvas></div></div>
+    </div>
+    <aside>
+      <h1>Fractal suction gripper</h1>
+      <p class="label-ill">Illustrative model based on the abstract of O'Brien, Kowalewski, Kessens &amp; Lipton, <i>A Fractal Suction-Based Robotic Gripper for Versatile Grasping</i> (IEEE RA-L 2024). The full text was not available to us, so this is a simplified 2D model of the key idea, not the paper's model. Default values are placeholders, not the paper's.</p>
+      <p class="muted">Suction cups sit at the tips of a branching tree of free pivots, like a whiffletree. Each pivot rotates until both of its branches touch, so the cups spread over curved surfaces and corners and stay square to the surface over a wider range of approach angles than one rigid cup.</p>
+      <h2>Tree design</h2>
+      <label>Levels n (cups = 2<sup>n</sup>) <output id="nOut"></output><input id="n" type="range" min="0" max="4" step="1" value="3" /></label>
+      <label>Top half-span s<sub>0</sub> <output id="s0Out"></output><input id="s0" type="range" min="20" max="120" step="1" value="48" /></label>
+      <label>Span ratio per level <output id="kOut"></output><input id="k" type="range" min="0.3" max="0.8" step="0.01" value="0.5" /></label>
+      <label>Drop per level h <output id="hOut"></output><input id="h" type="range" min="8" max="50" step="1" value="22" /></label>
+      <label>Pivot rotation limit ±φ<sub>max</sub> <output id="pmOut"></output><input id="pm" type="range" min="0" max="80" step="1" value="40" /></label>
+      <h2>Cups</h2>
+      <label>Cup diameter <output id="dcOut"></output><input id="dc" type="range" min="6" max="40" step="1" value="16" /></label>
+      <label>Cup misalignment tolerance ±α<sub>c</sub> <output id="acOut"></output><input id="ac" type="range" min="1" max="20" step="0.5" value="5" /></label>
+      <label>Gap a cup lip can still close <output id="gtOut"></output><input id="gt" type="range" min="0.2" max="6" step="0.1" value="1.5" /></label>
+      <label>Vacuum ΔP <output id="dpOut"></output><input id="dp" type="range" min="10" max="90" step="1" value="60" /></label>
+      <h2>Object and approach</h2>
+      <label>Surface <select id="surf"><option value="convex">Convex cylinder</option><option value="flat">Flat plate</option><option value="concave">Concave bowl</option><option value="corner">Box corner (90° edge; try ψ = 45°)</option><option value="wave">Wavy surface</option></select></label>
+      <label>Curvature radius / wave amplitude <output id="rcOut"></output><input id="rc" type="range" min="10" max="400" step="1" value="200" /></label>
+      <label>Approach angle ψ <output id="psiOut"></output><input id="psi" type="range" min="-70" max="70" step="1" value="20" /></label>
+      <label>Lateral offset <output id="offOut"></output><input id="off" type="range" min="-60" max="60" step="1" value="0" /></label>
+      <h2>Readout</h2>
+      <div class="readout" id="read"></div>
+      <h2>How this model works</h2>
+      <details class="how" open>
+        <summary>Simplified mechanics, stated plainly</summary>
+        <ul>
+          <li><b>What comes from the paper (abstract only):</b> a fractal tree of passive joints makes a suction gripper more conformable and widens the approach-angle range. The authors report 5° for a standard suction gripper and 45° for theirs, enabled corner grasping, and found that vacuum-actuated joint brakes improved performance by over 30% at moderate contact angles. Those are the paper's measured results. This demo does not reproduce them.</li>
+          <li><b>Geometry (this demo):</b> a planar binary tree. Level i has half-span s<sub>0</sub>·k<sup>i</sup> and drop h. Every bar hangs from a frictionless pivot that can turn ±φ<sub>max</sub> relative to its parent bar, and the last bars carry the cups rigidly.</li>
+          <li><b>Conforming:</b> the gripper is pushed straight in along its axis. Working from the leaves up, each pivot takes the angle that lets both branches touch, sin φ = (z<sub>1</sub> − z<sub>2</sub>)/(2s), clipped at ±φ<sub>max</sub>. A few fixed-point passes update branch positions as the bars rotate. The gripper stops at the first contact.</li>
+          <li><b>Seal rule:</b> a cup seals if its residual gap is no more than the lip allowance and its face is within ±α<sub>c</sub> of the local surface normal. α<sub>c</sub> = 5° echoes the single-cup range in the abstract. Set n = 0 to see one rigid cup.</li>
+          <li><b>Holding force (simplified):</b> a pull along the gripper axis splits equally at each pivot whose two branches both hold a seal, or goes entirely to the one branch that does. Each sealed cup holds until ΔP·A is reached by the normal component, or by the shear component divided by μ<sub>s</sub> = 0.5. The payload is the smallest cup capacity divided by that cup's share. Joint brakes are not modelled.</li>
+          <li><b>Chart:</b> sealed cups and model holding force against approach angle ψ for the current surface, compared with a single rigid cup. These are model curves, not measurements.</li>
+        </ul>
+      </details>
+    </aside>
+  </main>
+  <script src="../../assets/chart.js"></script>
+  <script>
+  (function () {
+    "use strict";
+    const $ = (id) => document.getElementById(id), D2R = Math.PI / 180, MU_S = 0.5;
+    const prm = () => ({ n: +$("n").value, s0: +$("s0").value, k: +$("k").value, h: +$("h").value, pm: +$("pm").value * D2R, dc: +$("dc").value, ac: +$("ac").value * D2R, gt: +$("gt").value, dp: +$("dp").value, surf: $("surf").value, rc: +$("rc").value, psi: +$("psi").value * D2R, off: +$("off").value });
+
+    // ---- object surface (world frame, z up), as a polyline ----
+    function surfaceWorld(p) {
+      const pts = [], W = 260;
+      if (p.surf === "flat") { pts.push([-W, 0], [W, 0]); }
+      else if (p.surf === "convex") { const R = p.rc; pts.push([-W, -R]); for (let i = 0; i <= 160; i++) { const a = Math.PI - (i / 160) * Math.PI; pts.push([R * Math.cos(a), R * Math.sin(a) - R]); } pts.push([W, -R]); }
+      else if (p.surf === "concave") { const R = Math.max(p.rc, 40); for (let i = 0; i <= 160; i++) { const a = Math.PI + (i / 160) * Math.PI; pts.push([R * Math.cos(a), R * Math.sin(a) + R]); } pts.unshift([-R, 2 * R]); pts.unshift([-W, 2 * R]); pts.push([R, 2 * R], [W, 2 * R]); }
+      else if (p.surf === "corner") { pts.push([0, -W], [0, 0], [W, 0]); }
+      else { const A = Math.min(p.rc, 60) * 0.3, lam = 90; for (let i = 0; i <= 260; i++) { const x = -W + (2 * W * i) / 260; pts.push([x, A * Math.sin((2 * Math.PI * x) / lam)]); } }
+      return pts;
+    }
+    // world -> gripper frame (gripper axis = −z_g). The gripper is tilted by ψ, so rotate the world by −ψ.
+    const rot = (q, a) => [q[0] * Math.cos(a) - q[1] * Math.sin(a), q[0] * Math.sin(a) + q[1] * Math.cos(a)];
+    function heightFn(poly) {
+      const segs = []; for (let i = 0; i + 1 < poly.length; i++) segs.push([poly[i], poly[i + 1]]);
+      return function (x) { // upper envelope z(x) and the local surface angle
+        let best = -Infinity, ang = 0;
+        for (const [a, b] of segs) {
+          const x0 = Math.min(a[0], b[0]), x1 = Math.max(a[0], b[0]); if (x < x0 || x > x1 || x1 - x0 < 1e-9) continue;
+          const t = (x - a[0]) / (b[0] - a[0]), z = a[1] + t * (b[1] - a[1]);
+          if (z > best) { best = z; ang = Math.atan2(b[1] - a[1], b[0] - a[0]); if (ang > Math.PI / 2) ang -= Math.PI; if (ang < -Math.PI / 2) ang += Math.PI; }
+        }
+        return best === -Infinity ? { z: -1000, ang: 0 } : { z: best, ang };
+      };
+    }
+
+    // ---- tree: required pivot height so the subtree just touches, and the pivot angle it settles to ----
+    function solve(p, f) {
+      const span = (lvl) => p.s0 * Math.pow(p.k, lvl);
+      // req(level, x) -> { z, phi, kids }  (z = pivot height at first full contact)
+      function req(lvl, x, par) {
+        if (lvl === p.n) { const s = f(x); return { leaf: true, z: s.z, x, surfAng: s.ang }; }
+        const s = span(lvl), h = p.h; let phi = par, c1, c2;
+        for (let it = 0; it < 4; it++) {
+          const xa = x + (-s * Math.cos(phi) + h * Math.sin(phi)), xb = x + (s * Math.cos(phi) + h * Math.sin(phi));
+          c1 = req(lvl + 1, xa, phi); c2 = req(lvl + 1, xb, phi);
+          const d = (c2.z - c1.z) / (2 * s); phi = Math.asin(Math.max(-1, Math.min(1, d)));
+          phi = Math.max(par - p.pm, Math.min(par + p.pm, phi));
+        }
+        const z1 = c1.z - (-s * Math.sin(phi) - h * Math.cos(phi)), z2 = c2.z - (s * Math.sin(phi) - h * Math.cos(phi));
+        return { z: Math.max(z1, z2), phi, s, kids: [c1, c2], x };
+      }
+      let root;
+      if (p.n === 0) { const sf = f(p.off); root = { leaf: true, z: sf.z, x: p.off, surfAng: sf.ang }; }
+      else root = req(0, p.off, 0);
+      // place: walk down from the actual root height; leaf orientation = parent bar angle (root cup: 0)
+      const cups = [], bars = [];
+      function place(node, z, parentPhi, lvl) {
+        if (node.leaf) { const gap = z - node.z, mis = Math.abs(parentPhi - node.surfAng); cups.push({ x: node.x, z, gap, mis, ang: parentPhi, surfAng: node.surfAng, sealed: gap <= p.gt + 1e-9 && mis <= p.ac + 1e-9 }); return cups[cups.length - 1]; }
+        const s = node.s, h = p.h, phi = node.phi;
+        const ends = [[-s, -h], [s, -h]].map((q) => { const r = rot(q, phi); return [node.x + r[0], z + r[1]]; });
+        bars.push({ pivot: [node.x, z], ends, phi, lvl });
+        const out = node.kids.map((kid, j) => place(kid, ends[j][1], phi, lvl + 1));
+        node._out = out; return node;
+      }
+      place(root, root.z, 0, 0);
+      return { root, cups, bars };
+    }
+    // load sharing (whiffletree) and holding force
+    function capacity(p, sol) {
+      const A = Math.PI * (p.dc / 2) ** 2, Fc = p.dp * 1e3 * A * 1e-6; // N per cup
+      const leaves = [];
+      function sealedIn(node) { if (node.sealed !== undefined) return node.sealed ? 1 : 0; if (node.leaf) return 0; return node._out.reduce((s, c) => s + sealedIn(c), 0); }
+      function share(node, w) {
+        if (node.sealed !== undefined) { if (node.sealed) leaves.push({ cup: node, w }); return; }
+        const a = sealedIn(node._out[0]), b = sealedIn(node._out[1]);
+        if (a && b) { share(node._out[0], w / 2); share(node._out[1], w / 2); } else if (a) share(node._out[0], w); else if (b) share(node._out[1], w);
+      }
+      if (sol.root.leaf) { const c = sol.cups[0]; if (c.sealed) leaves.push({ cup: c, w: 1 }); } else share(sol.root, 1);
+      let W = leaves.length ? Infinity : 0;
+      for (const { cup, w } of leaves) { const beta = Math.abs(cup.surfAng), cap = Fc / Math.max(Math.cos(beta), Math.sin(beta) / MU_S); W = Math.min(W, cap / w); }
+      return { W, Fc, nSealed: leaves.length };
+    }
+    function evaluate(p) {
+      const poly = surfaceWorld(p).map((q) => rot(q, -p.psi));
+      const sol = solve(p, heightFn(poly)); const cap = capacity(p, sol);
+      return { poly, sol, cap };
+    }
+
+    // ---- drawing ----
+    const cv = $("view"), g = cv.getContext("2d");
+    const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+    function size(c) { const dpr = Math.min(devicePixelRatio || 1, 2), w = c.clientWidth, h = c.clientHeight; if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); } c.getContext("2d").setTransform(dpr, 0, 0, dpr, 0, 0); return { w, h }; }
+    let cur = null;
+    function draw() {
+      const p = prm(), { w, h } = size(cv); g.clearRect(0, 0, w, h);
+      const { sol } = cur, ink = css("--ink"), muted = css("--muted");
+      // world view: rotate gripper-frame points back by +ψ
+      const toW = (q) => rot(q, p.psi);
+      const rootZ = sol.root.z, tree = p.s0 * 2.4 + 120;
+      const sc = Math.min(w / (tree * 1.6), h / (tree * 1.25));
+      const ox = w / 2, oy = h * 0.66;
+      const X = (q) => { const r = toW([q[0], q[1] - rootZ]); return [ox + r[0] * sc, oy - r[1] * sc]; };
+      // surface (world) shifted so root pivot sits at origin
+      const wr = toW([0, rootZ]);
+      const worldPoly = surfaceWorld(p);
+      g.fillStyle = css("--chip"); g.strokeStyle = muted; g.lineWidth = 2; g.beginPath();
+      worldPoly.forEach((q, i) => { const xx = ox + (q[0] - wr[0]) * sc, yy = oy - (q[1] - wr[1]) * sc; i ? g.lineTo(xx, yy) : g.moveTo(xx, yy); });
+      const last = worldPoly[worldPoly.length - 1], first = worldPoly[0];
+      g.lineTo(ox + (last[0] - wr[0]) * sc, h + 400); g.lineTo(ox + (first[0] - wr[0]) * sc, h + 400); g.closePath(); g.fill(); g.stroke();
+      // approach axis and flange
+      const up = X([p.off, rootZ + 90]), piv = X([p.off, rootZ]);
+      g.setLineDash([5, 4]); g.strokeStyle = muted; g.lineWidth = 1; g.beginPath(); g.moveTo(...X([p.off, rootZ + 160])); g.lineTo(...piv); g.stroke(); g.setLineDash([]);
+      g.strokeStyle = ink; g.lineWidth = 6; g.beginPath(); g.moveTo(...up); g.lineTo(...piv); g.stroke();
+      // bars
+      for (const b of sol.bars) {
+        const P = X(b.pivot), E0 = X(b.ends[0]), E1 = X(b.ends[1]);
+        const sH = Math.hypot(b.ends[1][0] - b.ends[0][0], b.ends[1][1] - b.ends[0][1]) / 2;
+        const L = X([b.pivot[0] + rot([-sH, 0], b.phi)[0], b.pivot[1] + rot([-sH, 0], b.phi)[1]]), R = X([b.pivot[0] + rot([sH, 0], b.phi)[0], b.pivot[1] + rot([sH, 0], b.phi)[1]]);
+        g.strokeStyle = ink; g.lineWidth = Math.max(2, 5 - b.lvl); g.beginPath(); g.moveTo(...L); g.lineTo(...R); g.moveTo(...L); g.lineTo(...E0); g.moveTo(...R); g.lineTo(...E1); g.stroke();
+        g.fillStyle = "#9aa3b2"; g.beginPath(); g.arc(P[0], P[1], Math.max(3, 6 - b.lvl), 0, 2 * Math.PI); g.fill();
+      }
+      // cups
+      const cupR = (p.dc / 2) * sc;
+      for (const c of sol.cups) {
+        const C = X([c.x, c.z]), a = c.ang + p.psi; // world angle of the cup face
+        const dx = Math.cos(a) * cupR, dy = -Math.sin(a) * cupR, nx = Math.sin(a) * cupR * 0.6, ny = Math.cos(a) * cupR * 0.6;
+        g.fillStyle = c.sealed ? "#2e9d6b" : "#e0453a"; g.beginPath();
+        g.moveTo(C[0] - dx, C[1] - dy); g.lineTo(C[0] + dx, C[1] + dy); g.lineTo(C[0] + dx * 0.4 - nx, C[1] + dy * 0.4 - ny); g.lineTo(C[0] - dx * 0.4 - nx, C[1] - dy * 0.4 - ny); g.closePath(); g.fill();
+      }
+      g.fillStyle = muted; g.font = "12px system-ui"; g.textAlign = "left";
+      g.fillText(`approach ψ = ${(p.psi / D2R).toFixed(0)}° from the surface normal at the start`, 12, h - 12);
+    }
+
+    // ---- chart: sealed cups and holding force vs approach angle ----
+    const chart = TRLChart.create($("chart"), { xlabel: "Approach angle ψ (deg)", ylabel: "Model holding force (N)" });
+    function sweep() {
+      const p = prm(), xs = [], yTree = [], ySingle = [], sTree = [], sSingle = [];
+      for (let a = -70; a <= 70; a += 2) {
+        const q = { ...p, psi: a * D2R }, r = evaluate(q), r0 = evaluate({ ...q, n: 0 });
+        xs.push(a); yTree.push(r.cap.W); ySingle.push(r0.cap.W); sTree.push(r.cap.nSealed); sSingle.push(r0.cap.nSealed);
+      }
+      const series = [
+        { name: `Fractal tree, n = ${p.n}`, x: xs, y: yTree, color: "#2f6fde" },
+        { name: "Single rigid cup", x: xs, y: ySingle, color: "#e0453a" },
+        { name: "current ψ", x: [p.psi / D2R, p.psi / D2R], y: [0, Math.max(1, ...yTree, ...ySingle)], color: "#9aa3b2" },
+      ];
+      chart.setSeries(series, { xlabel: "Approach angle ψ (deg)", ylabel: "Model holding force (N)" });
+      const range = (ys) => { const ok = xs.filter((_, i) => ys[i] > 0); return ok.length ? `${Math.min(...ok)}° to ${Math.max(...ok)}°` : "none"; };
+      $("legend").innerHTML = series.slice(0, 2).map((s, i) => `<span><i style="background:${s.color}"></i>${s.name}: holds from ${range(i ? ySingle : yTree)}</span>`).join("");
+    }
+    function update() {
+      const p = prm();
+      $("nOut").textContent = `${p.n} (${2 ** p.n} cup${p.n ? "s" : ""})`; $("s0Out").textContent = `${p.s0} mm`; $("kOut").textContent = p.k.toFixed(2); $("hOut").textContent = `${p.h} mm`;
+      $("pmOut").textContent = `${(p.pm / D2R).toFixed(0)}°`; $("dcOut").textContent = `${p.dc} mm`; $("acOut").textContent = `${(p.ac / D2R).toFixed(1)}°`; $("gtOut").textContent = `${p.gt.toFixed(1)} mm`; $("dpOut").textContent = `${p.dp} kPa`;
+      $("rcOut").textContent = `${p.rc} mm`; $("psiOut").textContent = `${(p.psi / D2R).toFixed(0)}°`; $("offOut").textContent = `${p.off} mm`;
+      cur = evaluate(p);
+      const { sol, cap } = cur, n = sol.cups.length, worst = sol.cups.reduce((m, c) => Math.max(m, c.mis), 0);
+      $("read").textContent =
+        `sealed cups: ${sol.cups.filter((c) => c.sealed).length} of ${n}\n` +
+        `per-cup suction ΔP·A = ${cap.Fc.toFixed(1)} N\n` +
+        `model holding force along the axis: ${cap.W.toFixed(1)} N\n` +
+        `largest cup misalignment: ${(worst / D2R).toFixed(1)}°   largest gap: ${Math.max(...sol.cups.map((c) => c.gap)).toFixed(1)} mm\n` +
+        (sol.bars.length ? `pivot angles: ${sol.bars.map((b) => (b.phi / D2R).toFixed(0) + "°").join(" ")}` : "single rigid cup (n = 0)");
+      sweep(); draw();
+    }
+    ["n", "s0", "k", "h", "pm", "dc", "ac", "gt", "dp", "surf", "rc", "psi", "off"].forEach((id) => $(id).addEventListener("input", update));
+    let drag = null;
+    cv.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, v: +$("psi").value }; cv.setPointerCapture(e.pointerId); });
+    cv.addEventListener("pointermove", (e) => { if (!drag) return; $("psi").value = Math.max(-70, Math.min(70, Math.round(drag.v + (e.clientX - drag.x) * 0.3))); update(); });
+    cv.addEventListener("pointerup", () => (drag = null));
+    cv.style.touchAction = "none";
+    window.addEventListener("resize", update);
+    update();
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,324 @@
+[
+ {
+  "id": "kinergy",
+  "title": "Kinergy kinetic units",
+  "sub": "Spring energy to printed motion",
+  "text": "Pick one of Kinergy's kinetic units, size its helical or spiral spring and gear train, and release it. Stored energy, gear ratio, output revolutions or stroke follow the paper's Table 2 relations, with a stress check that flags springs likely to break.",
+  "tags": [
+   "fabrication",
+   "robots"
+  ],
+  "pubs": [
+   "10.1145/3526113.3545636"
+  ]
+ },
+ {
+  "id": "carpentry-compiler",
+  "title": "Carpentry compiler",
+  "sub": "One design, many cut plans",
+  "text": "Change a parametric 2×4 bench frame and watch it compile into hundreds of equivalent cut plans scored on material cost, fabrication time and tape-measure precision. Pareto-optimal plans are highlighted and listed as LL-HELM-style instructions.",
+  "tags": [
+   "fabrication"
+  ],
+  "pubs": [
+   "10.1145/3355089.3356518"
+  ]
+ },
+ {
+  "id": "robotic-jigsaw",
+  "title": "Robotic jigsaw planner",
+  "sub": "Non-holonomic cuts and drill holes",
+  "text": "A jigsaw blade can only cut along its heading, so corners tighter than its turning radius split a cut-out into sections. Choose a shape and blade radius and see where drill holes go when hole count is traded against travel distance; a simplified model built from the paper's abstract.",
+  "tags": [
+   "fabrication",
+   "robots"
+  ],
+  "pubs": [
+   "9636066"
+  ]
+ },
+ {
+  "id": "proform",
+  "title": "ProForm thermoforming",
+  "sub": "Solder-free assembly with a PETG sheet",
+  "text": "Run a pressure-forming cycle over SMD parts on a board and see how sheet thickness, pressure and spacing change how tightly the sheet wraps and how hard it presses each part onto its pads. The paper's measured results for sheet thickness and package types are shown alongside.",
+  "tags": [
+   "fabrication"
+  ],
+  "pubs": [
+   "proform"
+  ]
+ },
+ {
+  "id": "sander-grip",
+  "title": "Sander grip damping",
+  "sub": "Liquid-filled printed pads vs vibration",
+  "text": "A hand resting on a viscoelastic pad on a vibrating sander: change the pad's liquid fraction and thickness and compare transmissibility with the stock grip across frequency. The paper's measured palm and finger reductions are listed for comparison.",
+  "tags": [
+   "fabrication"
+  ],
+  "pubs": [
+   "vibration_handling"
+  ]
+ },
+ {
+  "id": "tourniquet",
+  "title": "Printed tourniquet loads",
+  "sub": "ABS vs PETG vs CAT components",
+  "text": "Twist the windlass and see the band tension each tourniquet part must carry against the peak loads the paper measured for ABS, PETG and the commercial CAT. The weakest link lights up first.",
+  "tags": [
+   "fabrication"
+  ],
+  "pubs": [
+   "ukrainetorniquet"
+  ]
+ },
+ {
+  "id": "homunculus",
+  "title": "Baxter's homunculus",
+  "sub": "VR control room inside the robot",
+  "text": "Sit in a virtual control room inside Baxter's head, grab a gripper orb and move it: the paper's mappings scale your hand motion into the robot's workspace, with position-only or full-pose coupling, and the orb turns red when the target is out of reach.",
+  "tags": [
+   "robots",
+   "fabrication"
+  ],
+  "pubs": [
+   "8003431"
+  ]
+ },
+ {
+  "id": "hsa",
+  "title": "Handed Shearing Auxetics",
+  "sub": "Twist a 3D HSA cylinder, a left/right linear actuator, or a bending finger",
+  "text": "Twisting a handed shearing auxetic cylinder lengthens it. This demo drives a schematic 3D HSA lattice with the measured fits for length, blocked force, stiffness and holding torque from the ICRA 2022 design study (Table III). You can switch between closed, semi-open and open designs and 4–12 rows, or join a left and a right cylinder into the RoboSoft 2018 linear actuator and bending finger.",
+  "tags": [
+   "metamaterials",
+   "robots"
+  ],
+  "pubs": [
+   "8404904",
+   "9812156",
+   "9196626",
+   "8722747"
+  ]
+ },
+ {
+  "id": "trsll",
+  "title": "Torsion-Resistant Strain Limiting Layer",
+  "sub": "Why triangulated layers stop soft grippers from twisting out of a grasp",
+  "text": "Compare a flat strain limiting layer with triangulated TR-SLL designs, using the torsional stiffnesses the papers computed by FEA. Set payload, lever arm and normal force to see whether the antipodal grasp fails by twisting (Eq. 5/6) or by slipping (Eq. 1). The HSA gripper's own torque term is included.",
+  "tags": [
+   "robots",
+   "fabrication"
+  ],
+  "pubs": [
+   "t_HSA",
+   "good2023enhancing"
+  ]
+ },
+ {
+  "id": "spring-brake",
+  "title": "HSA Spring-Brake Hopper",
+  "sub": "One HSA as a hopping spring and, when jammed, a standing brake",
+  "text": "A spring-mass model of the monopod hopper sizes the leg spring and predicts hop frequency (Eq. 1). Twisting the HSA past 135° jams it into a stiff brake. A Joule-heating model (Eq. 2) shows why holding a load with the leg motor costs power that the brake avoids.",
+  "tags": [
+   "robots"
+  ],
+  "pubs": [
+   "spring_brake_hsa_2025"
+  ]
+ },
+ {
+  "id": "bilayer-auxetic",
+  "title": "Bi-Layer Auxetic Voxels",
+  "sub": "Scissor-linked auxetic shells that grow 1.57× in 0.2 s",
+  "text": "Drive an AuxSwarm voxel from closed (92 mm) to open (144 mm) and watch its two counter-rotating shell layers. The paper's tangency model (Eqs. 1–3) turns the expansion ratio into the steepest incline two voxels can form and the bending radius of a voxel layer.",
+  "tags": [
+   "metamaterials",
+   "robots"
+  ],
+  "pubs": [
+   "bilayer_auxetics_icra_2025"
+  ]
+ },
+ {
+  "id": "capstan-clutch",
+  "title": "Johnsen-Rahbek capstan clutch",
+  "sub": "Voltage, wrap angle and friction → holding torque",
+  "text": "Wrap an electroadhesive band around a PBI-coated shaft and see how much torque it holds. The page uses the ICRA 2024 model, which combines Johnsen-Rahbek and Coulomb pressure with the capstan equation. You can compare it with a planar clutch of the same area and with a plain capstan.",
+  "tags": [
+   "robots"
+  ],
+  "pubs": [
+   "10611283"
+  ]
+ },
+ {
+  "id": "herds",
+  "title": "HERDS deployable truss",
+  "sub": "Kresling tower of pop-up extending trusses, stowed to deployed",
+  "text": "Deploy a hierarchical Kresling tower whose members are pop-up extending trusses. First the tower untwists, then the trusses pop from flat to triangular and extend. Readouts give the PET cell angles, twist and expansion ratio, and the default reaches about 51×, matching the 1/10-scale prototype.",
+  "tags": [
+   "metamaterials"
+  ],
+  "pubs": [
+   "herds",
+   "microgravity_isparo_2025"
+  ]
+ },
+ {
+  "id": "expansion-joint",
+  "title": "Quiet bridge expansion joint",
+  "sub": "Tire impacts on open gaps vs chevron gap fillers",
+  "text": "Roll a tire across a modular bridge expansion joint and fill its gaps with zero-Poisson chevron supports that track the opening. A simple rigid-wheel sketch shows why open gaps cause edge strikes. Reported FEA pressure reductions and field noise results are quoted alongside.",
+  "tags": [
+   "metamaterials"
+  ],
+  "pubs": [
+   "expansion_joint_trr_2025"
+  ]
+ },
+ {
+  "id": "viscoelastic",
+  "title": "Printed viscoelastic dampers",
+  "sub": "Liquid fraction → stiffness, damping and bounce",
+  "text": "Choose how much liquid the printer mixes into a rubbery solid. The paper's fitted models then give storage and loss moduli, impact restitution and vibration transmissibility. A drop test shows the bounce, and a voxel slice shows the printed material.",
+  "tags": [
+   "fabrication",
+   "robots"
+  ],
+  "pubs": [
+   "7759409"
+  ]
+ },
+ {
+  "id": "torque-lattice",
+  "title": "Torque-transmitting metamaterials",
+  "sub": "TRUNC joints and Watt's-mechanism BETR tubes",
+  "text": "Bend, stretch and spin two lab metamaterials that stay stiff in twist. A chain of TRUNC constant-velocity joints shows the measured twist–bend ratios (11 and 52), and a BETR tube is built from exact Watt's-linkage kinematics (Eq. 1–2) with a live extension-ratio sweep.",
+  "tags": [
+   "metamaterials",
+   "robots"
+  ],
+  "pubs": [
+   "TRUNC_carton_kowaleski",
+   "torque_tubular_aisy_2025"
+  ]
+ },
+ {
+  "id": "zero-modes",
+  "title": "Reprogrammable zero modes",
+  "sub": "One straight-line mechanism, four lattice symmetries",
+  "text": "Rotate every straight-line mechanism in a 2*22, 442 or hexagonal lattice and watch its floppy modes, computed from the lattice compatibility matrix, recompute and animate. Readouts track the extremal mode, Poisson's ratio and the eigenvalue gamut, with the paper's measured-data fit overlaid.",
+  "tags": [
+   "metamaterials"
+  ],
+  "pubs": [
+   "zero_modes_2025"
+  ]
+ },
+ {
+  "id": "bistable",
+  "title": "Bistable network shaper",
+  "sub": "Encode a shape, then compress to express it",
+  "text": "Click bistable encoding units to flip them and see the rigid-beam kinematics express the shape or flag frustrated crossbars. An inverse shape-matching routine generates valid encodings for target profiles, and an exact count shows how sparse the valid encodings are.",
+  "tags": [
+   "metamaterials"
+  ],
+  "pubs": [
+   "bistable_networks_2026"
+  ]
+ },
+ {
+  "id": "planarity",
+  "title": "Flat-Plane Mechanism geometry",
+  "sub": "Sphere-to-plane inversion in a 13-link linkage",
+  "text": "Drive the Flat-Plane Mechanism's control link and watch the endpoint stay on a plane, because OB·OD is fixed and B rides on a sphere through O. Change H, R and γ, or unbalance the control link to get a sphere instead. Run a Monte Carlo of link-length error to see the kinematic sensitivity S_k the paper uses to pick error-attenuating designs.",
+  "tags": [
+   "robots",
+   "fabrication"
+  ],
+  "pubs": [
+   "FPM_arxiv"
+  ]
+ },
+ {
+  "id": "sccrub",
+  "title": "SCCRUB counter-rotating brush",
+  "sub": "Friction moment of a scrubbing brush and the soft arm's force balance",
+  "text": "Uses the paper's friction model to compare a unidirectional brush with a counter-rotating one whose inner and outer faces cancel the reaction moment at rₒ/rᵢ = 2^(1/3). Sliders set the radii, friction, normal force and gearbox backlash. A force balance shows the tendon tension the soft arm must supply and whether the request stays inside the learned model's training range.",
+  "tags": [
+   "robots"
+  ],
+  "pubs": [
+   "SCCRUB_2026"
+  ]
+ },
+ {
+  "id": "fractal-gripper",
+  "title": "Fractal suction gripper",
+  "sub": "A tree of free pivots puts suction cups flat on curved surfaces",
+  "text": "A simplified 2D model of the fractal suction idea: each pivot rotates until both of its branches touch, so the cups spread over cylinders, bowls and box corners. Compare sealed cups and a model holding force against approach angle with a single rigid cup. Built from the paper's abstract only, with placeholder parameters.",
+  "tags": [
+   "robots"
+  ],
+  "pubs": [
+   "fractal_gripper_ral_2024"
+  ]
+ },
+ {
+  "id": "passive-gripper",
+  "title": "Passive gripper designer",
+  "sub": "Grasp configurations, then gripper skeleton and insert trajectory together",
+  "text": "A 2D re-implementation of the paper's pipeline. It samples three-point grasp configurations, keeps those that hold under gravity (partial force closure) and pass the reachability test, ranks them on Pareto fronts, then co-optimises a finger skeleton and insert trajectory with controlled random search until nothing collides. Watch the resulting gripper slide in and lift the object.",
+  "tags": [
+   "robots",
+   "fabrication"
+  ],
+  "pubs": [
+   "Kodnongbua_2022"
+  ]
+ },
+ {
+  "id": "duolingo",
+  "title": "Action translation after drift",
+  "sub": "Recalibrate a drifted robot instead of retraining its controller",
+  "text": "A toy version of the setting in the Duolingo abstract: a ball-on-plate task in which the robot's actuators lose gain, gain an offset and pick up hysteresis. A quick calibration fits a non-linear action-translation map that restores tracking without retraining the controller. Run nominal, drifted, and drifted-plus-translation side by side.",
+  "tags": [
+   "robots"
+  ],
+  "pubs": [
+   "duolingo_icra_2025"
+  ]
+ },
+ {
+  "id": "vtp-coiling",
+  "title": "Viscous thread printing: coils to graded foam",
+  "sub": "From nozzle height and head speed to coil size, density and stiffness",
+  "text": "A thread falling from height H coils as the head moves. V* = F/C sets the coil spacing and H* = H/Dt sets the coil size. Design a graded slab, a soft finger with sparse joints or a dense/sparse FDE pattern, and see the coils laid in 3D with live density and stiffness maps. The maps use mass conservation and the measured power laws.",
+  "tags": [
+   "fabrication",
+   "robots"
+  ],
+  "pubs": [
+   "naturePrintingVariable",
+   "10.1145/3559400.3565596",
+   "VTP_emery",
+   "VTP_robosoft_2025",
+   "SensiPrint"
+  ]
+ },
+ {
+  "id": "fde-cells",
+  "title": "Fabrication-directed entanglement: unit cells",
+  "sub": "Periodic homogenization of dense/sparse VTP metamaterial foams",
+  "text": "Paint dense and sparse VTP regions in a periodic unit cell or start from a preset. An in-browser finite-element homogenization returns the effective stiffness matrix, Poisson's ratios and normal–shear coupling. The deformed 3 × 3 array shows anisotropy and chirality, and results are compared with the paper's measured Table 1.",
+  "tags": [
+   "metamaterials",
+   "fabrication"
+  ],
+  "pubs": [
+   "fabrication_directed_entanglement_2025"
+  ]
+ }
+]

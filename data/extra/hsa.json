@@ -1,0 +1,123 @@
+{
+ "8404904": {
+  "summary": "The paper introduces electric motor-driven compliant actuators made by laser-cutting handed shearing auxetic (HSA) patterns into PTFE tubes, so that twisting a cylinder makes it extend. Pairing left- and right-handed cylinders gave a linear actuator (144–217 mm) and a 4-DOF platform, and adding internal constraints made pairs bend into gripper fingers. The HSA gripper grasped 72% of 32 objects, the same as a pneumatic soft gripper, while using about 20 times less energy to close (4.92 J vs 107.4 J).",
+  "project": "Handed shearing auxetics",
+  "demo": "models/hsa/",
+  "demoLabel": "Twist an HSA",
+  "source": "full text",
+  "fulltext": "https://transformativerobotlab.com/assets/pdf/Compliant_electric_actuators_based_on_handed_shearing_auxetics.pdf"
+ },
+ "9812156": {
+  "summary": "The paper models HSAs as programmable springs and studies two overlooked design parameters: the point on the auxetic trajectory used as the rest state, and the number of rows of cells. Closed, semi-open and open 3D-printed HSAs gave push-only, bidirectional and pull-only actuators, extending blocked force from 5 N to about 150 N and stiffness from 2 N/mm to 89 N/mm. Fewer rows gave more force and stiffness but needed more torque and gave less throw, and stress relaxation removed 45% of holding force over 20 minutes.",
+  "project": "Handed shearing auxetics",
+  "demo": "models/hsa/",
+  "demoLabel": "Twist an HSA",
+  "source": "full text",
+  "fulltext": "https://transformativerobotlab.com/assets/pdf/design_for_soft_robot_HSAs.pdf"
+ },
+ "good2023enhancing": {
+  "summary": "The paper replaces the flat strain limiting layer of a standard Pneu-net gripper with a 3D-printed triangulated, torsion-resistant layer (TRL). In FEA this raised torsional stiffness by about two orders of magnitude with little change in in-plane bending. In tests it reduced out-of-plane bending by up to 97.7%. At equal pressure it raised peak grip force from 1 N to 3 N and grip stiffness from 150 to 1200 N/m, and loading the skeleton directly lifted 5 kg.",
+  "project": "Torsion-resistant strain limiting layers",
+  "demo": "models/trsll/",
+  "demoLabel": "Twist a strain limiting layer",
+  "source": "full text",
+  "fulltext": "https://arxiv.org/pdf/2311.02454"
+ },
+ "t_HSA": {
+  "summary": "The paper brings the torsion-resistant strain limiting layer (TR-SLL) to electrically driven HSA grippers. The layer acts as each finger's reaction body, so a finger needs only one HSA. An FEA sweep found a five-triangle, near-equilateral layer stiffest in torsion (964.76 N·mm/rad), and the HSAs' force and torque were mapped over extension and rotation. The gripper reached 5.8 N pinch and 14.6 N caging hold force, lifted 5 kg through the skeleton, and succeeded on 37 of 43 YCB objects.",
+  "project": "Torsion-resistant strain limiting layers",
+  "demo": "models/trsll/",
+  "demoLabel": "Twist a strain limiting layer",
+  "source": "full text",
+  "fulltext": "https://arxiv.org/pdf/2412.07976"
+ },
+ "spring_brake_hsa_2025": {
+  "summary": "The paper builds a monopod hopping robot in which a 3D-printed HSA serves as a parallel elastic spring for hopping. Twisted to about 135° against a rigid insert, the same HSA jams and acts as a brake for standing. The spring was sized with a spring-mass model to about 1 kN/m (912 N/m measured on average, over 16 kN/m when jammed). The HSA cut hopping electrical cost by 24–32%, mainly by reducing Joule heating, and the jammed HSA held static loads with far less power than the leg motor.",
+  "project": "Handed shearing auxetics",
+  "demo": "models/spring-brake/",
+  "demoLabel": "Hop and brake",
+  "source": "full text",
+  "fulltext": "https://arxiv.org/pdf/2505.22898"
+ },
+ "9196626": {
+  "summary": "The paper presents a gripper that combines suction, a parallel jaw and soft fingers built on handed shearing auxetic actuators, and mixes these modes into new grasping primitives. It grasped 88% of tested objects, and 14% of those could only be grasped with a combination of modes. It can also reorient flat objects in hand without pre-grasp manipulation.",
+  "project": "Handed shearing auxetics",
+  "demo": "models/hsa/",
+  "demoLabel": "Twist an HSA",
+  "source": "abstract",
+  "fulltext": "https://hdl.handle.net/1721.1/137301.2"
+ },
+ "8722747": {
+  "summary": "The paper builds a puncture-resistant, electrically driven soft gripper for recycling. Each finger is a pair of constrained PTFE HSAs with high-deformation capacitive strain and pressure sensors. Strain readings estimate object size, and size-normalised pressure features feed a hand-derived linear classifier that sorts paper, metal and plastic. It was 85% accurate with a stationary gripper and 63% accurate on a mock conveyor-belt recycling line.",
+  "project": "Handed shearing auxetics",
+  "demo": "models/hsa/",
+  "demoLabel": "Twist an HSA",
+  "source": "full text",
+  "fulltext": "https://www.eng.yale.edu/Faboratory/publications/conference/2019/Chin%20et%20al.%20-%202019%20-%20Automated%20Recyling%20Separation%20Enabled%20by%20Soft%20Robotic%20Material%20Classification.pdf"
+ },
+ "bilayer_auxetics_icra_2025": {
+  "summary": "The paper presents AuxSwarm, a compliant modular robot whose voxels are jitterbug-style auxetic shells made from two offset, counter-rotating spring-steel layers. Servos drive the layers like a scissor, and each voxel grows from 92 to 144 mm in diameter (1.57×) in 0.2 s. A tangency model (Eqs. 1–3) predicts the incline and bending radius that neighbouring expanded and contracted voxels can form. Voxel lattices showed bending radii of 55–63 cm and rocking, turning and flipping locomotion.",
+  "project": "Auxetic modular robots",
+  "demo": "models/bilayer-auxetic/",
+  "demoLabel": "Grow an auxetic voxel",
+  "source": "full text",
+  "fulltext": "https://merge-lab.github.io/Auxbot_ICRA25.pdf"
+ },
+ "_demos": [
+  {
+   "id": "hsa",
+   "title": "Handed Shearing Auxetics",
+   "sub": "Twist a 3D HSA cylinder, a left/right linear actuator, or a bending finger",
+   "text": "Twisting a handed shearing auxetic cylinder lengthens it. This demo drives a schematic 3D HSA lattice with the measured fits for length, blocked force, stiffness and holding torque from the ICRA 2022 design study (Table III). You can switch between closed, semi-open and open designs and 4–12 rows, or join a left and a right cylinder into the RoboSoft 2018 linear actuator and bending finger.",
+   "tags": [
+    "metamaterials",
+    "robots"
+   ],
+   "pubs": [
+    "8404904",
+    "9812156",
+    "9196626",
+    "8722747"
+   ]
+  },
+  {
+   "id": "trsll",
+   "title": "Torsion-Resistant Strain Limiting Layer",
+   "sub": "Why triangulated layers stop soft grippers from twisting out of a grasp",
+   "text": "Compare a flat strain limiting layer with triangulated TR-SLL designs, using the torsional stiffnesses the papers computed by FEA. Set payload, lever arm and normal force to see whether the antipodal grasp fails by twisting (Eq. 5/6) or by slipping (Eq. 1). The HSA gripper's own torque term is included.",
+   "tags": [
+    "robots",
+    "fabrication"
+   ],
+   "pubs": [
+    "t_HSA",
+    "good2023enhancing"
+   ]
+  },
+  {
+   "id": "spring-brake",
+   "title": "HSA Spring-Brake Hopper",
+   "sub": "One HSA as a hopping spring and, when jammed, a standing brake",
+   "text": "A spring-mass model of the monopod hopper sizes the leg spring and predicts hop frequency (Eq. 1). Twisting the HSA past 135° jams it into a stiff brake. A Joule-heating model (Eq. 2) shows why holding a load with the leg motor costs power that the brake avoids.",
+   "tags": [
+    "robots"
+   ],
+   "pubs": [
+    "spring_brake_hsa_2025"
+   ]
+  },
+  {
+   "id": "bilayer-auxetic",
+   "title": "Bi-Layer Auxetic Voxels",
+   "sub": "Scissor-linked auxetic shells that grow 1.57× in 0.2 s",
+   "text": "Drive an AuxSwarm voxel from closed (92 mm) to open (144 mm) and watch its two counter-rotating shell layers. The paper's tangency model (Eqs. 1–3) turns the expansion ratio into the steepest incline two voxels can form and the bending radius of a voxel layer.",
+   "tags": [
+    "metamaterials",
+    "robots"
+   ],
+   "pubs": [
+    "bilayer_auxetics_icra_2025"
+   ]
+  }
+ ]
+}

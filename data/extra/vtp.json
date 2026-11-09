@@ -1,0 +1,68 @@
+{
+  "naturePrintingVariable": {
+    "summary": "Raising a direct-write nozzle and increasing flow induces viscous thread instability, so the extruded strand meanders, loops or coils instead of laying a straight line. Stacking layers of these patterns produces open-cell foams with pores near the nozzle scale. Printed silicone foams spanned about two orders of magnitude in compressive modulus (0.608 MPa bulk down to 0.0092 MPa) while density fell by only about half. Alternating layers of two patterns behaved as an isostress composite in compression.",
+    "project": "Viscous thread printing (VTP) foams",
+    "demo": "models/vtp-coiling/",
+    "demoLabel": "Design a VTP foam",
+    "source": "full text",
+    "fulltext": "https://www.nature.com/articles/srep29996.pdf"
+  },
+  "10.1145/3559400.3565596": {
+    "summary": "This work applies viscous thread printing on a standard fused filament fabrication printer: the semi-viscous extruded filament is made to coil, producing a new type of printed foam. Because extrusion is controlled spatially, material properties can be graded and custom foam shapes made on the fly. These are things stochastic chemical foaming cannot do.",
+    "project": "Viscous thread printing (VTP) foams",
+    "demo": "models/vtp-coiling/",
+    "demoLabel": "Design a VTP foam",
+    "source": "abstract",
+    "fulltext": ""
+  },
+  "VTP_emery": {
+    "summary": "A self-driving lab (300 PLA and 155 TPU automated print-and-compress experiments, chosen by active learning) trained Gaussian process models. The models map the VTP parameters V*, H*, line spacing and layer step to layer height (LOOCV R² = 0.980) and effective modulus (R² = 0.946). The models revealed a homogeneous subspace and a self-stabilizing layer height, which enable continuous stiffness gradients, an orthotic insole, folding nets with compliant hinges and a cable-driven foam hand. Normalized modulus followed a power law in density with exponents of about 3.6–3.9.",
+    "project": "Viscous thread printing (VTP) foams",
+    "demo": "models/vtp-coiling/",
+    "demoLabel": "Design a VTP foam",
+    "source": "full text",
+    "fulltext": "https://transformativerobotlab.com/assets/pdf/FoamsEmery.pdf"
+  },
+  "VTP_robosoft_2025": {
+    "summary": "Soft robotic fingers were printed from TPU with VTP, each with a dense, high-coil-density back and lower-density joint regions shaped as circles, triangles or trapezoids. The fingers were cable-actuated with a servo and modeled in COMSOL as homogeneous stiffness zones. Measured stiffness agreed with the model to within about 10%. All fingers showed three deformation regimes. Trapezoidal joints gave the most linear force–angle response, and the fingers held up under an hour of repeated 30° bending.",
+    "project": "Viscous thread printing (VTP) foams",
+    "demo": "models/vtp-coiling/",
+    "demoLabel": "Grade a VTP finger",
+    "source": "full text",
+    "fulltext": "https://transformativerobotlab.com/assets/pdf/VTP_robosoft_2025.pdf"
+  },
+  "SensiPrint": {
+    "summary": "This demo uses liquid rope coiling, printed from a raised nozzle, to add soft foam padding, interfaces and organizers directly onto existing curved objects that a normal FDM nozzle would collide with. A design tool generates the toolpaths. Coiled conductive TPU (NinjaTek Eel) separated by an insulating TPU layer forms resistive pressure-sensor arrays. The arrays drove a dimmable lamp, a D-pad controller with 0.1–0.2 s latency, and recognition of ten touchpad-style gestures.",
+    "project": "Viscous thread printing (VTP) foams",
+    "demo": "models/vtp-coiling/",
+    "demoLabel": "Explore VTP coiling",
+    "source": "full text",
+    "fulltext": "https://jerrycao22.github.io/files/pdf/research/2025_SCF_SensiPrintDemo.pdf"
+  },
+  "fabrication_directed_entanglement_2025": {
+    "summary": "Fabrication-directed entanglement combines viscous thread printing with inverse-homogenization topology optimization. It patterns dense (≈3.4 MPa) and sparse (≈0.11 MPa) coiling regions of a single TPU filament into metamaterial foams, targeting a desired eigenstructure of the effective elasticity matrix. Four fabricated 6 × 6 arrays showed targeted anisotropy and Poisson's ratios from about 0.06 to 0.56. A chiral design gave a normal–shear coupling of η₂₁₂ ≈ 0.72, and 247 simulations showed a property space well beyond simple mixing of the two phases.",
+    "project": "Viscous thread printing (VTP) foams",
+    "demo": "models/fde-cells/",
+    "demoLabel": "Homogenize an FDE cell",
+    "source": "full text",
+    "fulltext": "https://arxiv.org/pdf/2505.03064"
+  },
+  "_demos": [
+    {
+      "id": "vtp-coiling",
+      "title": "Viscous thread printing: coils to graded foam",
+      "sub": "From nozzle height and head speed to coil size, density and stiffness",
+      "text": "A thread falling from height H coils as the head moves. V* = F/C sets the coil spacing and H* = H/Dt sets the coil size. Design a graded slab, a soft finger with sparse joints or a dense/sparse FDE pattern, and see the coils laid in 3D with live density and stiffness maps. The maps use mass conservation and the measured power laws.",
+      "tags": ["fabrication", "robots"],
+      "pubs": ["naturePrintingVariable", "10.1145/3559400.3565596", "VTP_emery", "VTP_robosoft_2025", "SensiPrint"]
+    },
+    {
+      "id": "fde-cells",
+      "title": "Fabrication-directed entanglement: unit cells",
+      "sub": "Periodic homogenization of dense/sparse VTP metamaterial foams",
+      "text": "Paint dense and sparse VTP regions in a periodic unit cell or start from a preset. An in-browser finite-element homogenization returns the effective stiffness matrix, Poisson's ratios and normal–shear coupling. The deformed 3 × 3 array shows anisotropy and chirality, and results are compared with the paper's measured Table 1.",
+      "tags": ["metamaterials", "fabrication"],
+      "pubs": ["fabrication_directed_entanglement_2025"]
+    }
+  ]
+}

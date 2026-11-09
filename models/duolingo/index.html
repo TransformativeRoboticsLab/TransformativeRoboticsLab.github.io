@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Action Translation Toy</title>
+  <link rel="icon" href="../../assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../../assets/site.css" />
+  <style>
+    .model aside input[type="range"] { width: 100%; }
+    .stage.split { display: grid; grid-template-rows: minmax(0, 1.4fr) minmax(0, 1fr); height: calc(100vh - 61px); }
+    .stage.split > div { position: relative; min-height: 0; overflow: hidden; }
+    .model .stage canvas#view, .model .stage canvas#chart { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    .chart-wrap { border-top: 1px solid var(--line); display: flex; flex-direction: column; padding: 6px 12px 4px; }
+    .chart-box { position: relative; flex: 1; min-height: 0; }
+    .legend { font-size: 12px; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; }
+    .legend i { display: inline-block; width: 14px; height: 3px; vertical-align: middle; margin-right: 4px; }
+    .label-ill { font-size: 12px; border-left: 3px solid var(--accent); padding: 4px 8px; background: var(--chip); border-radius: 4px; }
+    details.how li { font-size: 13px; }
+    @media (max-width: 860px) { .model { grid-template-rows: auto auto; } .stage.split { height: 88vh; } }
+  </style>
+</head>
+<body>
+  <header class="site"><div class="wrap">
+    <a class="brand" href="../../"><img src="../../assets/icon.svg" alt="" />Transformative Robotics Lab</a>
+    <nav class="site"><a href="../../">Projects</a><a href="https://doi.org/10.1109/icra55743.2025.11127601">Paper (ICRA 2025)</a></nav>
+  </div></header>
+  <main class="model">
+    <div class="stage split" id="stage">
+      <div><canvas id="view"></canvas><div class="overlay" style="top:8px;bottom:auto">Three copies of the same task run side by side: a ball steered to a moving target on a tilting plate.</div></div>
+      <div class="chart-wrap"><div class="legend" id="legend"></div><div class="chart-box"><canvas id="chart"></canvas></div></div>
+    </div>
+    <aside>
+      <h1>Duolingo: translating actions after a dynamics shift</h1>
+      <p class="label-ill">Toy illustration of the idea in the abstract of Vemuri, Wu, Thareja, Chen, Good, Lipton &amp; Gupta, <i>Duolingo: Dynamics Utilization for Online Translation of Actions</i> (ICRA 2025). The full text was not available to us. The paper's algorithm, learned models, tasks and HSA platform are not reproduced here.</p>
+      <p class="muted">The setting, from the abstract: the robot's own actuators drift (fatigue, hysteresis) while the environment's dynamics stay the same. Rather than retraining the controller, a short calibration fits a non-linear <i>action-translation</i> model. Each command the old controller would send is then translated into one that makes the drifted robot do the same thing.</p>
+      <h2>Robot drift (the dynamics shift)</h2>
+      <label>Actuator gain <output id="gainOut"></output><input id="gain" type="range" min="0.3" max="1.5" step="0.01" value="0.7" /></label>
+      <label>Offset <output id="offOut"></output><input id="off" type="range" min="-0.3" max="0.3" step="0.01" value="0.1" /></label>
+      <label>Stiffening (cubic term) <output id="cubOut"></output><input id="cub" type="range" min="-0.3" max="0.3" step="0.01" value="-0.15" /></label>
+      <label>Hysteresis (backlash width) <output id="hysOut"></output><input id="hys" type="range" min="0" max="0.3" step="0.01" value="0.06" /></label>
+      <h2>Calibration</h2>
+      <label>Calibration commands per axis <output id="ncOut"></output><input id="nc" type="range" min="3" max="60" step="1" value="15" /></label>
+      <label>Polynomial degree of the translation <output id="degOut"></output><input id="deg" type="range" min="1" max="5" step="1" value="3" /></label>
+      <label>Sensor noise <output id="noiseOut"></output><input id="noise" type="range" min="0" max="0.05" step="0.001" value="0.01" /></label>
+      <button class="btn primary" id="recal" type="button">Re-run calibration and restart</button>
+      <p class="muted" style="font-size:12px">Drift changes act at once. The translation keeps using the last calibration until you re-run it, so you can watch it go stale.</p>
+      <h2>Readout</h2>
+      <div class="readout" id="read"></div>
+      <h2>How this toy works</h2>
+      <details class="how" open>
+        <summary>Model, and what it is not</summary>
+        <ul>
+          <li><b>Environment (unchanged):</b> a ball rolls on a plate tilted about two axes: ẍ = (5/7)·g·sin(tilt) − c·ẋ, plate ±150 mm. This under-actuated system stands in for the paper's tasks. The paper used simulated tasks and a 4-DoF handed-shearing-auxetic (HSA) platform. Two tilt axes is our simplification.</li>
+          <li><b>Robot (shifts):</b> a command a ∈ [−1, 1] per axis sets the tilt through the actuator map. Nominally tilt = 6°·a with a first-order lag. After the shift the map becomes 6°·(gain·a + cubic·a³ + offset), passed through a backlash (play) operator for hysteresis.</li>
+          <li><b>Controller (fixed):</b> a PD law tuned on the nominal robot stands in for the paper's learned policy. It is never retrained.</li>
+          <li><b>Action translation:</b> the calibration sends evenly spaced commands, sweeping up and then down, and records the steady tilt. It fits a polynomial h(tilt) → command per axis by least squares. The translated command is a′ = h(f<sub>0</sub>(a)), so the drifted robot reproduces the tilt the controller expected. A static polynomial cannot represent hysteresis, so some error remains when backlash is large.</li>
+          <li><b>Chart:</b> moving RMS distance from the target for the three runs. These are simulated toy numbers, not results from the paper.</li>
+        </ul>
+      </details>
+    </aside>
+  </main>
+  <script src="../../assets/chart.js"></script>
+  <script>
+  (function () {
+    "use strict";
+    const $ = (id) => document.getElementById(id);
+    const TILT = (6 * Math.PI) / 180, G = 9810, C = 0.6, TAU = 0.08, R = 150, DT = 1 / 240;
+    const sh = () => ({ gain: +$("gain").value, off: +$("off").value, cub: +$("cub").value, hys: +$("hys").value });
+    const f0 = (a) => a; // nominal: normalised tilt = command
+    const fs = (a, s) => s.gain * a + s.cub * a * a * a + s.off;
+    function play(prev, u, w) { if (u > prev + w / 2) return u - w / 2; if (u < prev - w / 2) return u + w / 2; return prev; }
+    function polyfit(x, y, d) {
+      const n = d + 1, A = Array.from({ length: n }, () => Array(n + 1).fill(0));
+      for (let i = 0; i < x.length; i++) { const p = []; for (let k = 0; k < n; k++) p.push(x[i] ** k); for (let r = 0; r < n; r++) { for (let c = 0; c < n; c++) A[r][c] += p[r] * p[c]; A[r][n] += p[r] * y[i]; } }
+      for (let r = 0; r < n; r++) A[r][r] += 1e-9;
+      for (let c = 0; c < n; c++) { let piv = c; for (let r = c + 1; r < n; r++) if (Math.abs(A[r][c]) > Math.abs(A[piv][c])) piv = r; [A[c], A[piv]] = [A[piv], A[c]]; for (let r = 0; r < n; r++) if (r !== c) { const f = A[r][c] / A[c][c]; for (let k = c; k <= n; k++) A[r][k] -= f * A[c][k]; } }
+      return A.map((row, i) => row[n] / row[i]);
+    }
+    const peval = (c, x) => c.reduce((s, ck, k) => s + ck * x ** k, 0);
+    let rng = 1; const rand = () => { rng = (rng * 16807) % 2147483647; return rng / 2147483647; }; const gauss = () => Math.sqrt(-2 * Math.log(rand() + 1e-12)) * Math.cos(2 * Math.PI * rand());
+    let trans = null, calib = null;
+    function calibrate() {
+      const s = sh(), n = +$("nc").value, deg = +$("deg").value, noise = +$("noise").value; rng = 12345;
+      const cmds = [], meas = []; let y = 0;
+      const seq = []; for (let i = 0; i < n; i++) seq.push(-1 + (2 * i) / Math.max(1, n - 1)); for (let i = n - 1; i >= 0; i--) seq.push(-1 + (2 * i) / Math.max(1, n - 1));
+      for (const a of seq) { y = play(y, fs(a, s), s.hys); const m = Math.max(-1.5, Math.min(1.5, y)) + noise * gauss(); cmds.push(a); meas.push(m); }
+      const coef = polyfit(meas, cmds, Math.min(deg, Math.max(1, cmds.length - 2)));
+      let res = 0; for (let i = 0; i < cmds.length; i++) res += (peval(coef, meas[i]) - cmds[i]) ** 2; res = Math.sqrt(res / cmds.length);
+      trans = (a) => Math.max(-1, Math.min(1, peval(coef, f0(a))));
+      calib = { cmds, meas, res, n: cmds.length };
+    }
+    // three parallel runs
+    const runs = [
+      { name: "Nominal robot", color: "#2e9d6b", shift: false, translate: false },
+      { name: "Drifted robot, same controller", color: "#e0453a", shift: true, translate: false },
+      { name: "Drifted robot + action translation", color: "#2f6fde", shift: true, translate: true },
+    ];
+    let t = 0, hist = runs.map(() => ({ x: [], y: [] }));
+    function restart() { t = 0; hist = runs.map(() => ({ x: [], y: [] })); runs.forEach((r) => { r.x = [0, 0]; r.v = [0, 0]; r.tilt = [0, 0]; r.y = [0, 0]; r.err2 = []; r.trail = []; }); }
+    const target = (t) => [90 * Math.cos(0.5 * t), 60 * Math.sin(1.0 * t)];
+    function step() {
+      const s = sh(), tg = target(t), tgv = [-45 * Math.sin(0.5 * t), 60 * Math.cos(t)];
+      for (const r of runs) {
+        for (let k = 0; k < 2; k++) {
+          // PD controller tuned on the nominal robot, output = command in [-1, 1]
+          const e = tg[k] - r.x[k], ed = tgv[k] - r.v[k];
+          let a = Math.max(-1, Math.min(1, 0.012 * e + 0.012 * ed));
+          if (r.translate) a = trans(a);
+          let goal = r.shift ? fs(a, s) : f0(a);
+          if (r.shift) { r.y[k] = play(r.y[k], goal, s.hys); goal = r.y[k]; }
+          goal = Math.max(-1.5, Math.min(1.5, goal));
+          r.tilt[k] += ((goal - r.tilt[k]) * DT) / TAU;
+          const acc = (5 / 7) * G * Math.sin(r.tilt[k] * TILT) - C * r.v[k];
+          r.v[k] += acc * DT; r.x[k] += r.v[k] * DT;
+          if (Math.abs(r.x[k]) > R) { r.x[k] = Math.sign(r.x[k]) * R; r.v[k] *= -0.3; }
+        }
+        const d2 = (r.x[0] - tg[0]) ** 2 + (r.x[1] - tg[1]) ** 2; r.err2.push(d2); if (r.err2.length > 240 * 3) r.err2.shift();
+        r.trail.push([...r.x]); if (r.trail.length > 300) r.trail.shift();
+      }
+      t += DT;
+    }
+    const chart = TRLChart.create($("chart"), { xlabel: "time (s)", ylabel: "moving RMS error (mm)" });
+    let lastChart = 0;
+    function updChart() {
+      if (!runs[0].err2.length) return;
+      runs.forEach((r, i) => { const rms = Math.sqrt(r.err2.reduce((a, b) => a + b, 0) / r.err2.length); hist[i].x.push(+t.toFixed(2)); hist[i].y.push(rms); if (hist[i].x.length > 400) { hist[i].x.shift(); hist[i].y.shift(); } });
+      chart.setSeries(runs.map((r, i) => ({ name: r.name, x: hist[i].x, y: hist[i].y, color: r.color })), { xlabel: "time (s)", ylabel: "moving RMS error over 3 s (mm)" });
+      $("legend").innerHTML = runs.map((r, i) => `<span><i style="background:${r.color}"></i>${r.name}: ${hist[i].y[hist[i].y.length - 1].toFixed(1)} mm</span>`).join("");
+      const s = sh();
+      $("read").textContent = `calibration: ${calib.n} commands, fit residual ${calib.res.toFixed(3)} (command units)\n` +
+        `command 0.5 → tilt nominal ${(0.5 * 6).toFixed(2)}°, drifted ${(fs(0.5, s) * 6).toFixed(2)}°, translated ${(fs(trans(0.5), s) * 6).toFixed(2)}°\n` +
+        `RMS error (last 3 s): ${runs.map((r, i) => `\n  ${r.name}: ${hist[i].y[hist[i].y.length - 1].toFixed(1)} mm`).join("")}`;
+    }
+    // drawing
+    const cv = $("view"), g = cv.getContext("2d");
+    const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+    function draw() {
+      const dpr = Math.min(devicePixelRatio || 1, 2), w = cv.clientWidth, h = cv.clientHeight;
+      if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+      g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
+      const n = runs.length, narrow = w < 560, cw = narrow ? w : w / n, ch = narrow ? (h - 30) / n : h - 30;
+      const size = Math.min(cw, ch) * 0.8, tg = target(t);
+      runs.forEach((r, i) => {
+        const cx = narrow ? w / 2 : cw * (i + 0.5), cy = narrow ? 30 + ch * (i + 0.5) : 30 + ch / 2, s = size / (2 * R);
+        const X = (p) => [cx + p[0] * s, cy - p[1] * s];
+        g.save(); g.translate(cx, cy);
+        const tx = r.tilt[0] * 6, ty = r.tilt[1] * 6; // degrees, drawn as shading
+        g.fillStyle = css("--chip"); g.strokeStyle = css("--line"); g.lineWidth = 1; g.fillRect(-size / 2, -size / 2, size, size); g.strokeRect(-size / 2, -size / 2, size, size);
+        const gr = g.createLinearGradient(-size / 2, 0, size / 2, 0); gr.addColorStop(0, `rgba(128,128,128,${Math.max(0, -tx) / 12})`); gr.addColorStop(1, `rgba(128,128,128,${Math.max(0, tx) / 12})`); g.fillStyle = gr; g.fillRect(-size / 2, -size / 2, size, size);
+        g.restore();
+        g.strokeStyle = r.color; g.globalAlpha = 0.5; g.lineWidth = 1.5; g.beginPath(); r.trail.forEach((p, j) => (j ? g.lineTo(...X(p)) : g.moveTo(...X(p)))); g.stroke(); g.globalAlpha = 1;
+        const T = X(tg); g.strokeStyle = css("--ink"); g.lineWidth = 1.5; g.beginPath(); g.arc(T[0], T[1], 7, 0, 2 * Math.PI); g.moveTo(T[0] - 10, T[1]); g.lineTo(T[0] + 10, T[1]); g.moveTo(T[0], T[1] - 10); g.lineTo(T[0], T[1] + 10); g.stroke();
+        const B = X(r.x); g.fillStyle = r.color; g.beginPath(); g.arc(B[0], B[1], 8, 0, 2 * Math.PI); g.fill();
+        g.fillStyle = css("--ink"); g.font = "12px system-ui"; g.textAlign = "center"; g.fillText(r.name, cx, cy - size / 2 - 6);
+        g.fillStyle = css("--muted"); g.font = "11px system-ui"; g.fillText(`tilt ${tx.toFixed(1)}°, ${ty.toFixed(1)}°`, cx, cy + size / 2 + 14);
+      });
+    }
+    function loop(now) {
+      for (let i = 0; i < 4; i++) step();
+      if (now - lastChart > 250) { updChart(); lastChart = now; }
+      draw(); requestAnimationFrame(loop);
+    }
+    function labels() { $("gainOut").textContent = (+$("gain").value).toFixed(2); $("offOut").textContent = (+$("off").value).toFixed(2); $("cubOut").textContent = (+$("cub").value).toFixed(2); $("hysOut").textContent = (+$("hys").value).toFixed(2); $("ncOut").textContent = $("nc").value; $("degOut").textContent = $("deg").value; $("noiseOut").textContent = (+$("noise").value).toFixed(3); }
+    // changing the drift does not silently re-calibrate: the old translation keeps running until "Re-run calibration"
+    ["gain", "off", "cub", "hys", "nc", "deg", "noise"].forEach((id) => $(id).addEventListener("input", labels));
+    $("recal").addEventListener("click", () => { calibrate(); restart(); });
+    labels(); calibrate(); restart(); requestAnimationFrame(loop);
+  })();
+  </script>
+</body>
+</html>

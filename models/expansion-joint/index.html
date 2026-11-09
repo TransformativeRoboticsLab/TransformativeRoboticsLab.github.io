@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quiet Expansion Joint</title>
+  <link rel="icon" href="../../assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../../assets/site.css" />
+  <style>
+    .chart-box { height: 210px; border: 1px solid var(--line); border-radius: 8px; margin-top: 6px; }
+    .chart-box canvas { width: 100%; height: 100%; display: block; }
+    .note { font-size: 12.5px; }
+    aside input[type="range"] { width: 100%; }
+    .seg { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+    .seg .btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+    .warn { color: var(--accent); font-weight: 600; }
+    #view { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    .legend { display: flex; gap: 10px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .legend i { display: inline-block; width: 22px; height: 8px; border-radius: 3px; vertical-align: middle; margin-right: 4px; }
+  </style>
+</head>
+<body>
+  <header class="site"><div class="wrap">
+    <a class="brand" href="../../"><img src="../../assets/icon.svg" alt="" />Transformative Robotics Lab</a>
+    <nav class="site"><a href="../../">Projects</a><a href="https://doi.org/10.1177/03611981251370346">Paper (TRR)</a></nav>
+  </div></header>
+  <main class="model">
+    <div class="stage" id="stage">
+      <canvas id="view" aria-label="Tire rolling over a modular expansion joint"></canvas>
+      <div class="overlay">Top: side section of the joint with a rolling tire · Bottom: plan view of the gap filler</div>
+    </div>
+    <aside>
+      <h1>Quiet a bridge expansion joint</h1>
+      <p class="muted note">Illustrative model based on Thomas, Elmadih, Lipton and Reinhall, "Design and Testing of Modular Expansion Joint Noise Mitigation Strategies" (TRR 2025, abstract). Mechanism details and FEA numbers are from the same team's WSDOT report WA-RD 920.1 (2022), Secs. 1.2, 2.1–2.5 and 3.3. The tire kinematics are a simplified sketch.</p>
+
+      <h2>Treatment</h2>
+      <div class="seg" id="treat">
+        <button class="btn" data-t="none" aria-pressed="true">Open gaps (as built)</button>
+        <button class="btn" data-t="single" aria-pressed="false">Single-layer chevron</button>
+        <button class="btn" data-t="multi" aria-pressed="false">Multi-layer chevron</button>
+      </div>
+
+      <h2>Joint and vehicle</h2>
+      <label>Gap between beams w: <b id="wLbl"></b>
+        <input id="w" type="range" min="0" max="4.38" step="0.02" value="3" /></label>
+      <p class="muted note" id="wNote"></p>
+      <label>Tire radius R: <b id="rLbl"></b>
+        <input id="R" type="range" min="0.28" max="0.55" step="0.005" value="0.33" /></label>
+      <label>Speed v: <b id="vLbl"></b>
+        <input id="v" type="range" min="10" max="100" step="1" value="60" /></label>
+      <div class="seg"><button class="btn" id="pause">Pause</button></div>
+
+      <h2>Readout</h2>
+      <div class="readout" id="out"></div>
+
+      <h2>Chart: tire drop and edge strike vs gap</h2>
+      <div class="chart-box"><canvas id="chart" aria-label="Drop depth vs gap width"></canvas></div>
+      <div class="legend" id="legend"></div>
+      <p class="muted note">Curves are rigid-wheel geometry, not measured or FEA data.</p>
+
+      <h2>How this model works</h2>
+      <p class="note"><b>Noise sources</b> (report Sec. 1.2, TRR abstract). Each tire drops into the gaps between the joint's steel beams, then strikes the leading edge of the next beam. That impact rings the beams and the tire. It also pumps the air cavity formed by the tire, beams and neoprene seal, which acts like a Helmholtz resonator. Measured noise peaked at 400–800 Hz, and the peak frequency fell as tire width grew (f ∝ 1/W<sub>t</sub>).</p>
+      <p class="note"><b>Treatment</b> (Secs. 2.1–2.2). The gaps are filled with chevron supports that hold the tire up. The chevrons are tailored for near-zero Poisson's ratio, so they stretch and shrink with the gap without changing height or length along the joint. They must cope with gaps from 0.84 to 3 in. in service (horizontal expansion ratio above 3.5) and still carry wheel loads.</p>
+      <p class="note"><b>Rigid-wheel sketch (ours).</b> Treat the tire as a rigid circle of radius R rolling over an open gap of width w. It sinks δ = R − √(R² − (w/2)²) and meets the far edge at an angle γ = asin(w/2R). At speed v the hub must gain a vertical velocity of about v·sin γ at the strike. A flush filler removes both. A real loaded tire flattens and drapes further into the gap, so δ here is a lower bound. This sketch is not the paper's model. The paper used ANSYS FEA with a 2-layer tire, 35 psi and a 1000 lbf wheel load (Sec. 3.3).</p>
+      <p class="note"><b>Reported FEA</b> (Sec. 2.5, 3-in. gap). Peak beam-edge pressure was 4.39 MPa unsupported and 1.45 MPa on a flat road. The single-layer chevron cut the excess by 67.17% and the multi-layer one by 76.40%. Support surface deflection was 3.60 mm and 2.08 mm, with peak stress 4.64 MPa and 2.91 MPa against 14.5 MPa strength for FP-90 urethane.</p>
+      <p class="note"><b>Field test</b> (TRR abstract). A single-layer treatment on one westbound lane of the SR 520 floating bridge was tested for two months. It gave more than 10 dB reduction in the 500–900 Hz band at 160 ft.</p>
+      <p class="note"><b>Schematic only.</b> Beam widths, the chevron arm length and the plan-view pattern are drawn for illustration. They are not the as-built dimensions, which these sources do not give in full.</p>
+    </aside>
+  </main>
+  <script src="../../assets/chart.js"></script>
+  <script>
+  (function () {
+    "use strict";
+    const $ = (id) => document.getElementById(id);
+    const IN = 0.0254;
+    const FEA = { none: 4.39, flat: 1.45, single: 4.39 - 0.6717 * (4.39 - 1.45), multi: 4.39 - 0.764 * (4.39 - 1.45) };
+    const DEFL = { single: 3.60, multi: 2.08 };
+    let treat = "none", paused = false;
+    document.querySelectorAll("#treat .btn").forEach((b) => b.addEventListener("click", () => {
+      treat = b.dataset.t; document.querySelectorAll("#treat .btn").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); update();
+    }));
+    $("pause").addEventListener("click", () => { paused = !paused; $("pause").textContent = paused ? "Play" : "Pause"; });
+
+    const dropDepth = (w, R) => R - Math.sqrt(Math.max(0, R * R - (w / 2) ** 2));
+    const strikeAngle = (w, R) => Math.asin(Math.min(1, w / (2 * R)));
+
+    // joint geometry (schematic): 5 beams of top width B with 4 gaps
+    const B = 0.08, NB = 5;
+    function beams(w) { const xs = []; for (let i = 0; i < NB; i += 1) xs.push([i * (B + w), i * (B + w) + B]); return xs; }
+    // rigid circle hub height above road for hub x, surface = beam tops (and filled gaps if treated)
+    function hubHeight(x, w, R, filled) {
+      if (filled) return R;
+      const bs = beams(w), lo = -1, hi = bs[NB - 1][1] + 1;
+      let best = -Infinity;
+      const segs = [[lo, bs[0][0]], ...bs, [bs[NB - 1][1], hi]];
+      for (const [a, b] of segs) {
+        const cx = Math.max(a, Math.min(b, x)), dx = x - cx;
+        if (Math.abs(dx) < R) best = Math.max(best, Math.sqrt(R * R - dx * dx));
+      }
+      return best;
+    }
+
+    const stage = $("stage"), cv = $("view"), ctx = cv.getContext("2d");
+    const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+    let xTire = -0.5, rot = 0;
+    function draw() {
+      const dpr = Math.min(devicePixelRatio || 1, 2), W = stage.clientWidth, H = stage.clientHeight;
+      if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+      const ink = css("--ink"), muted = css("--muted"), line = css("--line"), accent = css("--accent");
+      const w = +$("w").value * IN, R = +$("R").value, filled = treat !== "none";
+      const bs = beams(w), span = bs[NB - 1][1];
+      // ---------- side view ----------
+      const topH = H * 0.58, road = topH - 50;
+      const sc = Math.min((W - 40) / (span + 2 * R + 0.3), (road - 30) / (2 * R + 0.05));
+      const ox = W / 2 - (span / 2) * sc;
+      const X = (x) => ox + x * sc, Y = (y) => road - y * sc;
+      ctx.fillStyle = muted; ctx.globalAlpha = 0.35;
+      ctx.fillRect(0, Y(0), X(0), 40); ctx.fillRect(X(span), Y(0), W - X(span), 40); ctx.globalAlpha = 1;
+      ctx.fillStyle = ink; ctx.font = "12px system-ui"; ctx.textAlign = "left";
+      ctx.fillText("approach slab", 8, Y(0) + 16);
+      for (const [a, b] of bs) {
+        ctx.fillStyle = "#64748b"; ctx.fillRect(X(a), Y(0), (b - a) * sc, 0.02 * sc);              // top flange
+        ctx.fillRect(X((a + b) / 2) - 0.006 * sc, Y(0) + 0.02 * sc, 0.012 * sc, 0.08 * sc);          // web
+      }
+      for (let i = 0; i < NB - 1; i += 1) {
+        const a = bs[i][1], b = bs[i + 1][0];
+        if (b - a < 1e-4) continue;
+        // neoprene seal
+        ctx.strokeStyle = "#a3a3a3"; ctx.lineWidth = 1.5; ctx.beginPath();
+        ctx.moveTo(X(a), Y(-0.03)); ctx.quadraticCurveTo(X((a + b) / 2), Y(-0.06), X(b), Y(-0.03)); ctx.stroke();
+        if (filled) {
+          ctx.fillStyle = "#16a34a"; ctx.globalAlpha = 0.85; ctx.fillRect(X(a), Y(0), (b - a) * sc, 0.02 * sc); ctx.globalAlpha = 1;
+          if (treat === "multi") { ctx.fillStyle = "#0ea5e9"; ctx.fillRect(X(a), Y(-0.025), (b - a) * sc, 0.012 * sc); }
+        }
+      }
+      // tire
+      const yHub = hubHeight(xTire, w, R, filled);
+      ctx.strokeStyle = ink; ctx.lineWidth = 2; ctx.fillStyle = "#111827";
+      ctx.beginPath(); ctx.arc(X(xTire), Y(yHub), R * sc, 0, 2 * Math.PI); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = "#9ca3af"; ctx.beginPath(); ctx.arc(X(xTire), Y(yHub), R * sc * 0.55, 0, 2 * Math.PI); ctx.fill();
+      ctx.strokeStyle = "#374151"; ctx.lineWidth = 2;
+      for (let k = 0; k < 5; k += 1) { const a = rot + (k * 2 * Math.PI) / 5; ctx.beginPath(); ctx.moveTo(X(xTire), Y(yHub)); ctx.lineTo(X(xTire) + Math.cos(a) * R * sc * 0.5, Y(yHub) - Math.sin(a) * R * sc * 0.5); ctx.stroke(); }
+      // hub path trace
+      ctx.strokeStyle = accent; ctx.lineWidth = 1.5; ctx.beginPath();
+      for (let k = 0; k <= 300; k += 1) { const x = -0.45 + ((span + 0.9) * k) / 300, y = hubHeight(x, w, R, filled); const yy = Y(R) + (Y(y) - Y(R)) * 4; k ? ctx.lineTo(X(x), yy) : ctx.moveTo(X(x), yy); }
+      ctx.stroke();
+      ctx.fillStyle = accent; ctx.textAlign = "right"; ctx.font = "12px system-ui";
+      ctx.fillText("hub height path (dips ×4)", W - 8, Y(R) - 8);
+      // ---------- plan view ----------
+      const py0 = topH + 8, ph = Math.min(220, H - py0 - 50), psc = Math.min(3, (W * 0.45) / (4.5 * IN * 1000));
+      ctx.fillStyle = ink; ctx.font = "13px system-ui"; ctx.textAlign = "left";
+      ctx.fillText(filled ? "Plan view of one gap: chevron filler (schematic)" : "Plan view of one gap: open, the tire spans it unsupported", 12, py0 + 4);
+      const gx = W / 2, wpx = Math.max(2, w * 1000 * psc), yA = py0 + 18, yB = py0 + 18 + ph - 20;
+      ctx.fillStyle = "#64748b"; ctx.fillRect(gx - wpx / 2 - 60, yA, 60, yB - yA); ctx.fillRect(gx + wpx / 2, yA, 60, yB - yA);
+      ctx.fillStyle = muted; ctx.textAlign = "center"; ctx.font = "11px system-ui";
+      ctx.fillText("beam", gx - wpx / 2 - 30, yB + 14); ctx.fillText("beam", gx + wpx / 2 + 30, yB + 14);
+      ctx.fillText(`w = ${(w / IN).toFixed(2)} in`, gx, yB + 14);
+      if (filled && w > 1e-4) {
+        const La = (4.5 * IN * 1000 * psc) / 2, dy = Math.sqrt(Math.max(0, La * La - (wpx / 2) ** 2)), pitch = 22;
+        ctx.save(); ctx.beginPath(); ctx.rect(gx - wpx / 2 - 3, yA, wpx + 6, yB - yA); ctx.clip();
+        ctx.strokeStyle = "#16a34a"; ctx.lineWidth = 2.5;
+        for (let y = yA - dy; y < yB; y += pitch) {
+          ctx.beginPath(); ctx.moveTo(gx - wpx / 2, y); ctx.lineTo(gx, y + dy); ctx.lineTo(gx + wpx / 2, y); ctx.stroke();
+          ctx.fillStyle = "#16a34a";
+          [[gx - wpx / 2, y], [gx, y + dy], [gx + wpx / 2, y]].forEach(([px, pyy]) => { if (pyy > yA && pyy < yB) { ctx.beginPath(); ctx.arc(px, pyy, 2.5, 0, 2 * Math.PI); ctx.fill(); } });
+        }
+        ctx.restore();
+        ctx.fillStyle = muted; ctx.textAlign = "left"; ctx.font = "12px system-ui";
+        const msg = ["Arms keep their length and hinge", "at the flexures, so the strip follows", "the gap without growing along the joint."];
+        msg.forEach((t, k) => ctx.fillText(t, 12, py0 + 24 + k * 16));
+      }
+    }
+
+    // ---------- chart ----------
+    const chart = TRLChart.create($("chart"), {});
+    function drawChart() {
+      const R = +$("R").value, v = +$("v").value / 3.6, wi = +$("w").value;
+      const ws = Array.from({ length: 89 }, (_, i) => (i / 88) * 4.38);
+      const ymax = Math.max(dropDepth(4.38 * IN, R) * 1000, 10 * v * Math.sin(strikeAngle(4.38 * IN, R)));
+      const S = [
+        { name: "drop δ (mm)", color: "#2f6fde", x: ws, y: ws.map((x) => dropDepth(x * IN, R) * 1000) },
+        { name: "strike Δv (m/s ×10)", color: "#d9822b", x: ws, y: ws.map((x) => 10 * v * Math.sin(strikeAngle(x * IN, R))) },
+        { name: "current w", color: "#e0453a", x: [wi, wi], y: [0, Math.max(dropDepth(wi * IN, R) * 1000, 10 * v * Math.sin(strikeAngle(wi * IN, R)))] },
+        { name: "service range 0.84–3 in", color: "#2e9d6b", x: [0.84, 0.84, NaN, 3, 3], y: [0, ymax, NaN, 0, ymax] },
+      ];
+      chart.setSeries(S, { xlabel: "Gap width w (in)", ylabel: "Open-gap value (rigid wheel)" });
+      $("legend").innerHTML = S.map((s) => `<span><i style="background:${s.color}"></i>${s.name}</span>`).join("");
+    }
+
+    function update() {
+      const wIn = +$("w").value, w = wIn * IN, R = +$("R").value, vk = +$("v").value, v = vk / 3.6;
+      $("wLbl").textContent = `${wIn.toFixed(2)} in (${(w * 1000).toFixed(1)} mm)`;
+      $("rLbl").textContent = `${R.toFixed(3)} m`;
+      $("vLbl").textContent = `${vk} km/h`;
+      $("wNote").innerHTML = wIn > 3 ? `<span class="warn">Beyond the 3 in. service range. Under extreme conditions the pontoon gaps can reach 3.85 in. and 4.38 in. (Sec. 2.1).</span>` : wIn < 0.84 ? "Below the 0.84 in. service minimum. The joint can close fully only in extreme conditions (Sec. 2.1)." : "Within the normal 0.84–3 in. operating range (Sec. 2.1).";
+      const filled = treat !== "none", d = dropDepth(w, R), g = strikeAngle(w, R);
+      let s =
+        `gap w = ${(w * 1000).toFixed(1)} mm   service ratio 3/0.84 = ${(3 / 0.84).toFixed(2)}×\n` +
+        `open gap, rigid wheel:\n` +
+        `   drop δ = ${(d * 1000).toFixed(2)} mm   strike angle γ = ${((g * 180) / Math.PI).toFixed(2)}°\n` +
+        `   vertical velocity jump ≈ v·sin γ = ${(v * Math.sin(g)).toFixed(2)} m/s at ${vk} km/h\n` +
+        `   ${filled ? "removed: the filler is flush with the beams" : "the tire strikes the next beam edge 4× per axle"}\n` +
+        `reported FEA peak edge pressure (3-in. gap, Sec. 2.5):\n` +
+        `   open ${FEA.none.toFixed(2)} MPa · flat road ${FEA.flat.toFixed(2)} MPa\n` +
+        `   single-layer ${FEA.single.toFixed(2)} MPa (−67.17% of excess)\n` +
+        `   multi-layer ${FEA.multi.toFixed(2)} MPa (−76.40% of excess)`;
+      if (filled) s += `\nsupport surface deflection (FEA): ${DEFL[treat].toFixed(2)} mm`;
+      $("out").textContent = s;
+      drawChart();
+    }
+    ["w", "R", "v"].forEach((id) => $(id).addEventListener("input", update));
+    update();
+    let last = 0;
+    (function loop(ts) {
+      requestAnimationFrame(loop);
+      const dt = last ? Math.min(0.05, (ts - last) / 1000) : 0; last = ts;
+      if (!paused) {
+        const w = +$("w").value * IN, span = beams(w)[NB - 1][1], R = +$("R").value;
+        const vis = 0.05 + (+$("v").value / 100) * 0.25; // slowed for viewing
+        xTire += vis * dt; rot -= (vis * dt) / R;
+        if (xTire > span + R + 0.2) xTire = -R - 0.2;
+      }
+      draw();
+    })(0);
+  })();
+  </script>
+</body>
+</html>

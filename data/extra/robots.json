@@ -1,0 +1,84 @@
+{
+  "FPM_arxiv": {
+    "summary": "The paper presents Flat-Plane Mechanisms: 13-link linkages that invert a sphere into a plane, so the endpoint's planarity comes from link lengths and connectivity rather than precision guide surfaces. The authors built FPMs from 100 µm to 2.12 m. A sensitivity analysis found designs that cut fabrication error by about an order of magnitude, and an FPM made of hand-cut wooden dowels moved with sub-25 µm flatness. A two-motor robotic FPM scanned surfaces in agreement with a lab CMM (mean difference 7.1 µm) and 3D printed inside a narrow container.",
+    "project": "Flat-Plane Mechanisms",
+    "demo": "models/planarity/",
+    "demoLabel": "Generate a plane from geometry",
+    "source": "full text",
+    "fulltext": "https://arxiv.org/pdf/2602.06294"
+  },
+  "SCCRUB_2026": {
+    "summary": "SCCRUB is a soft, tendon-driven arm, built on the torque-transmitting TRUNC arm, that scrubs surfaces with a spinning brush. A friction model of the brush led to a counter-rotating design (inner radius about 79% of outer) that cut the reaction moment on the arm by 85%. A neural network trained on 10,000 loaded poses gave open-loop position control (7.0 mm mean error) and contact forces from 1 to 8.5 N. The robot removed 99.7% of burnt ketchup from a plate and 99.8% of fruit preserve from a toilet seat.",
+    "project": "TRUNC soft torque-transmitting arm",
+    "demo": "models/sccrub/",
+    "demoLabel": "Balance a counter-rotating brush",
+    "source": "full text",
+    "fulltext": "https://arxiv.org/pdf/2507.06053"
+  },
+  "fractal_gripper_ral_2024": {
+    "summary": "According to the abstract, this paper shows that a fractal arrangement of suction cups on passive joints lets a suction gripper conform to curved surfaces and corners. The authors model how design parameters set the range of curvatures and payloads, and build a prototype with a compact vacuum brake system. Experiments widened the usable approach angle from 5° to 45°, and adding joint brakes improved performance by over 30% at moderate contact angles.",
+    "project": "Fractal suction gripper",
+    "demo": "models/fractal-gripper/",
+    "demoLabel": "Conform a fractal suction tree",
+    "source": "abstract",
+    "fulltext": ""
+  },
+  "Kodnongbua_2022": {
+    "summary": "The paper gives an algorithm that takes an object and its position and outputs a 3D-printable passive gripper (no actuators) plus the robot insert trajectory that grasps the object stably. It ranks three-point grasp configurations for stability under gravity and reachability, then co-optimises a gripper skeleton and the trajectory to avoid collisions, and finishes the shape with topology optimisation. Solutions were found for all 23 test cases, and 21 of the printed grippers picked up their object on a UR5 arm.",
+    "project": "Passive grippers",
+    "demo": "models/passive-gripper/",
+    "demoLabel": "Design a passive gripper",
+    "source": "full text",
+    "fulltext": "https://arxiv.org/pdf/2306.03174"
+  },
+  "duolingo_icra_2025": {
+    "summary": "According to the abstract, this paper addresses robots whose own actuator dynamics drift through wear, fatigue or hysteresis while the environment's dynamics stay the same. A short calibration procedure learns a non-linear action-translation model that maps the original controller's actions to ones that work on the shifted robot, allowing continued learning and transfer without retraining. The method was shown on simulated tasks and on a real 4-DoF electrically driven handed-shearing-auxetic (HSA) platform.",
+    "project": "Handed shearing auxetics",
+    "demo": "models/duolingo/",
+    "demoLabel": "Translate actions after drift",
+    "source": "abstract",
+    "fulltext": ""
+  },
+  "_demos": [
+    {
+      "id": "planarity",
+      "title": "Flat-Plane Mechanism geometry",
+      "sub": "Sphere-to-plane inversion in a 13-link linkage",
+      "text": "Drive the Flat-Plane Mechanism's control link and watch the endpoint stay on a plane, because OB·OD is fixed and B rides on a sphere through O. Change H, R and γ, or unbalance the control link to get a sphere instead. Run a Monte Carlo of link-length error to see the kinematic sensitivity S_k the paper uses to pick error-attenuating designs.",
+      "tags": ["robots", "fabrication"],
+      "pubs": ["FPM_arxiv"]
+    },
+    {
+      "id": "sccrub",
+      "title": "SCCRUB counter-rotating brush",
+      "sub": "Friction moment of a scrubbing brush and the soft arm's force balance",
+      "text": "Uses the paper's friction model to compare a unidirectional brush with a counter-rotating one whose inner and outer faces cancel the reaction moment at rₒ/rᵢ = 2^(1/3). Sliders set the radii, friction, normal force and gearbox backlash. A force balance shows the tendon tension the soft arm must supply and whether the request stays inside the learned model's training range.",
+      "tags": ["robots"],
+      "pubs": ["SCCRUB_2026"]
+    },
+    {
+      "id": "fractal-gripper",
+      "title": "Fractal suction gripper",
+      "sub": "A tree of free pivots puts suction cups flat on curved surfaces",
+      "text": "A simplified 2D model of the fractal suction idea: each pivot rotates until both of its branches touch, so the cups spread over cylinders, bowls and box corners. Compare sealed cups and a model holding force against approach angle with a single rigid cup. Built from the paper's abstract only, with placeholder parameters.",
+      "tags": ["robots"],
+      "pubs": ["fractal_gripper_ral_2024"]
+    },
+    {
+      "id": "passive-gripper",
+      "title": "Passive gripper designer",
+      "sub": "Grasp configurations, then gripper skeleton and insert trajectory together",
+      "text": "A 2D re-implementation of the paper's pipeline. It samples three-point grasp configurations, keeps those that hold under gravity (partial force closure) and pass the reachability test, ranks them on Pareto fronts, then co-optimises a finger skeleton and insert trajectory with controlled random search until nothing collides. Watch the resulting gripper slide in and lift the object.",
+      "tags": ["robots", "fabrication"],
+      "pubs": ["Kodnongbua_2022"]
+    },
+    {
+      "id": "duolingo",
+      "title": "Action translation after drift",
+      "sub": "Recalibrate a drifted robot instead of retraining its controller",
+      "text": "A toy version of the setting in the Duolingo abstract: a ball-on-plate task in which the robot's actuators lose gain, gain an offset and pick up hysteresis. A quick calibration fits a non-linear action-translation map that restores tracking without retraining the controller. Run nominal, drifted, and drifted-plus-translation side by side.",
+      "tags": ["robots"],
+      "pubs": ["duolingo_icra_2025"]
+    }
+  ]
+}

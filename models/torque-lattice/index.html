@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Torque-Transmitting Metamaterials</title>
+  <link rel="icon" href="../../assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../../assets/site.css" />
+  <style>
+    .stage { overflow: hidden; }
+    #inset { position: absolute; right: 12px; top: 12px; width: 200px; height: 200px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+    #chart { width: 100%; height: 210px; display: block; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    aside select { max-width: 100%; }
+    [data-mode] { display: none; }
+    body.betr [data-mode="betr"], body.trunc [data-mode="trunc"] { display: block; }
+    details p, details li { font-size: 13px; }
+    @media (max-width: 860px) { #inset { width: 130px; height: 130px; } }
+  </style>
+</head>
+<body class="trunc">
+  <header class="site"><div class="wrap">
+    <a class="brand" href="../../"><img src="../../assets/icon.svg" alt="" />Transformative Robotics Lab</a>
+    <nav class="site"><a href="../../">Projects</a><a href="../trunc/">Measured TRUNC arm workspace</a></nav>
+  </div></header>
+  <main class="model">
+    <div class="stage" id="stage">
+      <canvas id="inset"></canvas>
+      <div class="overlay">Drag: orbit · Right-drag: pan · Wheel: zoom · Yellow flags mark input and output shaft phase</div>
+    </div>
+    <aside>
+      <h1>Bend, extend, still transmit torque</h1>
+      <p class="muted">Two lab metamaterials that are soft in bending and extension but stiff in twist. Choose one, bend and stretch it, and spin the input shaft.</p>
+      <label>Structure
+        <select id="kind">
+          <option value="trunc">TRUNC joint chain (Science Robotics 2025)</option>
+          <option value="betr">BETR tube, Watt's mechanism cells (Adv. Intell. Syst. 2025)</option>
+        </select></label>
+
+      <!-- ===== TRUNC ===== -->
+      <div data-mode="trunc">
+        <p class="muted" style="font-size:13px">Illustrative model based on Carton, Kowalewski <i>et al.</i>, <i>Sci. Robot.</i> 2025, “Design and mechanical analysis” and Fig. 2–3. Geometry is drawn schematically. All stiffness numbers are the paper's measured values.</p>
+        <h2>Joint</h2>
+        <label>Variant <select id="tv">
+          <option value="truss">Truss (M = 3, two joint bands)</option>
+          <option value="eq">Equatorial (M = 2, one joint band)</option>
+        </select></label>
+        <label>Equatorial cells N (symmetry 2*N): <b id="tnv"></b>
+          <input id="tn" type="range" min="2" max="8" step="1" value="4" /></label>
+        <label>Joints in series: <b id="tcv"></b>
+          <input id="tc" type="range" min="1" max="6" step="1" value="3" /></label>
+        <h2>Pose</h2>
+        <label>Bend per joint β: <b id="tbv"></b>
+          <input id="tb" type="range" min="0" max="45" step="1" value="25" /></label>
+        <label>Bend direction: <b id="tdv"></b>
+          <input id="td" type="range" min="0" max="360" step="5" value="0" /></label>
+        <label>Axial strain: <b id="tev"></b>
+          <input id="te" type="range" min="-13" max="20" step="1" value="0" /></label>
+      </div>
+
+      <!-- ===== BETR ===== -->
+      <div data-mode="betr">
+        <p class="muted" style="font-size:13px">Illustrative model based on Thomas, Garg &amp; Lipton, <i>Adv. Intell. Syst.</i> 2025, Sec. 2.1–2.2, Eq. 1–2, Fig. 3. Watt's linkage kinematics are exact. Wrapping the tiling onto a bent tube is a kinematic sketch.</p>
+        <h2>Watt's cell (A = 1)</h2>
+        <label>Rocker length B: <b id="bbv"></b>
+          <input id="bb" type="range" min="0.3" max="1.9" step="0.01" value="1.0" /></label>
+        <label>Half-coupler C: <b id="bcv"></b>
+          <input id="bc" type="range" min="0.1" max="1.5" step="0.01" value="0.5" /></label>
+        <h2>Tube</h2>
+        <div class="row2">
+          <label>Cells around <select id="bn"><option>4</option><option selected>6</option><option>8</option><option>10</option><option>12</option></select></label>
+          <label>Rows <select id="br"><option>4</option><option selected>6</option><option>8</option><option>10</option><option>12</option></select></label>
+        </div>
+        <label>Outer diameter: <b id="bodv"></b>
+          <input id="bod" type="range" min="10" max="40" step="0.1" value="25.4" /></label>
+        <label>Wall thickness: <b id="bwv"></b>
+          <input id="bw" type="range" min="0.5" max="3.5" step="0.01" value="1.585" /></label>
+        <h2>Pose</h2>
+        <label>Mean extension: <b id="bev"></b>
+          <input id="be" type="range" min="0" max="100" step="1" value="25" /></label>
+        <label>Bend angle: <b id="bbendv"></b>
+          <input id="bbend" type="range" min="0" max="120" step="1" value="40" /></label>
+        <label>Bend direction: <b id="bdv"></b>
+          <input id="bd" type="range" min="0" max="360" step="5" value="0" /></label>
+      </div>
+
+      <label><input id="spin" type="checkbox" checked /> Spin the input shaft</label>
+      <h2>Readout</h2>
+      <div class="readout" id="out"></div>
+      <h2 id="charttitle">Chart</h2>
+      <canvas id="chart"></canvas>
+      <p class="muted" style="font-size:12px" id="chartnote"></p>
+
+      <h2>How this model works</h2>
+      <details open data-mode="trunc">
+        <summary>TRUNC: torsionally rigid universal coupling</summary>
+        <p>TRUNCs tile an auxetic double-arrowhead cell on a sphere with axial point-group symmetry 2*N (N cells round the equator, here *4 by default). M tilings run between the poles: M = 2 gives the equatorial joint, M = 3 the truss joint. Because the equator stays tied to both poles, twisting is a stiff mode, while bending (antisymmetric cell deformation) and extension (axisymmetric deformation) are soft modes.</p>
+        <p>Each joint behaves as a constant-velocity (CV) joint. Here the joint bands are placed on the bisecting plane between the two shafts, the classical CV condition, so output phase equals input phase at any bend. The chart compares a conventional Cardan joint (textbook relation tan φ<sub>out</sub> = tan φ<sub>in</sub>/cos β, not from the paper), whose output speed fluctuates.</p>
+        <p>Measured selectivity is the twist–bend ratio GJ/EI: 11 for the equatorial joint and 52 for the truss joint (spring-steel joints, Fig. 2C–D). The readouts also report: up to 45° bend per joint at 85.7% torque and energy transmission efficiency (fig. S6A); 83.6% of torsional rigidity kept at 20% stretch (Fig. 3B); compression to 13.3% of arm length.</p>
+        <p>The full TRUNC arm's measured workspace (18,300 motion-capture poses) is in the <a href="../trunc/">TRUNC workspace explorer</a>.</p>
+      </details>
+      <details open data-mode="betr">
+        <summary>BETR: bendable, extendable, torsionally rigid tube</summary>
+        <p>Each cell is a Watt's straight-line linkage: ground pivots 2A apart, two rockers of length B and a coupler of length 2C (Fig. 3B). Its midpoint traces Watt's curve, r² = b² − [a sin θ ± √(c² − a² cos² θ)]² (Eq. 1). Near the centre that curve is almost straight, so a cell extends along one line and resists shear. Validity needs C + B &gt; 1 and |C − B| &lt; 1. The cell tilt is ϕ = arccos((A² + B² − C²)/2AB) (Eq. 2).</p>
+        <p>As in the paper's Methods, the straight-line range is where the midpoint stays within 1% of the cell width of the line, and ER = (h<sub>i</sub> + range)/h<sub>i</sub>. A second value adds supports of 10% of the cell width (Sec. 2.2). Cells are mirrored and tiled (** wallpaper) and wrapped onto a cylinder. Bending is imposed as a constant-curvature arc, so each column's cells extend by the local arc length.</p>
+        <p>The scaling law (Sec. 2.2, SM8) says axial stiffness ∝ A = π(R² − r²) and torsional stiffness ∝ J = π(R⁴ − r⁴)/2. Defaults are the paper's samples: 25.4 mm OD and 22.23 mm ID, which leaves a 76% lumen.</p>
+      </details>
+      <details>
+        <summary>What is simplified</summary>
+        <ul>
+          <li>No elastic or FE model runs here. Stiffness numbers are the paper's reported values or the A and J scaling law. Flexure width and length (Fig. 3C) are not modelled.</li>
+          <li>TRUNC arm and cell shapes are schematic, not the laser-cut spring-steel drawings. The rigidity retention between 0% and 20% stretch is a straight line through the two reported points.</li>
+          <li>The BETR cell height definition is approximate, so absolute ER values differ from Fig. 3B (the paper reports an optimum near 1.6× once supports and gaps are added). The trends match: ER grows as C → 0 and B → 1. Beam gaps of 5% are not enforced.</li>
+        </ul>
+      </details>
+      <h2>Sources</h2>
+      <p class="muted" style="font-size:13px">M. Carton, J. F. Kowalewski <i>et al.</i>, “Bridging hard and soft: Mechanical metamaterials enable rigid torque transmission in soft robots,” <i>Science Robotics</i> 10, eads0548 (2025), <a href="https://www.science.org/doi/10.1126/scirobotics.ads0548">doi:10.1126/scirobotics.ads0548</a>.<br />S. Thomas, A. Garg, J. Lipton, “Torque-Transmitting Architected Metamaterials for Flexible and Extendable Tubular Robotics,” <i>Advanced Intelligent Systems</i> (2025), <a href="https://doi.org/10.1002/aisy.202500110">doi:10.1002/aisy.202500110</a>.</p>
+    </aside>
+  </main>
+  <script src="../../assets/three.min.js"></script>
+  <script src="../../assets/chart.js"></script>
+  <script>
+  (function () {
+    "use strict";
+    const $ = (id) => document.getElementById(id);
+    const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+    const D2R = Math.PI / 180;
+    const stage = $("stage");
+
+    // ================= three.js scene =================
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(40, 1, 0.5, 5000);
+    camera.up.set(0, 0, 1);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+    stage.prepend(renderer.domElement);
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x445566, 0.9));
+    const sun = new THREE.DirectionalLight(0xffffff, 0.7); sun.position.set(200, -300, 400); scene.add(sun);
+    const grid = new THREE.GridHelper(400, 20, 0x888888, 0x888888); grid.rotation.x = Math.PI / 2; grid.material.transparent = true; grid.material.opacity = 0.2; scene.add(grid);
+
+    // instanced cylinders for every bar / link
+    const UP = new THREE.Vector3(0, 1, 0);
+    function SegBatch(max, color) {
+      const geo = new THREE.CylinderGeometry(1, 1, 1, 8, 1, false);
+      const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.55, metalness: 0.15 });
+      const mesh = new THREE.InstancedMesh(geo, mat, max); mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+      const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), d = new THREE.Vector3(), mid = new THREE.Vector3(), col = new THREE.Color();
+      for (let i = 0; i < max; i += 1) mesh.setColorAt(i, col.set(color));
+      scene.add(mesh);
+      let n = 0;
+      return {
+        mesh,
+        begin() { n = 0; },
+        add(a, b, r, c) {
+          if (n >= max) return;
+          d.subVectors(b, a); const L = d.length(); if (L < 1e-9) return;
+          mid.addVectors(a, b).multiplyScalar(0.5); q.setFromUnitVectors(UP, d.multiplyScalar(1 / L)); s.set(r, L, r);
+          m4.compose(mid, q, s); mesh.setMatrixAt(n, m4); mesh.setColorAt(n, col.set(c)); n += 1; bbox.expandByPoint(a); bbox.expandByPoint(b);
+        },
+        end() { mesh.count = n; mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true; },
+      };
+    }
+    const bbox = new THREE.Box3(); let fitPending = true;
+    const bars = SegBatch(6000, 0xcccccc);
+    const balls = (function () {
+      const mesh = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 10, 8), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.4 }), 3000);
+      const m4 = new THREE.Matrix4(), col = new THREE.Color(); for (let i = 0; i < 3000; i += 1) mesh.setColorAt(i, col.set(0xffffff));
+      scene.add(mesh); let n = 0;
+      return { begin() { n = 0; }, add(p, r, c) { if (n >= 3000) return; m4.makeScale(r, r, r).setPosition(p); mesh.setMatrixAt(n, m4); mesh.setColorAt(n, col.set(c)); n += 1; }, end() { mesh.count = n; mesh.instanceMatrix.needsUpdate = true; mesh.instanceColor.needsUpdate = true; } };
+    })();
+    const V = (x, y, z) => new THREE.Vector3(x, y, z);
+
+    // camera controls (same scheme as the TRUNC workspace page)
+    const cam = { r: 320, az: -1.0, el: 0.35, target: new THREE.Vector3(0, 0, 60) };
+    function place() {
+      camera.position.set(cam.target.x + cam.r * Math.cos(cam.el) * Math.cos(cam.az), cam.target.y + cam.r * Math.cos(cam.el) * Math.sin(cam.az), cam.target.z + cam.r * Math.sin(cam.el));
+      camera.lookAt(cam.target);
+    }
+    function resize() { const w = stage.clientWidth, h = stage.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); drawInset(); }
+    let drag = null; const el = renderer.domElement;
+    el.addEventListener("contextmenu", (e) => e.preventDefault());
+    el.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY, pan: e.button === 2 || e.shiftKey }; el.setPointerCapture(e.pointerId); });
+    el.addEventListener("pointermove", (e) => {
+      if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
+      if (drag.pan) { const s = cam.r / 700; cam.target.add(new THREE.Vector3(-Math.sin(cam.az), Math.cos(cam.az), 0).multiplyScalar(-dx * s)); cam.target.z += dy * s; }
+      else { cam.az -= dx * 0.008; cam.el = Math.max(-1.4, Math.min(1.5, cam.el + dy * 0.008)); }
+    });
+    el.addEventListener("pointerup", () => { drag = null; });
+    el.addEventListener("wheel", (e) => { e.preventDefault(); cam.r = Math.max(40, Math.min(2000, cam.r * Math.exp(e.deltaY * 0.0012))); }, { passive: false });
+
+    // ================= shared helpers =================
+    let psi = 0; // input shaft angle
+    const COL = { link: 0x2f9e75, link2: 0x2f6fde, ring: 0x9aa3b2, hub: 0xd9d9d9, flag: 0xfbbf24, shaft: 0x8a8f99, bad: 0xe0453a };
+    function shaft(T, len, r, sign) { // draw a shaft along local z of transform T with a phase flag
+      const a = V(0, 0, 0).applyMatrix4(T), b = V(0, 0, sign * len).applyMatrix4(T);
+      bars.add(a, b, r, COL.shaft);
+      const f0 = V(0, 0, sign * len * 0.7).applyMatrix4(T), f1 = V(r * 3.2, 0, sign * len * 0.7).applyMatrix4(T);
+      bars.add(f0, f1, r * 0.7, COL.flag); balls.add(f1, r * 1.1, COL.flag);
+    }
+    const Rz = (a) => new THREE.Matrix4().makeRotationZ(a);
+    const Tr = (x, y, z) => new THREE.Matrix4().makeTranslation(x, y, z);
+    function bendRot(beta, dir) { return Rz(dir).multiply(new THREE.Matrix4().makeRotationY(beta)).multiply(Rz(-dir)); }
+    const mul = (...ms) => ms.reduce((acc, m) => acc.multiply(m), new THREE.Matrix4());
+
+    // ================= TRUNC =================
+    const TRUNC = { truss: { ratio: 52, D: 56, M: 3, label: "truss" }, eq: { ratio: 11, D: 88, M: 2, label: "equatorial" } };
+    function sph(R, pol, az, zs, rs) { return V(R * rs * Math.sin(pol) * Math.cos(az), R * rs * Math.sin(pol) * Math.sin(az), R * zs * Math.cos(pol)); }
+    function arc(a, b, T, r, c, R, n = 5) { // great-circle-ish polyline between two local points (radially normalised), then transformed
+      let prev = a.clone().applyMatrix4(T);
+      for (let i = 1; i <= n; i += 1) {
+        const t = i / n, p = a.clone().lerp(b, t), la = a.length() * (1 - t) + b.length() * t;
+        p.setLength(la); const q = p.applyMatrix4(T); bars.add(prev, q, r, c); prev = q;
+      }
+    }
+    function buildTrunc() {
+      const v = TRUNC[$("tv").value], N = Number($("tn").value), n = Number($("tc").value);
+      const beta = Number($("tb").value) * D2R, dir = Number($("td").value) * D2R, eps = Number($("te").value) / 100;
+      const R = v.D / 2, rod = 0.32 * v.D, rb = 0.9, pol0 = 22 * D2R;
+      const zs = 1 + eps, rs = 1 / Math.sqrt(1 + eps); // schematic: stretch along the axis, narrow the waist
+      let T = new THREE.Matrix4();
+      shaft(mul(T, Rz(psi)), 70, 2.2, -1);
+      for (let k = 0; k < n; k += 1) {
+        const Tin = T.clone();
+        const a0 = V(0, 0, 0).applyMatrix4(Tin), a1 = V(0, 0, rod).applyMatrix4(Tin); bars.add(a0, a1, 2.2, COL.shaft);
+        const C = mul(Tin, Tr(0, 0, rod + R * zs * Math.cos(pol0)));
+        const B = bendRot(beta, dir), Bh = bendRot(beta / 2, dir), Bq = bendRot(beta / 4, dir), Bq3 = bendRot((3 * beta) / 4, dir);
+        const Ts = mul(C, Rz(psi)), Tn = mul(C, B, Rz(psi)), Te = mul(C, Bh, Rz(psi)), Tlo = mul(C, Bq, Rz(psi)), Thi = mul(C, Bq3, Rz(psi));
+        // hubs
+        const hubS = V(0, 0, -R * zs * Math.cos(pol0)), hubN = V(0, 0, R * zs * Math.cos(pol0));
+        balls.add(hubS.clone().applyMatrix4(Ts), 3, COL.hub); balls.add(hubN.clone().applyMatrix4(Tn), 3, COL.hub);
+        for (let m = 0; m < 2 * N; m += 1) {
+          const az = (m * Math.PI) / N, off = (m % 2 ? -1 : 1) * (Math.PI / (2 * N));
+          const sS = sph(R, Math.PI - pol0, az, zs, 1), sN = sph(R, pol0, az, zs, 1);
+          // hub spokes
+          bars.add(hubS.clone().applyMatrix4(Ts), sS.clone().applyMatrix4(Ts), rb * 0.8, COL.ring);
+          bars.add(hubN.clone().applyMatrix4(Tn), sN.clone().applyMatrix4(Tn), rb * 0.8, COL.ring);
+          if (v.M === 2) {
+            const e = sph(R, Math.PI / 2, az + off, zs, rs);
+            // south arm (in the south frame) and north arm (north frame) meet at an equator joint on the bisecting plane
+            const eS = e.clone().applyMatrix4(Te), eLocS = eS.clone().applyMatrix4(Ts.clone().invert()), eLocN = eS.clone().applyMatrix4(Tn.clone().invert());
+            arc(sS, eLocS, Ts, rb, COL.link, R); arc(sN, eLocN, Tn, rb, COL.link2, R);
+            balls.add(eS, 2.2, COL.flag);
+          } else {
+            const lo = sph(R, Math.PI / 2 + 0.42, az + off, zs, rs), hi = sph(R, Math.PI / 2 - 0.42, az + off, zs, rs);
+            const loW = lo.clone().applyMatrix4(Tlo), hiW = hi.clone().applyMatrix4(Thi);
+            arc(sS, loW.clone().applyMatrix4(Ts.clone().invert()), Ts, rb, COL.link, R);
+            arc(sN, hiW.clone().applyMatrix4(Tn.clone().invert()), Tn, rb, COL.link2, R);
+            // truss: middle tier crosses the equator from each lower joint to the neighbouring upper joints
+            const hiL = sph(R, Math.PI / 2 - 0.42, az - off, zs, rs).applyMatrix4(Thi);
+            bars.add(loW, hiW, rb, COL.ring); bars.add(loW, hiL, rb, COL.ring);
+            balls.add(loW, 2, COL.flag); balls.add(hiW, 2, COL.flag);
+          }
+        }
+        T = mul(C, B, Tr(0, 0, R * zs * Math.cos(pol0)));
+      }
+      const tip = T.clone();
+      bars.add(V(0, 0, 0).applyMatrix4(tip), V(0, 0, rod).applyMatrix4(tip), 2.2, COL.shaft);
+      shaft(mul(tip, Tr(0, 0, rod), Rz(psi)), 40, 2.2, 1);
+      return { v, n, beta, eps, N };
+    }
+    function truncReadout(t) {
+      const r = t.v.ratio, b = t.beta / D2R, keep = t.eps > 0 ? 1 - (0.164 * Math.min(t.eps, 0.2)) / 0.2 : 1;
+      const cardan = cardanMaxErr(t.beta);
+      return `${t.v.label} TRUNC, symmetry 2*${t.N}${t.N !== 4 ? " (paper built *4)" : ""}, M = ${t.v.M}\n` +
+        `twist–bend ratio GJ/EI = ${r} (measured, Fig. 2C–D)\n` +
+        `bend per joint ${b.toFixed(0)}°, total bend ${(b * t.n).toFixed(0)}° over ${t.n} joint${t.n > 1 ? "s" : ""}\n` +
+        `a moment that bends the chain ${(b * t.n).toFixed(0)}° twists it only ${((b * t.n) / r).toFixed(2)}°\n` +
+        `output phase − input phase: 0° (constant-velocity joint)\n` +
+        `single Cardan joint at ${b.toFixed(0)}°: up to ±${cardan.toFixed(1)}° phase error\n` +
+        (b > 45 ? "beyond the reported 45° range\n" : b === 45 ? "at 45°: 85.7% torque/energy efficiency (fig. S6A)\n" : "reported range: up to 45° per joint at ≥85.7% efficiency (fig. S6A)\n") +
+        `axial strain ${(t.eps * 100).toFixed(0)}%` + (t.eps > 0 ? ` → ≈${(keep * 100).toFixed(1)}% torsional rigidity (linear between 0% and the reported 83.6% at 20%, Fig. 3B)` : t.eps < 0 ? " (arm compresses up to 13.3% of its length)" : "") +
+        `\nsphere mould Ø ${t.v.D} mm, spring steel 0.254 mm (Methods)`;
+    }
+    function cardanMaxErr(beta) { let m = 0; for (let d = 0; d <= 180; d += 1) { const a = d * D2R, o = Math.atan2(Math.sin(a), Math.cos(a) * Math.cos(beta)); let e = (o - a) / D2R; e = ((e + 540) % 360) - 180; m = Math.max(m, Math.abs(e)); } return m; }
+
+    // ================= BETR: Watt's linkage kinematics =================
+    function circ(p0, r0, p1, r1, sgn) {
+      const dx = p1[0] - p0[0], dy = p1[1] - p0[1], d = Math.hypot(dx, dy);
+      if (d > r0 + r1 || d < Math.abs(r0 - r1) || d === 0) return null;
+      const a = (r0 * r0 - r1 * r1 + d * d) / (2 * d), h = Math.sqrt(Math.max(r0 * r0 - a * a, 0)), ex = dx / d, ey = dy / d, mx = p0[0] + a * ex, my = p0[1] + a * ey;
+      return [mx - sgn * h * ey, my + sgn * h * ex];
+    }
+    function watt(A, B, C, steps = 1600) {
+      if (!(C + B > A && Math.abs(C - B) < A)) return null;
+      const O1 = [-A, 0], O2 = [A, 0], a0 = Math.acos((A * A + B * B - C * C) / (2 * A * B));
+      const branch = [];
+      for (const dir of [1, -1]) {
+        const pts = []; let prev = null;
+        for (let k = 0; k < steps; k += 1) {
+          const a = a0 + (dir * k * Math.PI) / steps, P1 = [O1[0] + B * Math.cos(a), O1[1] + B * Math.sin(a)];
+          const cands = [1, -1].map((s) => circ(P1, 2 * C, O2, B, s)).filter(Boolean);
+          if (!cands.length) break;
+          const tgt = prev || [-P1[0], -P1[1]];
+          const P2 = cands.sort((p, q) => Math.hypot(p[0] - tgt[0], p[1] - tgt[1]) - Math.hypot(q[0] - tgt[0], q[1] - tgt[1]))[0];
+          if (prev && Math.hypot(P2[0] - prev[0], P2[1] - prev[1]) > 0.2) break;
+          prev = P2; pts.push({ P1, P2, M: [(P1[0] + P2[0]) / 2, (P1[1] + P2[1]) / 2], a });
+        }
+        branch.push(pts);
+      }
+      if (branch[0].length < 4) return null;
+      const m0 = branch[0][0].M, m1 = branch[0][3].M; let t = [m1[0] - m0[0], m1[1] - m0[1]]; const tl = Math.hypot(...t); t = [t[0] / tl, t[1] / tl];
+      let n = [-t[1], t[0]];
+      const dot = (p, v) => p[0] * v[0] + p[1] * v[1];
+      const c0 = branch[0][0], width = Math.max(...[O1, O2, c0.P1, c0.P2].map((p) => dot(p, n))) - Math.min(...[O1, O2, c0.P1, c0.P2].map((p) => dot(p, n)));
+      let valid = [];
+      for (const pts of branch) for (const p of pts) { if (Math.abs(dot(p.M, n)) > 0.01 * width) break; valid.push(p); }
+      const hOf = (p, tt) => { const ys = [O1, O2, p.P1, p.P2].map((q) => dot(q, tt)); return Math.max(...ys) - Math.min(...ys); };
+      valid.sort((p, q) => dot(p.M, t) - dot(q.M, t));
+      if (hOf(valid[0], t) > hOf(valid[valid.length - 1], t)) { t = [-t[0], -t[1]]; n = [-n[0], -n[1]]; valid.reverse(); }
+      const loc = (p) => [dot(p, n), dot(p, t)];
+      const table = valid.map((p) => ({ s: dot(p.M, t), O1: loc(O1), O2: loc(O2), P1: loc(p.P1), P2: loc(p.P2), M: loc(p.M) }));
+      const sLo = table[0].s, sHi = table[table.length - 1].s, range = sHi - sLo;
+      const ys = [table[0].O1, table[0].O2, table[0].P1, table[0].P2].map((q) => q[1]);
+      const hi = Math.max(...ys) - Math.min(...ys), minYc = Math.min(...ys);
+      let wc = 0; for (const r of table) for (const q of [r.O1, r.O2, r.P1, r.P2]) wc = Math.max(wc, Math.abs(q[0]));
+      wc = 2 * wc;
+      const sup = 0.1 * wc;
+      // full curve (for the inset), in the same frame
+      const curve = branch.map((pts) => pts.map((p) => loc(p.M)));
+      return { table, sLo, sHi, range, hi, minYc, wc, sup, ER: (hi + range) / hi, ERadj: (hi + 2 * sup + range) / (hi + 2 * sup), phi: a0, curve, A, B, C };
+    }
+    function cellAt(W, s) { // interpolate the configuration whose midpoint is at s
+      const T = W.table; let lo = 0, hi = T.length - 1; s = Math.max(W.sLo, Math.min(W.sHi, s));
+      while (hi - lo > 1) { const m = (lo + hi) >> 1; if (T[m].s < s) lo = m; else hi = m; }
+      const a = T[lo], b = T[hi], f = b.s === a.s ? 0 : (s - a.s) / (b.s - a.s), L = (p, q) => [p[0] + f * (q[0] - p[0]), p[1] + f * (q[1] - p[1])];
+      return { O1: a.O1, O2: a.O2, P1: L(a.P1, b.P1), P2: L(a.P2, b.P2), M: L(a.M, b.M), s };
+    }
+    let W = null, wKey = "";
+    function ensureW() { const B = Number($("bb").value), C = Number($("bc").value), key = `${B},${C}`; if (key !== wKey) { W = watt(1, B, C); wKey = key; } return { B, C }; }
+    function buildBetr() {
+      const { B, C } = ensureW();
+      if (!W) return { bad: true, B, C };
+      const nc = Number($("bn").value), rows = Number($("br").value), OD = Number($("bod").value), wall = Math.min(Number($("bw").value), OD / 2 - 0.5);
+      const Ro = OD / 2, Ri = Ro - wall, Rm = (Ro + Ri) / 2;
+      const sigma = (2 * Math.PI * Rm) / nc / W.wc; // mm per linkage unit
+      const pitchC = sigma * (W.hi + 2 * W.sup); // compact (fabricated) row pitch
+      const ext = (Number($("be").value) / 100) * (W.ERadj - 1), beta = Number($("bbend").value) * D2R, bdir = Number($("bd").value) * D2R;
+      const Lc = rows * pitchC * (1 + ext);
+      const Lside = (phi) => Lc - beta * Rm * Math.cos(phi - bdir);
+      const sOf = (phi) => W.sLo + (Lside(phi) / rows - pitchC) / sigma;
+      // centreline mapping for a constant-curvature arc
+      const d = V(Math.cos(bdir), Math.sin(bdir), 0), bb = V(0, 0, 1).cross(d), Z = V(0, 0, 1), base = 40;
+      function map(phi, tf, rad) {
+        const a = beta * tf; let c, dd;
+        if (beta < 1e-6) { c = V(0, 0, tf * Lc); dd = d.clone(); }
+        else { const rho = Lc / beta; c = d.clone().multiplyScalar(rho * (1 - Math.cos(a))).add(Z.clone().multiplyScalar(rho * Math.sin(a))); dd = d.clone().multiplyScalar(Math.cos(a)).add(Z.clone().multiplyScalar(-Math.sin(a))); }
+        return c.add(dd.multiplyScalar(rad * Math.cos(phi - bdir))).add(bb.clone().multiplyScalar(rad * Math.sin(phi - bdir))).add(V(0, 0, base));
+      }
+      let clamped = 0, sMin = Infinity, sMax = -Infinity;
+      const r = Math.max(0.4, Math.min(1.4, sigma * 0.07));
+      for (let k = 0; k < nc; k += 1) {
+        const phiK = (2 * Math.PI * k) / nc + psi, mir = k % 2 ? -1 : 1;
+        const sRaw = sOf(phiK); if (sRaw < W.sLo - 1e-9 || sRaw > W.sHi + 1e-9) clamped += 1;
+        const s = Math.max(W.sLo, Math.min(W.sHi, sRaw)); sMin = Math.min(sMin, s); sMax = Math.max(sMax, s);
+        const Lk = Lside(phiK), pk = Lk / rows, cfg = cellAt(W, s);
+        const P = (q, row, dy = 0) => map(phiK + (mir * q[0] * sigma) / Rm, (row * pk + dy + q[1]) / Lk, Rm);
+        const yb = W.sup * sigma, g = yb - W.minYc * sigma; // ground centre height within the row
+        const toMM = (q) => [q[0], q[1] * sigma + g];
+        const over = sRaw < W.sLo - 1e-9 || sRaw > W.sHi + 1e-9;
+        for (let row = 0; row < rows; row += 1) {
+          const O1 = toMM(cfg.O1), O2 = toMM(cfg.O2), P1 = toMM(cfg.P1), P2 = toMM(cfg.P2), M = toMM(cfg.M);
+          const cl = over ? COL.bad : COL.link;
+          bars.add(P(O1, row), P(P1, row), r, cl); bars.add(P(P1, row), P(P2, row), r, over ? COL.bad : COL.link2); bars.add(P(O2, row), P(P2, row), r, cl);
+          // posts from ground pivots down to the lower support and from the midpoint up to the next row
+          bars.add(P(O1, row), P([O1[0], 0], row), r * 0.8, COL.ring); bars.add(P(O2, row), P([O2[0], 0], row), r * 0.8, COL.ring);
+          bars.add(P(M, row), P([M[0], pk], row), r * 0.8, COL.ring);
+          balls.add(P(M, row), r * 1.6, COL.flag);
+          // support ring segments
+          for (let q = 0; q < 4; q += 1) bars.add(P([(-0.5 + q / 4) * W.wc, 0], row), P([(-0.5 + (q + 1) / 4) * W.wc, 0], row), r * 1.1, COL.ring);
+          if (row === rows - 1) for (let q = 0; q < 4; q += 1) bars.add(P([(-0.5 + q / 4) * W.wc, pk], row), P([(-0.5 + (q + 1) / 4) * W.wc, pk], row), r * 1.1, COL.ring);
+        }
+      }
+      // input shaft at the base, output flag at the tip (both at the shaft phase psi: rigid transmission)
+      const T0 = mul(Tr(0, 0, base), Rz(psi)); shaft(T0, 40, Math.max(1.2, Ri * 0.25), -1);
+      const tip = map(0, 1, 0), tip2 = map(0, 0.999, 0), ax = tip.clone().sub(tip2).normalize();
+      // frame whose z is the tip axis, with the same phase as the input shaft (rigid torque transmission)
+      const q = new THREE.Quaternion().setFromUnitVectors(Z, ax), Tt = new THREE.Matrix4().compose(tip, q, V(1, 1, 1)).multiply(Rz(psi));
+      shaft(Tt, 25, Math.max(1.2, Ri * 0.25), 1);
+      return { W, nc, rows, Ro, Ri, sigma, pitchC, ext, beta, Lc, clamped, sMin, sMax };
+    }
+    function betrReadout(b) {
+      if (b.bad) return `B = ${b.B.toFixed(2)}, C = ${b.C.toFixed(2)} is not a valid Watt's linkage with A = 1\n(needs C + B > 1 and |C − B| < 1, Sec. 2.2)`;
+      const { W: w } = b, A = Math.PI * (b.Ro ** 2 - b.Ri ** 2), J = (Math.PI * (b.Ro ** 4 - b.Ri ** 4)) / 2;
+      const Js = (Math.PI * b.Ro ** 4) / 2, As = Math.PI * b.Ro ** 2;
+      const maxExt = (w.ER - 1) * 100, maxExtAdj = (w.ERadj - 1) * 100;
+      return `Watt's cell A = 1, B = ${w.B.toFixed(2)}, C = ${w.C.toFixed(2)}\n` +
+        `cell tilt ϕ (Eq. 2) = ${(w.phi / D2R).toFixed(1)}°\n` +
+        `straight-line range (±1% width) = ${w.range.toFixed(3)} (in units of A)\n` +
+        `ER idealized ≈ ${w.ER.toFixed(2)}, with 10% supports ≈ ${w.ERadj.toFixed(2)}\n` +
+        `tube Ø ${(2 * b.Ro).toFixed(1)} / ${(2 * b.Ri).toFixed(2)} mm, lumen ${(((b.Ri / b.Ro) ** 2) * 100).toFixed(1)}% of cross-section\n` +
+        `A = π(R²−r²) = ${A.toFixed(1)} mm², J = π(R⁴−r⁴)/2 = ${J.toFixed(0)} mm⁴\n` +
+        `vs solid rod of same Ø: A ×${(A / As).toFixed(2)}, J ×${(J / Js).toFixed(2)} (J/A ×${((J / A) / (Js / As)).toFixed(2)})\n` +
+        `length ${b.Lc.toFixed(1)} mm (compact ${(b.rows * b.pitchC).toFixed(1)} mm), mean extension ${(b.ext * 100).toFixed(0)}% (max ≈${maxExtAdj.toFixed(0)}% with supports, ${maxExt.toFixed(0)}% ideal)\n` +
+        `bend ${(b.beta / D2R).toFixed(0)}°, cell stroke used ${(((b.sMin - w.sLo) / w.range) * 100).toFixed(0)}–${(((b.sMax - w.sLo) / w.range) * 100).toFixed(0)}% of range` +
+        (b.clamped ? `\n${b.clamped} cell column(s) pushed past the straight-line range (red)` : "");
+    }
+
+    // ================= chart and inset =================
+    const chart = TRLChart.create($("chart"), { xlabel: "", ylabel: "" });
+    function drawChart() {
+      const kind = $("kind").value;
+      if (kind === "trunc") {
+        const b = Number($("tb").value) * D2R, xs = [], cv = [], cd = [];
+        for (let d = 0; d <= 360; d += 2) { const a = d * D2R, o = Math.atan2(Math.sin(a), Math.cos(a) * Math.cos(b)); let e = (o - a) / D2R; e = ((e + 540) % 360) - 180; xs.push(d); cd.push(e); cv.push(0); }
+        chart.setSeries([{ name: "TRUNC (constant velocity)", x: xs, y: cv }, { name: "single Cardan joint", x: xs, y: cd }], { xlabel: "input angle (deg)", ylabel: "output − input (deg)" });
+        $("charttitle").textContent = "Phase error over one revolution";
+        $("chartnote").textContent = `At β = ${$("tb").value}° per joint. Blue: TRUNC, an ideal CV joint (paper, fig. S2). Red: a conventional Cardan/universal joint (textbook kinematics, shown for comparison).`;
+      } else {
+        const B = Number($("bb").value), xs = [], er = [], era = [];
+        for (let c = 0.06; c <= 1.5; c += 0.03) { const w = watt(1, B, c, 600); xs.push(c); er.push(w ? w.ER : NaN); era.push(w ? w.ERadj : NaN); }
+        const C = Number($("bc").value), ok = er.filter(Number.isFinite);
+        chart.setSeries([{ name: "ER idealized", x: xs, y: er }, { name: "ER with 10% supports", x: xs, y: era }, { name: "current C", x: [C, C], y: [1, Math.max(1.1, ...ok)], color: "#888" }], { xlabel: "half-coupler C (A = 1)", ylabel: "extension ratio ER" });
+        $("charttitle").textContent = "Extension ratio vs C (slice of Fig. 3B)";
+        $("chartnote").textContent = `Slice at B = ${B.toFixed(2)} of the paper's ER sweep, computed with this page's ER definition. Gaps: invalid linkage (C + B ≤ 1 or |C − B| ≥ 1).`;
+      }
+    }
+    function drawInset() {
+      const cvs = $("inset"), dpr = Math.min(devicePixelRatio || 1, 2), w = cvs.clientWidth, h = cvs.clientHeight;
+      cvs.width = w * dpr; cvs.height = h * dpr; const g = cvs.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0); g.clearRect(0, 0, w, h);
+      g.font = "10px system-ui"; g.fillStyle = css("--muted");
+      if ($("kind").value === "trunc") {
+        // stiffness bars: twist vs bend, measured ratio
+        const v = TRUNC[$("tv").value];
+        g.fillText("measured stiffness (Fig. 2C–D)", 8, 14);
+        const bw = w - 70, rows = [["bend EI", 1], ["twist GJ", v.ratio]], mx = 52;
+        rows.forEach(([lab, val], i) => { const y = 34 + i * 34; g.fillStyle = css("--ink"); g.fillText(lab, 8, y + 11); g.fillStyle = i ? "#2f6fde" : "#2e9d6b"; g.fillRect(60, y, Math.max(2, (bw * val) / mx), 16); g.fillStyle = css("--ink"); g.fillText(`×${val}`, 64 + Math.max(2, (bw * val) / mx) - (i ? 30 : 0), y + 30 - (i ? 18 : 18)); });
+        g.fillStyle = css("--muted"); g.fillText("equatorial: 11   truss: 52", 8, 120);
+        g.fillText("twist–bend ratio GJ/EI", 8, 134);
+        return;
+      }
+      ensureW();
+      if (!W) { g.fillText("invalid linkage (needs C + B > 1, |C − B| < 1)", 8, 20); return; }
+      const s = cellAt(W, W.sLo + (W.range * Math.min(1, Number($("be").value) / 100))), all = W.curve.flat().concat([W.table[0].O1, W.table[0].O2]);
+      const xs = all.map((p) => p[0]), ys = all.map((p) => p[1]), x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+      const sc = Math.min((w - 20) / (x1 - x0 || 1), (h - 34) / (y1 - y0 || 1)), X = (p) => 10 + (p[0] - x0) * sc + ((w - 20) - (x1 - x0) * sc) / 2, Y = (p) => h - 22 - (p[1] - y0) * sc;
+      g.strokeStyle = css("--muted"); g.lineWidth = 1;
+      for (const br of W.curve) { g.beginPath(); br.forEach((p, i) => (i ? g.lineTo(X(p), Y(p)) : g.moveTo(X(p), Y(p)))); g.stroke(); }
+      g.strokeStyle = css("--accent"); g.lineWidth = 3; g.beginPath(); g.moveTo(X(W.table[0].M), Y(W.table[0].M)); g.lineTo(X(W.table[W.table.length - 1].M), Y(W.table[W.table.length - 1].M)); g.stroke();
+      g.lineWidth = 2.5; g.strokeStyle = "#2f9e75"; g.beginPath(); g.moveTo(X(s.O1), Y(s.O1)); g.lineTo(X(s.P1), Y(s.P1)); g.moveTo(X(s.O2), Y(s.O2)); g.lineTo(X(s.P2), Y(s.P2)); g.stroke();
+      g.strokeStyle = "#2f6fde"; g.beginPath(); g.moveTo(X(s.P1), Y(s.P1)); g.lineTo(X(s.P2), Y(s.P2)); g.stroke();
+      g.fillStyle = "#fbbf24"; g.beginPath(); g.arc(X(s.M), Y(s.M), 3.5, 0, 7); g.fill();
+      g.fillStyle = css("--ink"); for (const p of [s.O1, s.O2]) { g.beginPath(); g.moveTo(X(p), Y(p)); g.lineTo(X(p) - 5, Y(p) + 8); g.lineTo(X(p) + 5, Y(p) + 8); g.closePath(); g.fill(); }
+      g.fillStyle = css("--muted"); g.fillText("Watt's curve (Eq. 1), red: straight", 6, h - 6);
+    }
+
+    // ================= UI =================
+    const labels = () => {
+      $("tnv").textContent = $("tn").value; $("tcv").textContent = $("tc").value; $("tbv").textContent = `${$("tb").value}°`; $("tdv").textContent = `${$("td").value}°`; $("tev").textContent = `${$("te").value}%`;
+      $("bbv").textContent = Number($("bb").value).toFixed(2); $("bcv").textContent = Number($("bc").value).toFixed(2);
+      $("bodv").textContent = `${Number($("bod").value).toFixed(1)} mm`; $("bwv").textContent = `${Number($("bw").value).toFixed(2)} mm`;
+      $("bev").textContent = `${$("be").value}% of max`; $("bbendv").textContent = `${$("bbend").value}°`; $("bdv").textContent = `${$("bd").value}°`;
+    };
+    function setKind() {
+      document.body.className = $("kind").value;
+      fitPending = true;
+      drawChart(); drawInset();
+    }
+    $("kind").addEventListener("input", setKind);
+    document.querySelectorAll("aside input, aside select").forEach((i) => i.addEventListener("input", () => { labels(); if (["tb"].includes(i.id)) drawChart(); if (["bb"].includes(i.id)) drawChart(); if (i.id === "bc") { drawChart(); } if (["tc", "tv", "br", "bn", "bod"].includes(i.id)) fitPending = true; drawInset(); }));
+    window.addEventListener("resize", resize);
+    labels(); setKind(); resize();
+    let frame = 0;
+    (function loop() {
+      requestAnimationFrame(loop);
+      if ($("spin").checked) psi += 0.012;
+      bars.begin(); balls.begin(); bbox.makeEmpty();
+      let txt;
+      if ($("kind").value === "trunc") txt = truncReadout(buildTrunc()); else txt = betrReadout(buildBetr());
+      bars.end(); balls.end();
+      if (fitPending && !bbox.isEmpty()) { fitPending = false; const c = bbox.getCenter(new THREE.Vector3()), sz = bbox.getSize(new THREE.Vector3()); cam.target.copy(c); cam.r = Math.max(sz.x, sz.y, sz.z) * 2.1 + 40; }
+      if (frame++ % 10 === 0) $("out").textContent = txt;
+      place(); renderer.render(scene, camera);
+    })();
+  })();
+  </script>
+</body>
+</html>

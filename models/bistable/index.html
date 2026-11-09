@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bistable Network Shaper</title>
+  <link rel="icon" href="../../assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../../assets/site.css" />
+  <style>
+    .stage { overflow: hidden; }
+    #view { cursor: pointer; touch-action: none; }
+    #chart { width: 100%; height: 210px; display: block; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 6px 0; }
+    .legend { font-size: 12px; display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 6px 0; }
+    .legend span::before { content: ""; display: inline-block; width: 11px; height: 11px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; background: var(--c); }
+    details p, details li { font-size: 13px; }
+  </style>
+</head>
+<body>
+  <header class="site"><div class="wrap">
+    <a class="brand" href="../../"><img src="../../assets/icon.svg" alt="" />Transformative Robotics Lab</a>
+    <nav class="site"><a href="../../">Projects</a><a href="https://doi.org/10.1002/advs.76850">Paper (Adv. Sci. 2026)</a></nav>
+  </div></header>
+  <main class="model">
+    <div class="stage" id="stage">
+      <canvas id="view"></canvas>
+      <div class="overlay" id="hint">Click a beam to flip its bistable encoding unit (BEU) · then compress to express the shape</div>
+    </div>
+    <aside>
+      <h1>Bistable networks</h1>
+      <p class="muted">Illustrative model based on Thomas &amp; Lipton, <i>Adv. Sci.</i> 2026, Sec. 2.2 and Methods 4.1–4.2, 4.6 (rigid-beam kinematics of a transition-controlled metamaterial, TCM). Each beam carries one BEU that sets which way its joint buckles (+ or −). Frustrated crossbars turn red.</p>
+
+      <h2>Lattice</h2>
+      <div class="row2">
+        <label>Columns <select id="nc"></select></label>
+        <label>BEU rows <select id="nr"></select></label>
+      </div>
+      <label>Compression u<sub>y</sub> / u<sub>y,max</sub>: <b id="uv"></b>
+        <input id="u" type="range" min="0" max="1" step="0.01" value="1" /></label>
+      <div class="row2">
+        <button class="btn" id="express">Express (tension → compress)</button>
+        <button class="btn" id="reset">Reset to neutral</button>
+      </div>
+      <label>θ<sub>max</sub> at full compression: <b id="tmv"></b>
+        <input id="tmax" type="range" min="10" max="45" step="1" value="28" /></label>
+
+      <h2>Encode</h2>
+      <div class="row2">
+        <button class="btn" data-preset="aux">All auxetic (ν &lt; 0)</button>
+        <button class="btn" data-preset="pos">All ν &gt; 0</button>
+        <button class="btn" data-preset="zero">All zero ν</button>
+        <button class="btn" data-preset="shear">All shear</button>
+        <button class="btn" data-preset="random">Random valid</button>
+        <button class="btn" data-preset="flip">Random flip (likely frustrated)</button>
+      </div>
+      <h2>Inverse shape matching (Sec. 2.3, 4.6)</h2>
+      <label>Target profile
+        <select id="target">
+          <option value="bulge">Bulge outwards (both sides)</option>
+          <option value="pinch">Pinch inwards (both sides)</option>
+          <option value="swave">S-wave (both sides shift together)</option>
+          <option value="asym">Right side bump, left side straight</option>
+          <option value="beaker">Beaker (neck then flare)</option>
+        </select></label>
+      <label>Target amplitude (× beam offset k): <b id="av"></b>
+        <input id="amp" type="range" min="0.5" max="6" step="0.5" value="3" /></label>
+      <button class="btn primary" id="match">Generate encoding for target</button>
+
+      <h2>State</h2>
+      <div class="legend">
+        <span style="--c:#2f6fde">auxetic (ν&lt;0)</span><span style="--c:#e0453a">ν&gt;0</span><span style="--c:#2e9d6b">zero ν</span><span style="--c:#d9822b">shear</span><span style="--c:#9aa3b2">frustrated</span>
+      </div>
+      <div class="readout" id="out"></div>
+
+      <h2>Sparsity of valid encodings</h2>
+      <canvas id="chart"></canvas>
+      <p class="muted" style="font-size:12px">log₂ of the number of encodings for a square N×N BEU array: all 2<sup>N²</sup> combinations, the valid ones counted exactly by this model (crossbar-length test, Methods 4.1), and the paper's fitted law 2<sup>k₁AB + k₂(A+B) + k₃</sup> with k₁ = 0.2989, k₂ = 0.6924, k₃ = −1.3831 (Sec. 2.2).</p>
+
+      <h2>How this model works</h2>
+      <details open>
+        <summary>Rigid-beam kinematics</summary>
+        <p>Beams are rigid and flexures are revolute joints (Methods 4.2). Compressing each beam row by u<sub>y</sub> tilts every vertical beam by θ = cos⁻¹((h − u<sub>y</sub>)/h), giving a lateral offset k = h sin θ (Methods 4.1). The BEU's state EV = ±1 picks the side, so a joint's x-position is the top position plus the running sum of EV·k down its column.</p>
+        <p>Horizontal crossbars of length w join every other grid point to its neighbour. An encoding is valid only if every crossbar keeps length w in the expressed state (Methods 4.1). In a unit cell (2×2 BEUs between two crossbars) that leaves 6 of 16 combinations: 2 shear cells and 4 cells giving negative, zero or positive Poisson's ratio (Fig. 1A, C).</p>
+        <p>Shape matching follows Sec. 4.6. The right-hand profile is fitted by a greedy pass from the top and from the bottom, and then a best-first search (capped at 1,000 nodes) over the rows where the two passes disagree. Columns are then filled leftwards: a shear pair is copied, otherwise (+,−) or (−,+) is chosen, whichever lands closer to the target.</p>
+        <p>Beam length h = 23.4 mm is derived from the paper: each 2-row cell compresses u<sub>y,max</sub> = 5.5 mm (Methods 4.4), which is 2.75 mm per beam, and θ<sub>max</sub> = 28° (Sec. 2.4).</p>
+      </details>
+      <details>
+        <summary>What is simplified</summary>
+        <ul>
+          <li>Purely kinematic, as in the paper: no stresses, no energy barriers. Programming (~0.5 N) and holding (&gt;20 N) forces are reported values from Sec. 1 and 2.1 and are not computed here.</li>
+          <li>Crossbar length w is drawn at an assumed 0.6 h. It does not affect which encodings are valid.</li>
+          <li>Filling the inner columns towards a straight-line blend of the two target sides is this demo's choice. The paper only states that it compares x-values for the two options (SI S7).</li>
+          <li>All beams share one tilt angle at a given compression (the paper's approximation). Real sheets deform unevenly before the final expressed state.</li>
+        </ul>
+      </details>
+      <h2>Source</h2>
+      <p class="muted" style="font-size:13px">S. Thomas, J. Lipton, “Bistable Networks Enable Complex Shape Changes,” <i>Advanced Science</i> (2026), <a href="https://doi.org/10.1002/advs.76850">doi:10.1002/advs.76850</a> (open access, CC BY).</p>
+    </aside>
+  </main>
+  <script src="../../assets/chart.js"></script>
+  <script>
+  (function () {
+    "use strict";
+    const $ = (id) => document.getElementById(id);
+    const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+    const H = 23.4, W = 0.6 * H, U_BEAM = 2.75; // mm (see "How this model works")
+    const TYPE_COL = { aux: "#2f6fde", pos: "#e0453a", zero: "#2e9d6b", shear: "#d9822b", bad: "#9aa3b2" };
+    const k1 = 0.2989, k2 = 0.6924, k3 = -1.3831;
+
+    for (const n of [2, 4, 6, 8, 10, 12]) $("nc").insertAdjacentHTML("beforeend", `<option ${n === 8 ? "selected" : ""}>${n}</option>`);
+    for (const n of [2, 4, 6, 8, 10, 12, 14, 16, 20]) $("nr").insertAdjacentHTML("beforeend", `<option ${n === 12 ? "selected" : ""}>${n}</option>`);
+
+    let NC = 8, NR = 12, EV = [], flash = null;
+    const blank = () => Array.from({ length: NC }, () => new Array(NR).fill(1));
+
+    // crossbar joint rows for the column pair (j, j+1): rows with the same parity as j
+    const crossRows = (j) => { const r = []; for (let i = j % 2; i <= NR; i += 2) r.push(i); return r; };
+    // beam blocks (2 beams) between consecutive crossbars of pair j
+    const blocks = (j) => { const r = crossRows(j), b = []; for (let q = 0; q + 1 < r.length; q += 1) b.push([r[q], r[q + 1] - 1]); return b; };
+
+    function theta(frac) {
+      const tmax = (Number($("tmax").value) * Math.PI) / 180;
+      const hEff = U_BEAM / (1 - Math.cos(tmax)); // keeps θ(u_max) = θmax
+      return Math.acos(Math.max(-1, 1 - (frac * U_BEAM) / hEff));
+    }
+
+    // x positions of every joint, anchored column-by-column at the first crossbar (top boundary slides freely)
+    function layout(frac) {
+      const th = theta(frac), k = H * Math.sin(th), dy = H * Math.cos(th);
+      const X = [], bad = [];
+      for (let j = 0; j < NC; j += 1) {
+        const col = new Array(NR + 1);
+        col[0] = 0; for (let i = 0; i < NR; i += 1) col[i + 1] = col[i] + EV[j][i] * k;
+        if (j > 0) {
+          const r0 = crossRows(j - 1)[0], shift = X[j - 1][r0] + W - col[r0];
+          for (let i = 0; i <= NR; i += 1) col[i] += shift;
+        }
+        X.push(col);
+      }
+      // check crossbars in the fully expressed state (validity), report per pair
+      const kx = H * Math.sin(theta(1));
+      for (let j = 0; j + 1 < NC; j += 1) {
+        const rows = crossRows(j);
+        const d = (i) => { let s = 0; for (let r = 0; r < i; r += 1) s += EV[j + 1][r] - EV[j][r]; return s; };
+        const base = d(rows[0]);
+        for (const i of rows) if (d(i) !== base) bad.push({ j, i, err: Math.abs(d(i) - base) * kx });
+      }
+      return { X, dy, k, th, bad };
+    }
+    function cellType(j, i0, i1) {
+      const a = EV[j][i0], b = EV[j][i1], c = EV[j + 1][i0], d = EV[j + 1][i1];
+      if (a + b !== c + d) return "bad";
+      if (a === b) return "shear";
+      if (a === c) return "zero";
+      return a === 1 ? "aux" : "pos"; // left column bulges right, right column bulges left → narrows → auxetic
+    }
+
+    // ---------- exact count of valid encodings (transfer over columns, grouped by block-sum signatures) ----------
+    function countValid(nc, nr) {
+      const sigP = (c, p) => { let s = ""; const rows = []; for (let i = p; i <= nr; i += 2) rows.push(i); for (let q = 0; q + 1 < rows.length; q += 1) { let t = 0; for (let r = rows[q]; r < rows[q + 1]; r += 1) t += (c >> r) & 1; s += t; } return s; };
+      const N = 1 << nr; let dp = new Float64Array(N).fill(1);
+      for (let j = 0; j + 1 < nc; j += 1) {
+        const p = j % 2, g = new Map();
+        for (let c = 0; c < N; c += 1) { const s = sigP(c, p); g.set(s, (g.get(s) || 0) + dp[c]); }
+        const nd = new Float64Array(N); for (let c = 0; c < N; c += 1) nd[c] = g.get(sigP(c, p));
+        dp = nd;
+      }
+      return dp.reduce((s, v) => s + v, 0);
+    }
+    const sizeChart = TRLChart.create($("chart"), { xlabel: "N (N×N BEU array)", ylabel: "log₂ count" });
+    (function drawCounts() {
+      const xs = [2, 4, 6, 8, 10, 12, 14], all = xs.map((n) => n * n), exact = xs.map((n) => (n <= 14 ? Math.log2(countValid(n, n)) : NaN)), fit = xs.map((n) => k1 * n * n + k2 * 2 * n + k3);
+      sizeChart.setSeries([{ name: "all 2^(N²)", x: xs, y: all }, { name: "valid (this model, exact)", x: xs, y: exact }, { name: "valid (paper's fit)", x: xs, y: fit }]);
+    })();
+
+    // ---------- presets ----------
+    function fillCells(fn) {
+      EV = blank();
+      for (let j = 0; j + 1 < NC; j += 2) for (const [i0, i1] of blocks(j)) { const [a, b, c, d] = fn(j, i0); EV[j][i0] = a; EV[j][i1] = b; EV[j + 1][i0] = c; EV[j + 1][i1] = d; }
+    }
+    function preset(kind) {
+      if (kind === "aux") fillCells(() => [1, -1, -1, 1]);
+      else if (kind === "pos") fillCells(() => [-1, 1, 1, -1]);
+      else if (kind === "zero") fillCells(() => [1, -1, 1, -1]);
+      else if (kind === "shear") fillCells(() => [1, 1, 1, 1]);
+      else if (kind === "random") randomValid();
+      else if (kind === "flip") { const j = Math.floor(Math.random() * NC), i = Math.floor(Math.random() * NR); EV[j][i] *= -1; flash = { j, i, t: 1 }; }
+      update();
+    }
+    function randomValid() { // right column random, fill leftwards with the paper's cell rules and random choices
+      EV = blank(); const pm = () => (Math.random() < 0.5 ? 1 : -1);
+      for (let i = 0; i < NR; i += 1) EV[NC - 1][i] = pm();
+      for (let j = NC - 2; j >= 0; j -= 1) {
+        const cov = new Array(NR).fill(false);
+        for (const [i0, i1] of blocks(j)) {
+          const c = EV[j + 1][i0], d = EV[j + 1][i1]; cov[i0] = cov[i1] = true;
+          if (c === d) { EV[j][i0] = c; EV[j][i1] = d; } else { const s = pm(); EV[j][i0] = s; EV[j][i1] = -s; }
+        }
+        for (let i = 0; i < NR; i += 1) if (!cov[i]) EV[j][i] = pm();
+      }
+    }
+
+    // ---------- inverse shape matching (Sec. 4.6) ----------
+    function targets(kind, amp) { // returns functions of y∈[0,1] → x offset in units of k (left side, right side)
+      const s = (y) => Math.sin(Math.PI * y);
+      switch (kind) {
+        case "bulge": return [(y) => -amp * s(y), (y) => amp * s(y)];
+        case "pinch": return [(y) => amp * s(y), (y) => -amp * s(y)];
+        case "swave": return [(y) => amp * Math.sin(2 * Math.PI * y), (y) => amp * Math.sin(2 * Math.PI * y)];
+        case "asym": return [() => 0, (y) => amp * Math.exp(-(((y - 0.5) / 0.18) ** 2))];
+        default: return [(y) => (y < 0.45 ? amp * 0.6 * (y / 0.45) : amp * 0.6 - amp * 1.8 * ((y - 0.45) / 0.55)), (y) => (y < 0.45 ? -amp * 0.6 * (y / 0.45) : -amp * 0.6 + amp * 1.8 * ((y - 0.45) / 0.55))];
+      }
+    }
+    function matchColumn(f) { // f(y) target x (units of k) at joint rows; chain starts at 0
+      const goal = Array.from({ length: NR + 1 }, (_, i) => f(i / NR) - f(0));
+      const err = (ev) => { let x = 0, e = 0; for (let i = 0; i < NR; i += 1) { x += ev[i]; e += (x - goal[i + 1]) ** 2; } return e; };
+      const top = []; let x = 0; for (let i = 0; i < NR; i += 1) { const s = Math.abs(x + 1 - goal[i + 1]) <= Math.abs(x - 1 - goal[i + 1]) ? 1 : -1; top.push(s); x += s; }
+      const bot = new Array(NR); x = goal[NR]; for (let i = NR - 1; i >= 0; i -= 1) { const s = Math.abs(x - 1 - goal[i]) <= Math.abs(x + 1 - goal[i]) ? 1 : -1; bot[i] = s; x -= s; }
+      let best = err(top) <= err(bot) ? top.slice() : bot.slice(), bestE = err(best);
+      const dis = []; for (let i = 0; i < NR; i += 1) if (top[i] !== bot[i]) dis.push(i);
+      let nodes = 0; const cur = top.slice();
+      (function dfs(q) {
+        if (nodes++ > 1000) return;
+        if (q === dis.length) { const e = err(cur); if (e < bestE) { bestE = e; best = cur.slice(); } return; }
+        for (const s of [top[dis[q]], bot[dis[q]]]) { cur[dis[q]] = s; let px = 0, pe = 0; for (let i = 0; i <= dis[q]; i += 1) { px += cur[i]; pe += (px - goal[i + 1]) ** 2; } if (pe <= bestE) dfs(q + 1); }
+      })(0);
+      return best;
+    }
+    function match() {
+      const [fl, fr] = targets($("target").value, Number($("amp").value));
+      EV = blank();
+      EV[NC - 1] = matchColumn(fr);
+      for (let j = NC - 2; j >= 0; j -= 1) {
+        const t = j / (NC - 1), f = (y) => fl(y) * (1 - t) + fr(y) * t; // blended guide for inner columns
+        const goal = Array.from({ length: NR + 1 }, (_, i) => f(i / NR) - f(0));
+        // walk down column j; joints on crossbar rows are pinned to the right column, so only
+        // the middle joint of each 2-beam block (or a free edge beam) can be steered toward the guide
+        const col = new Array(NR).fill(0);
+        const rel = (i) => { let s = 0; for (let r = 0; r < i; r += 1) s += col[r]; return s; }; // x(i) − x(0), units of k
+        const miss = (i) => Math.abs(rel(i) - (goal[i] - goal[0]));
+        for (let i = 0; i < NR; i += 1) {
+          const blk = blocks(j).find(([a]) => a === i);
+          if (blk) {
+            const [i0, i1] = blk, c = EV[j + 1][i0], d = EV[j + 1][i1];
+            if (c === d) { col[i0] = c; col[i1] = d; } // shear pair must be copied
+            else {
+              col[i0] = 1; col[i1] = -1; const eA = miss(i0 + 1);
+              col[i0] = -1; col[i1] = 1; const eB = miss(i0 + 1);
+              if (eA <= eB) { col[i0] = 1; col[i1] = -1; }
+            }
+            i = i1;
+          } else { // free edge beam (top or bottom of an odd column pair)
+            col[i] = 1; const eA = miss(i + 1); col[i] = -1; const eB = miss(i + 1);
+            col[i] = eA <= eB ? 1 : -1;
+          }
+        }
+        EV[j] = col;
+      }
+      update(true);
+      animateTo(1);
+    }
+
+    // ---------- drawing ----------
+    const cv = $("view"), ctx = cv.getContext("2d");
+    let geo = null, frac = 1, anim = null, hitBeams = [];
+    function draw() {
+      const dpr = Math.min(devicePixelRatio || 1, 2), w = cv.clientWidth, h = cv.clientHeight;
+      if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
+      const L = layout(frac); geo = L;
+      const kMax = H * Math.sin(theta(1));
+      const xs = L.X.flat(), xmin = Math.min(...xs, -kMax * 2), xmax = Math.max(...xs, (NC - 1) * W + kMax * 2), ymax = NR * H;
+      const s = Math.min((w - 60) / (xmax - xmin + 1e-9), (h - 70) / ymax);
+      const ox = (w - s * (xmax + xmin)) / 2, oy = 30 + (h - 70 - s * NR * L.dy) / 2;
+      const P = (j, i) => [ox + s * L.X[j][i], oy + s * i * L.dy];
+      const ink = css("--ink"), muted = css("--muted"), line = css("--line");
+      // cell fills
+      for (let j = 0; j + 1 < NC; j += 1) for (const [i0, i1] of blocks(j)) {
+        const t = cellType(j, i0, i1); ctx.fillStyle = TYPE_COL[t] + (t === "bad" ? "55" : "38");
+        ctx.beginPath(); ctx.moveTo(...P(j, i0)); ctx.lineTo(...P(j, i0 + 1)); ctx.lineTo(...P(j, i1 + 1)); ctx.lineTo(...P(j + 1, i1 + 1)); ctx.lineTo(...P(j + 1, i0 + 1)); ctx.lineTo(...P(j + 1, i0)); ctx.closePath(); ctx.fill();
+      }
+      // target guides
+      if (lastTargets) {
+        ctx.setLineDash([5, 4]); ctx.strokeStyle = muted; ctx.lineWidth = 1.2;
+        const [fl, fr] = lastTargets, kk = H * Math.sin(theta(1)), dyF = H * Math.cos(theta(1));
+        if (Math.abs(frac - 1) < 1e-6) for (const [f, j] of [[fl, 0], [fr, NC - 1]]) {
+          ctx.beginPath();
+          for (let i = 0; i <= NR; i += 1) { const x = ox + s * (L.X[j][0] + (f(i / NR) - f(0)) * kk), y = oy + s * i * dyF; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+          ctx.stroke();
+        }
+        ctx.setLineDash([]);
+      }
+      // crossbars
+      const badSet = new Set(L.bad.map((b) => `${b.j},${b.i}`));
+      for (let j = 0; j + 1 < NC; j += 1) for (const i of crossRows(j)) {
+        const isBad = badSet.has(`${j},${i}`);
+        ctx.strokeStyle = isBad ? "#e0453a" : ink; ctx.lineWidth = isBad ? 3 : 2.2; if (isBad) ctx.setLineDash([4, 3]);
+        ctx.beginPath(); ctx.moveTo(...P(j, i)); ctx.lineTo(...P(j + 1, i)); ctx.stroke(); ctx.setLineDash([]);
+      }
+      // vertical beams + BEU wedges
+      hitBeams = [];
+      for (let j = 0; j < NC; j += 1) for (let i = 0; i < NR; i += 1) {
+        const A = P(j, i), B = P(j, i + 1), m = [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2];
+        const isEdge = j === 0 || j === NC - 1;
+        ctx.strokeStyle = isEdge ? css("--accent") : ink; ctx.lineWidth = isEdge ? 3 : 2.2;
+        ctx.beginPath(); ctx.moveTo(...A); ctx.lineTo(...B); ctx.stroke();
+        const sgn = EV[j][i], r = Math.max(4, Math.min(9, s * 2.4));
+        const fl = flash && flash.j === j && flash.i === i;
+        ctx.fillStyle = sgn > 0 ? "#16a9c7" : "#c2417a"; if (fl) ctx.fillStyle = "#fbbf24";
+        ctx.beginPath(); ctx.moveTo(m[0] + sgn * r * 1.3, m[1]); ctx.lineTo(m[0] - sgn * r * 0.2, m[1] - r * 0.8); ctx.lineTo(m[0] - sgn * r * 0.2, m[1] + r * 0.8); ctx.closePath(); ctx.fill();
+        hitBeams.push({ j, i, A, B });
+      }
+      ctx.fillStyle = ink;
+      for (let j = 0; j < NC; j += 1) for (let i = 0; i <= NR; i += 1) { const p = P(j, i); ctx.beginPath(); ctx.arc(p[0], p[1], 2.4, 0, 2 * Math.PI); ctx.fill(); }
+      // sliding top/bottom plates
+      ctx.strokeStyle = line; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(10, oy - 8); ctx.lineTo(w - 10, oy - 8); ctx.moveTo(10, oy + s * NR * L.dy + 8); ctx.lineTo(w - 10, oy + s * NR * L.dy + 8); ctx.stroke();
+      ctx.fillStyle = muted; ctx.font = "11px system-ui"; ctx.fillText("sliding plate", 14, oy - 13);
+      if (flash) { flash.t -= 0.02; if (flash.t <= 0) flash = null; }
+    }
+    let lastTargets = null; const countCache = {};
+    function update(keepTargets) {
+      if (!keepTargets) lastTargets = null; else lastTargets = targets($("target").value, Number($("amp").value));
+      const L = layout(1), counts = { aux: 0, pos: 0, zero: 0, shear: 0, bad: 0 };
+      for (let j = 0; j + 1 < NC; j += 1) for (const [i0, i1] of blocks(j)) counts[cellType(j, i0, i1)] += 1;
+      const A = NC, B = NR, total = A * B, fitLog = k1 * A * B + k2 * (A + B) + k3;
+      const key = NC + 'x' + NR; if (!(key in countCache)) countCache[key] = NR <= 16 ? countValid(NC, NR) : NaN; const exact = countCache[key];
+      const fmt = (v) => (v < 1e6 ? Math.round(v).toLocaleString() : v.toExponential(3));
+      const thDeg = (theta(frac) * 180) / Math.PI;
+      let rms = "";
+      if (lastTargets) {
+        const kk = H * Math.sin(theta(1)), wid = (NC - 1) * W, e = [0, 0];
+        [[lastTargets[0], 0], [lastTargets[1], NC - 1]].forEach(([f, j], q) => { let s = 0; for (let i = 0; i <= NR; i += 1) s += (L.X[j][i] - L.X[j][0] - (f(i / NR) - f(0)) * kk) ** 2; e[q] = Math.sqrt(s / (NR + 1)) / wid; });
+        rms = `\nprofile RMS error / width: left ${(e[0] * 100).toFixed(2)} %, right ${(e[1] * 100).toFixed(2)} %`;
+      }
+      $("out").textContent =
+        `${L.bad.length ? `FRUSTRATED: ${L.bad.length} crossbar${L.bad.length > 1 ? "s" : ""} would have to change length` : "Valid encoding: all crossbars keep length w"}\n` +
+        `cells: ${counts.aux} auxetic · ${counts.pos} ν>0 · ${counts.zero} zero-ν · ${counts.shear} shear · ${counts.bad} frustrated\n` +
+        `tilt θ = ${thDeg.toFixed(1)}°, offset k = h sin θ = ${(H * Math.sin(theta(frac))).toFixed(1)} mm per beam\n` +
+        `encodings for ${A}×${B} BEUs: 2^${total} = ${fmt(2 ** total)}\n` +
+        `valid (this model, exact): ${Number.isFinite(exact) ? fmt(exact) : "too large to enumerate"}\n` +
+        `valid (paper's fit): 2^${fitLog.toFixed(1)} ≈ ${fmt(2 ** fitLog)}\n` +
+        `chance a random encoding is valid: ${((Number.isFinite(exact) ? exact : 2 ** fitLog) / 2 ** total * 100).toExponential(2)} %` + rms;
+      $("uv").textContent = frac.toFixed(2); $("tmv").textContent = `${$("tmax").value}°`; $("av").textContent = $("amp").value;
+    }
+    function animateTo(target, from) {
+      if (from !== undefined) frac = from;
+      anim = { target };
+    }
+
+    // ---------- interaction ----------
+    cv.addEventListener("pointerdown", (e) => {
+      const r = cv.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+      let best = null, bd = 18 * 18;
+      for (const b of hitBeams) {
+        const vx = b.B[0] - b.A[0], vy = b.B[1] - b.A[1], t = Math.max(0, Math.min(1, ((x - b.A[0]) * vx + (y - b.A[1]) * vy) / (vx * vx + vy * vy || 1)));
+        const d = (b.A[0] + t * vx - x) ** 2 + (b.A[1] + t * vy - y) ** 2; if (d < bd) { bd = d; best = b; }
+      }
+      if (best) { EV[best.j][best.i] *= -1; flash = { j: best.j, i: best.i, t: 1 }; update(); }
+    });
+    $("u").addEventListener("input", () => { anim = null; frac = Number($("u").value); update(!!lastTargets); });
+    $("tmax").addEventListener("input", () => update(!!lastTargets));
+    $("amp").addEventListener("input", () => { $("av").textContent = $("amp").value; });
+    $("express").addEventListener("click", () => { frac = 0; animateTo(1, -0.3); });
+    $("reset").addEventListener("click", () => { anim = null; frac = 0; $("u").value = 0; update(!!lastTargets); });
+    $("match").addEventListener("click", match);
+    document.querySelectorAll("[data-preset]").forEach((b) => b.addEventListener("click", () => preset(b.dataset.preset)));
+    function resize() { NC = Number($("nc").value); NR = Number($("nr").value); }
+    ["nc", "nr"].forEach((id) => $(id).addEventListener("input", () => { resize(); preset("aux"); }));
+    resize(); match();
+    (function loop() {
+      if (anim) {
+        frac += 0.012 * Math.sign(anim.target - frac) || 0;
+        if (Math.abs(frac - anim.target) < 0.012) { frac = anim.target; anim = null; }
+        $("u").value = Math.max(0, frac);
+        const f0 = frac; frac = Math.max(0, frac); update(!!lastTargets); frac = f0;
+      }
+      const f0 = frac; frac = Math.max(0, frac); draw(); frac = f0;
+      requestAnimationFrame(loop);
+    })();
+  })();
+  </script>
+</body>
+</html>

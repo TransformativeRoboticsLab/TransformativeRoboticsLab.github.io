@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Handed Shearing Auxetics</title>
+  <link rel="icon" href="../../assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../../assets/site.css" />
+  <style>
+    .chart-box { height: 220px; border: 1px solid var(--line); border-radius: 8px; margin-top: 6px; }
+    .chart-box canvas { width: 100%; height: 100%; display: block; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
+    .row2 label { margin: 2px 0; }
+    .row2 select { width: 100%; }
+    .note { font-size: 12.5px; }
+    .seg { display: flex; gap: 4px; flex-wrap: wrap; }
+    .seg .btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  </style>
+</head>
+<body>
+  <header class="site"><div class="wrap">
+    <a class="brand" href="../../"><img src="../../assets/icon.svg" alt="" />Transformative Robotics Lab</a>
+    <nav class="site"><a href="../../">Projects</a></nav>
+  </div></header>
+  <main class="model">
+    <div class="stage" id="stage">
+      <div class="overlay">Drag: orbit · Right-drag: pan · Wheel: zoom</div>
+    </div>
+    <aside>
+      <h1>Twist a handed shearing auxetic</h1>
+      <p class="muted note">Illustrative model based on Good et al., "Expanding the Design Space for Electrically-Driven Soft Robots Through HSAs" (ICRA 2022), Table III and Sec. III, and Chin et al., "Compliant Electric Actuators based on HSAs" (RoboSoft 2018), Sec. III and V.</p>
+
+      <h2>View</h2>
+      <div class="seg" id="viewSeg">
+        <button class="btn" data-view="single" aria-pressed="true">One cylinder</button>
+        <button class="btn" data-view="pair" aria-pressed="false">Linear actuator (L+R pair)</button>
+        <button class="btn" data-view="finger" aria-pressed="false">Bending finger</button>
+      </div>
+
+      <h2>Design</h2>
+      <div class="row2">
+        <label>Auxetic trajectory point
+          <select id="traj">
+            <option value="closed">Closed (φmin)</option>
+            <option value="semi">Semi-open</option>
+            <option value="open">Open (φmax)</option>
+          </select></label>
+        <label>Rows of cells
+          <select id="rows">
+            <option>4</option><option>6</option><option selected>8</option><option>10</option><option>12</option>
+          </select></label>
+        <label>Handedness
+          <select id="hand"><option value="1">Right-handed</option><option value="-1">Left-handed</option></select></label>
+        <label>Chart
+          <select id="chartQ">
+            <option value="L">Min. energy length L</option>
+            <option value="F">Blocked force F<sub>b</sub></option>
+            <option value="k">Spring constant k</option>
+            <option value="T">Holding torque τ<sub>h</sub></option>
+          </select></label>
+      </div>
+      <label>Twist of the driven end θ: <b id="thLbl">0°</b>
+        <input id="theta" type="range" min="0" max="90" step="1" value="45" style="width:100%" /></label>
+      <label><input type="checkbox" id="extrap" /> Extend closed-HSA fits to 180° (extrapolation)</label>
+      <div class="seg"><button class="btn" id="play">Animate twist</button></div>
+
+      <h2>Readout</h2>
+      <div class="readout" id="out"></div>
+      <div class="chart-box"><canvas id="chart" aria-label="HSA property versus twist"></canvas></div>
+      <p class="muted note" id="chartNote"></p>
+
+      <h2>How this model works</h2>
+      <p class="note">An HSA is a cylinder tiled with shearing-auxetic cells. Twisting one end shears every cell the same way, which drives the internal link angle φ along the <i>auxetic trajectory</i> and lengthens the tube (2022 paper, Sec. I–II, Fig. 2). Its handedness fixes which twist direction extends it, so left and right cylinders cannot swap chirality (2018 paper, Sec. II-B).</p>
+      <p class="note"><b>Closed HSAs.</b> The readouts and chart use the paper's own empirical fits for 3D-printed FPU50 HSAs with 19 mm outer diameter and 2 mm wall (Table III, θ in degrees):
+        F<sub>b</sub> = Aθ² + Bθ, τ<sub>h</sub> = C<sub>τ</sub>θ, k = C<sub>k</sub>θ + k<sub>0</sub>, L = C<sub>l</sub>θ + L<sub>0</sub>.
+        The paper's sign convention gives negative F<sub>b</sub> for pushing. Here pushing is shown as positive.</p>
+      <p class="note"><b>Semi-open and open HSAs</b> (4 rows) have no full fit table. Only the reported coupling constants (0.030 and 0.013 mm per degree), the open HSA's quadratic torque fit τ<sub>h</sub> = −1.219×10⁻⁴θ² + 0.1834θ, and the twist ranges in Table I are used. L<sub>0</sub> is taken as the printed length (Table I). Blocked force and stiffness for these are not fitted in the paper, so only the reported numbers are quoted.</p>
+      <p class="note"><b>Linear actuator.</b> A left and a right HSA are joined at a locked end and counter-rotated by gears at the other end. Their reaction torques cancel, so the pair just extends (2018, Sec. III, Fig. 3). Pair force and stiffness are taken as twice one cylinder's, treating the two as parallel springs.</p>
+      <p class="note"><b>Bending finger.</b> A constraint line bonded along one side of the pair makes it bend (2018, Sec. V, Fig. 6). Here that side keeps length L(0) while the far side reaches L(θ), giving a constant-curvature arc with bend angle Φ = (L(θ) − L(0)) / d, where d is the outer diameter. This is a kinematic simplification and not a model from the paper.</p>
+      <p class="note"><b>Simplified:</b> the 3D lattice is a schematic of helical "wide beams" and staggered short links, not the exact cell pattern. The tube radius is held constant, although real HSAs also change diameter. Viscoelastic relaxation is ignored. The 2022 paper reports a time constant of about 3 s, and 45% force loss after 20 min (Sec. III-C).</p>
+      <p class="note muted">Reported reference values: 2018 PTFE linear actuator 144–217 mm (Table I). Pneumatic vs HSA gripper: 107.4 J vs 4.92 J to close, and both grasped 72% of 32 objects (Table II). 2022: open HSA up to 124 N pull at −180°. Semi-open 8.9 N push at +90°, closed 11.6 N (Sec. III-B).</p>
+    </aside>
+  </main>
+  <script src="../../assets/three.min.js"></script>
+  <script src="../../assets/chart.js"></script>
+  <script>
+  (function () {
+    "use strict";
+    const $ = (id) => document.getElementById(id), stage = $("stage");
+
+    // ---- Paper data: ICRA 2022 Table III (closed HSAs, theta in degrees) ----
+    const FIT = {
+      4:  { A: -4.2339e-4, B: -0.0903, Ct: 0.9545, Ck: 0.0122,    k0: 1.6640, Cl: 0.0531, L0: 74.8555 },
+      6:  { A: -3.3056e-4, B: -0.0228, Ct: 0.4770, Ck: 0.0028,    k0: 0.7747, Cl: 0.0664, L0: 88.5024 },
+      8:  { A: -1.4010e-5, B: -0.0329, Ct: 0.3521, Ck: 0.0018,    k0: 0.4700, Cl: 0.0653, L0: 99.7678 },
+      10: { A: -8.4170e-5, B: -0.0194, Ct: 0.2899, Ck: 7.1581e-4, k0: 0.4339, Cl: 0.0653, L0: 111.7795 },
+      12: { A: -3.1436e-4, B: 0.0115,  Ct: 0.2039, Ck: 2.6294e-4, k0: 0.3576, Cl: 0.0608, L0: 124.3016 },
+    };
+    // Semi-open / open (4 rows): Table I ranges + printed lengths, Sec. III-B coupling constants
+    const TRAJ = {
+      closed: { min: 0, max: 90, rows: null },
+      semi:   { min: -90, max: 90, Cl: 0.030, L0: 109, rows: 4 },
+      open:   { min: -180, max: 0, Cl: 0.013, L0: 122.2, rows: 4 },
+    };
+    const OD = 19, R = OD / 2; // mm, 2022 paper
+
+    function props(traj, rows, th) {
+      if (traj === "closed") {
+        const f = FIT[rows];
+        return { L: f.Cl * th + f.L0, L0: f.L0, F: -(f.A * th * th + f.B * th), k: f.Ck * th + f.k0, T: f.Ct * th };
+      }
+      const t = TRAJ[traj];
+      const T = traj === "open" ? -1.219e-4 * th * th + 0.1834 * th : null;
+      return { L: t.Cl * th + t.L0, L0: t.L0, F: null, k: null, T };
+    }
+
+    // ---- three.js scene ----
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(40, 1, 1, 5000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+    stage.prepend(renderer.domElement);
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x445566, 0.9));
+    const dl = new THREE.DirectionalLight(0xffffff, 0.7); dl.position.set(80, 160, 120); scene.add(dl);
+    const grid = new THREE.GridHelper(240, 12, 0x888888, 0x888888);
+    grid.material.transparent = true; grid.material.opacity = 0.22; grid.position.y = -8; scene.add(grid);
+
+    const MAXS = 4000;
+    const strutGeo = new THREE.CylinderGeometry(1, 1, 1, 6, 1);
+    const matR = new THREE.MeshStandardMaterial({ color: 0x2f6fde, roughness: 0.55, metalness: 0.05 });
+    const matL = new THREE.MeshStandardMaterial({ color: 0xe0453a, roughness: 0.55, metalness: 0.05 });
+    const matC = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.5 });
+    const meshR = new THREE.InstancedMesh(strutGeo, matR, MAXS), meshL = new THREE.InstancedMesh(strutGeo, matL, MAXS), meshC = new THREE.InstancedMesh(strutGeo, matC, 400);
+    [meshR, meshL, meshC].forEach((m) => { m.instanceMatrix.setUsage(THREE.DynamicDrawUsage); scene.add(m); });
+    const capMat = new THREE.MeshStandardMaterial({ color: 0x9aa3b2, roughness: 0.6 });
+    const gearMat = new THREE.MeshStandardMaterial({ color: 0x6b7280, roughness: 0.5, metalness: 0.3 });
+    const extra = new THREE.Group(); scene.add(extra);
+
+    const tmpM = new THREE.Matrix4(), up = new THREE.Vector3(0, 1, 0), q = new THREE.Quaternion(), dir = new THREE.Vector3(), mid = new THREE.Vector3(), sc = new THREE.Vector3();
+    function strut(mesh, idx, a, b, r) {
+      dir.subVectors(b, a); const len = dir.length(); dir.normalize();
+      q.setFromUnitVectors(up, dir); mid.addVectors(a, b).multiplyScalar(0.5); sc.set(r, len, r);
+      tmpM.compose(mid, q, sc); mesh.setMatrixAt(idx, tmpM);
+    }
+
+    // Schematic HSA lattice: m nodes per ring, nr+1 rings. Wide beams are helices whose
+    // handedness sets the twist direction that extends the tube.
+    const M = 6;
+    function lattice(rows, hand, th, Lnow, mapFn) {
+      const twistPerRow = (-hand * th * Math.PI / 180) / rows, span = (hand * 2 * Math.PI) / M;
+      const P = [];
+      for (let j = 0; j <= rows; j += 1) {
+        const ring = [];
+        for (let i = 0; i < M; i += 1) {
+          const phi = (2 * Math.PI * i) / M + j * (span * 0.5 + twistPerRow);
+          ring.push(mapFn(R * Math.cos(phi), (Lnow * j) / rows, R * Math.sin(phi), j / rows));
+        }
+        P.push(ring);
+      }
+      const wide = [], short = [], ringL = [];
+      for (let j = 0; j < rows; j += 1) for (let i = 0; i < M; i += 1) {
+        wide.push([P[j][i], P[j + 1][i]]);
+        if ((i + j) % 2 === 0) short.push([P[j][i], P[j + 1][(i + (hand > 0 ? M - 1 : 1)) % M]]);
+      }
+      for (const j of [0, rows]) for (let i = 0; i < M; i += 1) ringL.push([P[j][i], P[j][(i + 1) % M]]);
+      return { P, wide, short, ringL };
+    }
+
+    const st = { view: "single", traj: "closed", rows: 8, hand: 1, th: 45 };
+    let nR = 0, nL = 0, nC = 0;
+    function addStruts(lat, isRight) {
+      const mesh = isRight ? meshR : meshL;
+      for (const [a, b] of lat.wide) strut(mesh, isRight ? nR++ : nL++, a, b, 1.25);
+      for (const [a, b] of lat.short) strut(mesh, isRight ? nR++ : nL++, a, b, 0.7);
+      for (const [a, b] of lat.ringL) strut(mesh, isRight ? nR++ : nL++, a, b, 0.9);
+    }
+    function disk(r, h, mat, pos, rotY) {
+      const g = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, 32), mat); g.position.copy(pos); g.rotation.y = rotY || 0; extra.add(g);
+      return g;
+    }
+    function gear(pos, rotY, color) {
+      const g = disk(R * 1.25, 4, gearMat, pos, rotY);
+      for (let t = 0; t < 12; t += 1) {
+        const tooth = new THREE.Mesh(new THREE.BoxGeometry(3, 4, 3), gearMat);
+        const a = (t / 12) * Math.PI * 2; tooth.position.set(Math.cos(a) * R * 1.3, 0, Math.sin(a) * R * 1.3); tooth.rotation.y = -a; g.add(tooth);
+      }
+      const mark = new THREE.Mesh(new THREE.BoxGeometry(R * 1.1, 4.4, 2), new THREE.MeshBasicMaterial({ color })); mark.position.x = R * 0.55; g.add(mark);
+    }
+    function clearExtra() { while (extra.children.length) { const c = extra.children.pop(); c.traverse((o) => o.geometry && o.geometry.dispose()); } }
+
+    function rebuild() {
+      nR = nL = nC = 0; clearExtra();
+      const t = TRAJ[st.traj], rows = st.traj === "closed" ? st.rows : 4;
+      const p = props(st.traj, rows, st.th), base = props(st.traj, rows, 0);
+      const thRad = (st.th * Math.PI) / 180;
+      if (st.view === "single") {
+        const lat = lattice(rows, st.hand, st.th, p.L, (x, y, z) => new THREE.Vector3(x, y, z));
+        addStruts(lat, st.hand > 0);
+        disk(R + 2, 4, capMat, new THREE.Vector3(0, -2, 0));
+        const top = disk(R + 2, 4, capMat, new THREE.Vector3(0, p.L + 2, 0), -st.hand * thRad);
+        const mk = new THREE.Mesh(new THREE.BoxGeometry(R + 2, 4.6, 2.2), new THREE.MeshBasicMaterial({ color: 0x16a34a })); mk.position.x = (R + 2) / 2; top.add(mk);
+      } else if (st.view === "pair") {
+        const gap = R * 1.32;
+        // locked end at the top, actuation (gears) at the bottom; both twist opposite at the bottom
+        for (const s of [1, -1]) {
+          const cx = s * gap;
+          const lat = lattice(rows, s, st.th, p.L, (x, y, z) => new THREE.Vector3(cx + x, y, z));
+          addStruts(lat, s > 0);
+          gear(new THREE.Vector3(cx, -4, 0), s * thRad, s > 0 ? 0x2f6fde : 0xe0453a);
+        }
+        const plate = new THREE.Mesh(new THREE.BoxGeometry(gap * 2 + OD + 8, 4, OD + 6), capMat); plate.position.set(0, p.L + 2, 0); extra.add(plate);
+      } else {
+        // constrained pair bends: constraint side (x=-R) keeps L(0); far side reaches L(theta)
+        const d = OD, Lin = base.L, Lout = Math.max(Lin, p.L), Phi = Math.max(1e-4, (Lout - Lin) / d), Ri = Lin / Phi;
+        const bend = (x, y, z, tt) => {
+          const u = x + R, rho = Ri + u, a = Phi * tt;
+          return new THREE.Vector3(-Ri + rho * Math.cos(a), rho * Math.sin(a), z);
+        };
+        for (const s of [1, -1]) {
+          const cz = s * R * 1.1;
+          const lat = lattice(rows, s, st.th, 1, (x, y, z, tt) => bend(x, y, z + cz, tt));
+          addStruts(lat, s > 0);
+        }
+        // constraint line along the inner edge
+        const N = 24;
+        for (let i = 0; i < N; i += 1) {
+          for (const s of [1, -1]) strut(meshC, nC++, bend(-R, 0, s * R * 1.1, i / N), bend(-R, 0, s * R * 1.1, (i + 1) / N), 1.4);
+        }
+        disk(R * 2.4, 4, capMat, new THREE.Vector3(0, -2, 0)).scale.set(1, 1, 1);
+      }
+      meshR.count = nR; meshL.count = nL; meshC.count = nC;
+      [meshR, meshL, meshC].forEach((m) => { m.instanceMatrix.needsUpdate = true; });
+      readout(p, base, rows);
+    }
+
+    const f1 = (v, d = 1) => (v === null || v === undefined ? "n/a" : v.toFixed(d));
+    function readout(p, base, rows) {
+      const t = st.traj;
+      let s = `θ = ${st.th.toFixed(0)}°   (${t === "closed" ? rows + "-row closed" : t === "semi" ? "4-row semi-open" : "4-row open"})\n`;
+      s += `length L      ${f1(p.L)} mm   (ΔL ${p.L - base.L >= 0 ? "+" : ""}${f1(p.L - base.L)} mm)\n`;
+      if (st.view === "single") {
+        s += `blocked force ${f1(p.F)} N ${p.F === null ? "" : p.F >= 0 ? "(push)" : "(pull)"}\n`;
+        s += `spring const  ${f1(p.k, 2)} N/mm\n`;
+        s += `holding torq  ${p.T === null ? "n/a" : Math.abs(p.T).toFixed(1)} N·mm`;
+      } else if (st.view === "pair") {
+        s += `pair force    ${p.F === null ? "n/a" : (2 * p.F).toFixed(1) + " N"}\n`;
+        s += `pair stiffness ${p.k === null ? "n/a" : (2 * p.k).toFixed(2) + " N/mm"}\n`;
+        s += `torque at gears ±${p.T === null ? "n/a" : Math.abs(p.T).toFixed(1)} N·mm each\n`;
+        s += `net torque at locked end ≈ 0 (chiral pair)`;
+      } else {
+        const Phi = Math.max(0, (p.L - base.L) / OD);
+        s += `bend angle Φ  ${((Phi * 180) / Math.PI).toFixed(1)}°\n`;
+        s += `inner radius  ${Phi > 1e-4 ? (base.L / Phi).toFixed(0) + " mm" : "∞ (straight)"}`;
+        if (t !== "closed" && st.th < 0) s += "\n(negative twist contracts: finger straightens)";
+      }
+      if (t === "open") s += `\nreported: 124 N pull at −180° (Sec. III-B)`;
+      if (t === "semi") s += `\nreported: 8.9 N push at +90° (Sec. III-B)`;
+      $("out").textContent = s;
+    }
+
+    // ---- chart ----
+    const chart = TRLChart.create($("chart"), {});
+    const QL = { L: ["Minimum energy length L (mm)", "L"], F: ["Blocked force, push + (N)", "F"], k: ["Spring constant k (N/mm)", "k"], T: ["Holding torque |τh| (N·mm)", "T"] };
+    function drawChart() {
+      const qk = $("chartQ").value, list = [];
+      const lim = $("extrap").checked ? 180 : 90;
+      if (st.traj === "closed") {
+        for (const r of [4, 6, 8, 10, 12]) {
+          const x = [], y = [];
+          for (let th = 0; th <= lim; th += 2) { const v = props("closed", r, th)[qk]; x.push(th); y.push(qk === "T" ? Math.abs(v) : v); }
+          list.push({ name: `${r} rows`, x, y, color: r === st.rows ? undefined : undefined });
+        }
+        $("chartNote").textContent = `All five closed designs from Table III. Hover for values. ${lim > 90 ? "Beyond 90° the fits are extrapolated." : ""}`;
+      } else {
+        for (const tr of ["closed", "semi", "open"]) {
+          const t = TRAJ[tr], x = [], y = [];
+          const lo = tr === "closed" ? 0 : t.min, hi = tr === "closed" ? 90 : t.max;
+          for (let th = lo; th <= hi; th += 2) {
+            const v = props(tr, 4, th)[qk]; if (v === null) continue; x.push(th); y.push(qk === "T" ? Math.abs(v) : v);
+          }
+          if (x.length) list.push({ name: tr, x, y });
+        }
+        $("chartNote").textContent = qk === "L" || qk === "T"
+          ? "4-row closed, semi-open and open HSAs (Sec. III-B). Semi-open/open L uses printed length as L₀."
+          : "Not fitted in the paper for semi-open/open designs. Only the closed curve is shown.";
+      }
+      chart.setSeries(list, { xlabel: "Twist θ (deg)", ylabel: QL[qk][0] });
+    }
+
+    // ---- controls ----
+    function syncRange() {
+      const t = TRAJ[st.traj], el = $("theta");
+      const max = st.traj === "closed" ? ($("extrap").checked ? 180 : 90) : t.max;
+      el.min = t.min; el.max = max;
+      st.th = Math.max(t.min, Math.min(max, st.th)); el.value = st.th;
+      $("rows").disabled = st.traj !== "closed";
+      $("thLbl").textContent = `${st.th}°`;
+    }
+    document.querySelectorAll("#viewSeg [data-view]").forEach((b) => b.addEventListener("click", () => {
+      st.view = b.dataset.view;
+      document.querySelectorAll("#viewSeg [data-view]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+      $("hand").disabled = st.view !== "single";
+      frame(); rebuild();
+    }));
+    $("traj").addEventListener("change", () => { st.traj = $("traj").value; st.th = st.traj === "open" ? -90 : 45; syncRange(); frame(); rebuild(); drawChart(); });
+    $("rows").addEventListener("change", () => { st.rows = Number($("rows").value); frame(); rebuild(); drawChart(); });
+    $("hand").addEventListener("change", () => { st.hand = Number($("hand").value); rebuild(); });
+    $("chartQ").addEventListener("change", drawChart);
+    $("extrap").addEventListener("change", () => { syncRange(); rebuild(); drawChart(); });
+    $("theta").addEventListener("input", () => { st.th = Number($("theta").value); $("thLbl").textContent = `${st.th}°`; rebuild(); });
+    let anim = null;
+    $("play").addEventListener("click", () => {
+      if (anim) { anim = null; $("play").textContent = "Animate twist"; return; }
+      anim = { t0: performance.now() }; $("play").textContent = "Stop";
+    });
+
+    // ---- camera ----
+    const cam = { r: 320, az: 0.7, el: 0.28, target: new THREE.Vector3(0, 60, 0) };
+    function frame() {
+      const rows = st.traj === "closed" ? st.rows : 4, L = props(st.traj, rows, 0).L;
+      cam.target.set(st.view === "finger" ? -L * 0.15 : 0, L * 0.55, 0); cam.r = Math.max(220, L * 2.4);
+    }
+    function place() {
+      camera.position.set(cam.target.x + cam.r * Math.cos(cam.el) * Math.sin(cam.az), cam.target.y + cam.r * Math.sin(cam.el), cam.target.z + cam.r * Math.cos(cam.el) * Math.cos(cam.az));
+      camera.lookAt(cam.target);
+    }
+    function resize() { const w = stage.clientWidth, h = stage.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / Math.max(1, h); camera.updateProjectionMatrix(); }
+    let drag = null; const el = renderer.domElement;
+    el.style.touchAction = "none";
+    el.addEventListener("contextmenu", (e) => e.preventDefault());
+    el.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY, pan: e.button === 2 || e.shiftKey }; el.setPointerCapture(e.pointerId); });
+    el.addEventListener("pointermove", (e) => {
+      if (!drag) return;
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
+      if (drag.pan) { const s = cam.r / 700; cam.target.x -= Math.cos(cam.az) * dx * s; cam.target.z += Math.sin(cam.az) * dx * s; cam.target.y += dy * s; }
+      else { cam.az -= dx * 0.008; cam.el = Math.max(-1.3, Math.min(1.4, cam.el + dy * 0.008)); }
+    });
+    el.addEventListener("pointerup", () => { drag = null; });
+    el.addEventListener("wheel", (e) => { e.preventDefault(); cam.r = Math.max(60, Math.min(2000, cam.r * Math.exp(e.deltaY * 0.0012))); }, { passive: false });
+    window.addEventListener("resize", resize);
+
+    syncRange(); frame(); rebuild(); drawChart(); resize();
+    (function loop(now) {
+      requestAnimationFrame(loop);
+      if (anim) {
+        const el2 = $("theta"), lo = Number(el2.min), hi = Number(el2.max);
+        const u = 0.5 - 0.5 * Math.cos(((now - anim.t0) / 3000) * Math.PI * 2);
+        st.th = Math.round(lo + (hi - lo) * u); el2.value = st.th; $("thLbl").textContent = `${st.th}°`; rebuild();
+      }
+      place(); renderer.render(scene, camera);
+    })(performance.now());
+  })();
+  </script>
+</body>
+</html>

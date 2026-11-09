@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Printed Tourniquet Loads</title>
+  <link rel="icon" href="../../assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../../assets/site.css" />
+  <style>
+    [hidden] { display: none !important; }
+    aside select { max-width: 100%; }
+    .split { position: absolute; inset: 0; display: grid; grid-template-rows: minmax(0, 1.2fr) minmax(0, 1fr); }
+    .split > div { position: relative; min-height: 0; overflow: hidden; }
+    .split canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; }
+    .chartbox { border-top: 1px solid var(--line); }
+    .chartbox canvas { left: 8px !important; top: 8px !important; width: calc(100% - 16px) !important; height: calc(100% - 16px) !important; }
+    table.rep { width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+    table.rep td, table.rep th { border-bottom: 1px solid var(--line); padding: 3px 4px; text-align: right; }
+    table.rep td:first-child, table.rep th:first-child { text-align: left; }
+    .bar { height: 8px; border-radius: 4px; background: var(--chip); position: relative; overflow: hidden; }
+    .bar > i { position: absolute; left: 0; top: 0; bottom: 0; }
+    .warnbox { border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-size: 12.5px; }
+    @media (max-width: 860px) { .model { grid-template-rows: auto auto; } .model .stage { height: 580px; } .split { grid-template-rows: 320px 260px; } }
+  </style>
+</head>
+<body>
+  <header class="site"><div class="wrap">
+    <a class="brand" href="../../"><img src="../../assets/icon.svg" alt="" />Transformative Robotics Lab</a>
+    <nav class="site"><a href="../../">Projects</a><a href="https://transformativerobotlab.com/assets/pdf/Tourniquets_for_Immediate_Aid.pdf">Paper (SFF 2022, PDF)</a></nav>
+  </div></header>
+  <main class="model">
+    <div class="stage">
+      <div class="split">
+        <div><canvas id="view" aria-label="Tourniquet on a limb cross-section with component loads"></canvas>
+          <div class="overlay">Component colour = load as a fraction of its tested peak load (green low → red at failure).</div></div>
+        <div class="chartbox"><canvas id="chart" aria-label="Idealised force-displacement of the selected component"></canvas></div>
+      </div>
+    </div>
+    <aside>
+      <h1>3D-printed tourniquet loads</h1>
+      <p class="muted">Illustrative model based on Brown-Moore, Balaji &amp; Lipton, <i>Optimizing 3D Printed Tourniquets for Immediate Aid in Ukraine</i> (SFF 2022), Tables 1–6. The paper load-tested the four parts of the open-source Glia tourniquet printed in ABS and PETG against the injection-moulded Combat Application Tourniquet (CAT).</p>
+      <div class="warnbox muted">Engineering illustration only, not medical guidance. The paper does not study limb pressure or clinical use.</div>
+      <h2>Component material</h2>
+      <select id="mat" style="width:100%"><option value="ABS">ABS (Fortus 250mc)</option><option value="PETG" selected>PETG (Ender-3 Pro)</option><option value="CAT">CAT (injection moulded)</option></select>
+      <h2>Tightening (simplified mechanics)</h2>
+      <label>Windlass half-turns n <b id="vn"></b> <input id="n" type="range" min="0" max="6" step="0.25" value="2" /></label>
+      <label>Limb circumference C <b id="vC"></b> cm <input id="C" type="range" min="15" max="70" step="1" value="45" /></label>
+      <label>Strap width w <b id="vw"></b> cm <input id="w" type="range" min="2.5" max="5" step="0.1" value="3.8" /></label>
+      <label>Strap + tissue stiffness K (assumed) <b id="vK"></b> N/mm <input id="K" type="range" min="0.5" max="10" step="0.5" value="2" /></label>
+      <label>Windlass rod diameter d / half-length a <b id="vd"></b> mm / <b id="va"></b> mm</label>
+      <input id="d" type="range" min="6" max="16" step="1" value="10" aria-label="Windlass rod diameter" />
+      <input id="a" type="range" min="30" max="80" step="1" value="50" aria-label="Windlass half-length" />
+      <h2>Loads vs tested peak loads</h2>
+      <div id="loads"></div>
+      <div class="readout" id="out" style="margin-top:6px"></div>
+      <h2>Chart: component</h2>
+      <select id="comp" style="width:100%"></select>
+      <p class="muted" style="font-size:12px;margin:4px 0">Grey ABS, blue PETG, red CAT; green line = this component's load in the current tightening state.</p>
+      <h2>Reported test results (slope N/mm · peak N)</h2>
+      <div id="tab"></div>
+      <h2>How this model works</h2>
+      <p class="muted" style="font-size:13px">All slopes and peak loads are the paper's (Tables 1–6). The rest is a simplified load path of our own: twisting the windlass n half-turns shortens the band by ΔL = nπd, giving band tension T = K·ΔL. The buckle, backing support and clip-side strap carry T (the paper's uniaxial tension tests, Tables 1, 2, 4); the windlass resists a torque of 2T·(d/2), which a hand balances with F = T·d/a at its tip (the single-edge moment test, Table 5) and which loads its centre with about 2T in three-point bending (Table 6). Pressure under the band uses Laplace's law, P = T/(r·w) with r = C/2π. The chart draws each material as a straight line at the reported slope up to the reported peak — an idealisation, not the measured curves (which are in Figs. 5–10).</p>
+      <p class="muted" style="font-size:13px">Not modelled: anisotropy from print orientation (the paper's main explanation for weak printed clips), Velcro slip, and the CAT's one-piece backing/clip (CAT “full” peak 700.2 N vs 391.8 N cut, Table 2).</p>
+    </aside>
+  </main>
+  <script src="../../assets/chart.js"></script>
+  <script>
+  (function () {
+    const $ = (id) => document.getElementById(id);
+    const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+    // Tables 1–6: [slope N/mm, peak N]
+    const DATA = {
+      buckle: { name: "Buckle (tension, Table 1)", ABS: [63.6, 593.7], PETG: [77.1, 997.8], CAT: [32.7, 1648.3] },
+      backing: { name: "Backing support (tension, Table 2)", ABS: [59.7, 290.6], PETG: [63.2, 421.1], CAT: [45.3, 391.8] },
+      backing3: { name: "Backing support (3-pt bend, Table 3)", ABS: [13.1, 66.1], PETG: [12.2, 93.9], CAT: [9.5, 129.1] },
+      clip: { name: "Clip (tension, Table 4)", ABS: [17.2, 76.1], PETG: [25.6, 148.5], CAT: [47.6, 1143.4] },
+      windlass: { name: "Windlass (edge moment, Table 5)", ABS: [149.5, 158.5], PETG: [106.1, 126.4], CAT: [126.3, 267.1] },
+      windlass3: { name: "Windlass (3-pt bend, Table 6)", ABS: [48.1, 244.3], PETG: [30.8, 252.5], CAT: [31.37, 323.3] },
+    };
+    Object.entries(DATA).forEach(([k, v]) => $("comp").insertAdjacentHTML("beforeend", `<option value="${k}">${v.name}</option>`));
+    $("comp").value = "windlass";
+    $("tab").innerHTML = `<table class="rep"><tr><th>Test</th><th>ABS</th><th>PETG</th><th>CAT</th></tr>${Object.values(DATA).map((v) => `<tr><td>${v.name.replace(/ \(.*?, /, " (").replace("Table", "T")}</td>${["ABS", "PETG", "CAT"].map((m) => `<td>${v[m][0]} · ${v[m][1]}</td>`).join("")}</tr>`).join("")}</table>`;
+    const chart = TRLChart.create($("chart"), { xlabel: "displacement (mm)", ylabel: "force (N)" });
+    const heat = (r) => `hsl(${Math.max(0, 130 - 130 * Math.min(1, r))},70%,46%)`;
+    function model() {
+      const n = +$("n").value, C = +$("C").value, w = +$("w").value, K = +$("K").value, d = +$("d").value, a = +$("a").value, mat = $("mat").value;
+      const dL = n * Math.PI * d, T = K * dL, r = (C * 10) / (2 * Math.PI); // mm
+      const P = T / (r * w * 10); // N/mm² = MPa
+      const loads = { buckle: T, backing: T, clip: T, windlass: (T * d) / a, windlass3: 2 * T };
+      return { n, C, w, K, d, a, mat, dL, T, r, P, loads };
+    }
+    function update() {
+      const m = model();
+      ["n", "C", "w", "K", "d", "a"].forEach((k) => ($("v" + k).textContent = $(k).value));
+      let worst = null;
+      $("loads").innerHTML = Object.entries(m.loads).map(([k, L]) => {
+        const peak = DATA[k][m.mat][1], r = L / peak; if (!worst || r > worst.r) worst = { k, r };
+        return `<div style="font-size:12.5px;margin:4px 0">${DATA[k].name.split(" (")[0]}${k === "windlass" ? " (hand force at tip)" : k === "windlass3" ? " (centre, bending)" : ""}: <b>${L.toFixed(0)} N</b> of ${peak} N</div><div class="bar"><i style="width:${Math.min(100, r * 100).toFixed(1)}%;background:${heat(r)}"></i></div>`;
+      }).join("");
+      $("out").textContent = `band shortening ΔL = nπd = ${m.dL.toFixed(0)} mm\nband tension T = ${m.T.toFixed(0)} N\nwindlass torque = ${((m.T * m.d) / 1000).toFixed(2)} N·m\npressure under band ≈ ${(m.P * 1000).toFixed(0)} kPa = ${(m.P * 7500.6).toFixed(0)} mmHg\nfirst to reach its tested peak: ${DATA[worst.k].name} (${(worst.r * 100).toFixed(0)}%)${worst.r >= 1 ? " — would fail" : ""}`;
+      const comp = $("comp").value, D = DATA[comp];
+      chart.setSeries(["ABS", "PETG", "CAT"].map((mt) => { const [s, p] = D[mt]; const xp = p / s; return { name: mt, x: [0, xp, xp], y: [0, p, 0], color: mt === "ABS" ? "#6b7280" : mt === "PETG" ? "#2f6fde" : "#e0453a" }; }).concat(comp in m.loads ? [{ name: "current load", x: [0, Math.max(...["ABS", "PETG", "CAT"].map((mt) => D[mt][1] / D[mt][0])) * 1.05], y: [m.loads[comp], m.loads[comp]], color: "#2e9d6b" }] : []), { xlabel: "displacement (mm) — idealised: reported slope up to reported peak", ylabel: `${D.name.split(" (")[0]} force (N)` });
+      draw(m);
+    }
+    function fit(cv) { const dpr = Math.min(devicePixelRatio || 1, 2), W = cv.clientWidth, H = cv.clientHeight; if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); } const c = cv.getContext("2d"); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H); return [c, W, H]; }
+    function draw(m) {
+      m = m || model(); const [c, W, H] = fit($("view"));
+      const R = Math.min(W * 0.3, H * 0.36) * (0.6 + (0.4 * (m.C - 15)) / 55), cx = W * 0.42, cy = H * 0.56;
+      const squeeze = 1 - Math.min(0.08, m.P * 0.5); // visual only
+      const rr = (k) => m.loads[k] / DATA[k][m.mat][1];
+      // limb
+      c.fillStyle = "rgba(224,69,58,0.18)"; c.beginPath(); c.arc(cx, cy, R * squeeze, 0, 7); c.fill();
+      c.fillStyle = "rgba(240,230,210,0.35)"; c.beginPath(); c.arc(cx + R * 0.1, cy + R * 0.05, R * 0.28, 0, 7); c.fill();
+      c.fillStyle = css("--muted"); c.font = "11px system-ui, sans-serif"; c.textAlign = "center"; c.fillText(`limb, C = ${m.C} cm`, cx, cy + R * 0.6);
+      // band
+      c.strokeStyle = css("--ink"); c.lineWidth = 6; c.beginPath(); c.arc(cx, cy, R * squeeze + 4, 0, 7); c.stroke();
+      // backing support (under windlass, top)
+      const top = cy - R * squeeze - 8;
+      c.fillStyle = heat(rr("backing")); c.fillRect(cx - 50, top - 6, 100, 12);
+      // windlass rod (rotating as it twists)
+      const ang = m.n * Math.PI, a = Math.max(36, m.a * 1.2);
+      c.save(); c.translate(cx, top - 16); c.scale(1, 0.35 + 0.65 * Math.abs(Math.cos(ang / 2))); c.fillStyle = heat(Math.max(rr("windlass"), rr("windlass3"))); c.beginPath(); c.roundRect ? c.roundRect(-a, -6, 2 * a, 12, 6) : c.rect(-a, -6, 2 * a, 12); c.fill(); c.restore();
+      // twisted band strands above backing
+      c.strokeStyle = css("--ink"); c.lineWidth = 2; for (let i = 0; i < Math.ceil(m.n); i++) { c.beginPath(); c.moveTo(cx - 12 + i * 3, top - 4); c.lineTo(cx + 12 - i * 3, top - 26); c.stroke(); }
+      // clip at windlass end (right side)
+      c.fillStyle = heat(rr("clip")); c.fillRect(cx + a + 4, top - 26, 18, 22);
+      // buckle (left side of limb)
+      const bx = cx - R * squeeze - 10; c.fillStyle = heat(rr("buckle")); c.fillRect(bx - 10, cy - 18, 20, 36);
+      // labels
+      c.fillStyle = css("--ink"); c.textAlign = "left";
+      c.fillText(`windlass ${(rr("windlass") * 100).toFixed(0)}%`, cx - a, top - 34);
+      c.fillText(`clip ${(rr("clip") * 100).toFixed(0)}%`, cx + a + 26, top - 12);
+      c.textAlign = "center"; c.fillText(`buckle ${(rr("buckle") * 100).toFixed(0)}%`, Math.max(40, bx), cy + 34);
+      c.textAlign = "left"; c.fillText(`backing ${(rr("backing") * 100).toFixed(0)}%`, cx + 56, top + 4);
+      // arrows of band tension
+      c.fillStyle = css("--muted"); c.fillText(`T = ${m.T.toFixed(0)} N,  P ≈ ${(m.P * 7500.6).toFixed(0)} mmHg`, 12, 18);
+      c.fillText(`material: ${m.mat}`, 12, 34);
+    }
+    document.querySelectorAll("aside input, aside select").forEach((el) => el.addEventListener("input", update));
+    window.addEventListener("resize", () => draw());
+    update();
+  })();
+  </script>
+</body>
+</html>

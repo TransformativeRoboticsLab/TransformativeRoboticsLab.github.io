@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Counter-Rotating Scrub Brush</title>
+  <link rel="icon" href="../../assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../../assets/site.css" />
+  <style>
+    .model aside input[type="range"] { width: 100%; }
+    .stage.split { display: grid; grid-template-rows: minmax(0,3fr) minmax(0,2fr); height: calc(100vh - 61px); }
+    .stage.split > div { position: relative; min-height: 0; overflow: hidden; }
+    #view { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    .chart-wrap { padding: 8px 12px 4px; border-top: 1px solid var(--line); display: flex; flex-direction: column; }
+    .chart-box { position: relative; flex: 1; min-height: 0; }
+    .model .stage canvas#chart { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    .legend { font-size: 12px; color: var(--muted); display: flex; gap: 12px; flex-wrap: wrap; }
+    .legend i { display: inline-block; width: 14px; height: 3px; vertical-align: middle; margin-right: 4px; }
+    .label-ill { font-size: 12px; border-left: 3px solid var(--accent); padding: 4px 8px; background: var(--chip); border-radius: 4px; }
+    details.how li { font-size: 13px; }
+    .warn { color: var(--accent); }
+    @media (max-width: 860px) { .model { grid-template-rows: auto auto; } .stage.split { height: 88vh; } }
+  </style>
+</head>
+<body>
+  <header class="site"><div class="wrap">
+    <a class="brand" href="../../"><img src="../../assets/icon.svg" alt="" />Transformative Robotics Lab</a>
+    <nav class="site"><a href="../../">Projects</a><a href="../trunc/">TRUNC workspace</a><a href="https://arxiv.org/abs/2507.06053">Paper (arXiv)</a></nav>
+  </div></header>
+  <main class="model">
+    <div class="stage split" id="stage">
+      <div><canvas id="view"></canvas><div class="overlay" style="top:8px;bottom:auto">Left: brush seen from below (ring colour = friction moment per ring, Eq. 3) · Right: arm statics (Eqs. 8–11)</div></div>
+      <div class="chart-wrap">
+        <div class="legend" id="legend"></div>
+        <div class="chart-box"><canvas id="chart"></canvas></div>
+      </div>
+    </div>
+    <aside>
+      <h1>SCCRUB: counter-rotating brush and contact force</h1>
+      <p class="label-ill">Illustrative model based on Kowalewski et al., <i>SCCRUB: Surface Cleaning Compliant Robot Utilizing Bristles</i> (RoboSoft 2026; arXiv 2507.06053), Sec. III (Eqs. 1–7), Sec. IV-B and Sec. V-A (Eqs. 8–11).</p>
+      <p class="muted">A soft, torque-transmitting arm (built on TRUNC) spins a brush against a surface. Bristle friction makes a reaction moment that would bend the soft arm. Two faces spinning in opposite directions cancel most of it.</p>
+      <h2>Brush</h2>
+      <label>Brush type <select id="mode"><option value="counter">Counter-rotating (inner disc + outer annulus)</option><option value="uni">Unidirectional (single disc)</option></select></label>
+      <label>Outer radius r<sub>o</sub> <output id="roOut"></output><input id="ro" type="range" min="15" max="60" step="0.5" value="35" /></label>
+      <label>Inner radius r<sub>i</sub> <output id="riOut"></output><input id="ri" type="range" min="5" max="55" step="0.5" value="25" /></label>
+      <button class="btn" id="ideal" type="button">Set rᵢ for zero net moment (rₒ/rᵢ = ∛2)</button>
+      <label>Friction coefficient μ <output id="muOut"></output><input id="mu" type="range" min="0.2" max="1.5" step="0.01" value="0.93" /></label>
+      <label>Normal force F<sub>n</sub> <output id="FnOut"></output><input id="Fn" type="range" min="0" max="11" step="0.1" value="3" /></label>
+      <label>Input speed ω <output id="wOut"></output><input id="w" type="range" min="0" max="200" step="1" value="110" /></label>
+      <h2>Brush readout</h2>
+      <div class="readout" id="read1"></div>
+      <h2>Arm statics (Sec. V-A)</h2>
+      <label>System weight F<sub>g</sub> <output id="FgOut"></output><input id="Fg" type="range" min="6.2" max="15.3" step="0.1" value="9.6" /></label>
+      <label>Gearbox backlash δ <output id="dOut"></output><input id="d" type="range" min="0" max="100" step="0.1" value="52.4" /></label>
+      <div class="readout" id="read2"></div>
+      <h2>How this model works</h2>
+      <details class="how" open>
+        <summary>Equations, defaults and simplifications</summary>
+        <ul>
+          <li><b>Friction moment (Eqs. 1–4).</b> The bristles are a continuous disc under uniform pressure P, and dynamic friction is tangent to the spin. A ring of radius r and width dr gives dM = 2πμP r² dr, so a full disc gives M = (2/3)πμP r³. With P = F<sub>n</sub>/(πr<sup>2</sup>), that is M = (2/3)μ r F<sub>n</sub>.</li>
+          <li><b>Counter-rotating brush (Eqs. 5–7).</b> The inner disc (radius r<sub>i</sub>) and the outer annulus (r<sub>i</sub> to r<sub>o</sub>) spin opposite ways: M<sub>net</sub> = (2πμP/3)(r<sub>o</sub>³ − 2r<sub>i</sub>³). The net moment is zero when r<sub>o</sub>/r<sub>i</sub> = 2<sup>1/3</sup>, so r<sub>i</sub> ≈ 0.79 r<sub>o</sub>. Here P = F<sub>n</sub>/(πr<sub>o</sub>²) over the whole brush face.</li>
+          <li><b>Defaults from the paper:</b> r<sub>o</sub> = 35 mm and r<sub>i</sub> = 25 mm (Sec. IV-A; r<sub>o</sub> is 11.1% over the ideal), μ ≈ 0.93 (fit to the unidirectional-brush data), ω = 110 RPM. The gearbox has a 16-tooth sun on the inner face and a 50-tooth ring on the outer face with a grounded carrier, so the outer face turns at −16/50 of the input. Backlash δ = 52.4 N·mm (Sec. IV-B), and F<sub>g</sub> = 9.6 N with F<sub>n</sub> = 3 N in the cleaning tests (Sec. VI).</li>
+          <li><b>Two counter-rotating slopes.</b> The paper reports M = kF − δ with a predicted k = 9.34 N·mm/N from its expression (2/3)μ(r<sub>o</sub> − 2r<sub>i</sub>), against 9.96 N·mm/N measured (Sec. IV-B, Fig. 3B). Evaluating Eq. 7 directly with P = F/(πr<sub>o</sub>²) gives a smaller slope for the same radii. The chart shows both, labelled. The demo plots model lines only, no measured points.</li>
+          <li><b>Arm statics (Eqs. 8–11).</b> With slow translation the arm is quasi-static: F<sub>t</sub> + F<sub>n</sub> − F<sub>g</sub> = 0, so the tendon tension is F<sub>t</sub> = F<sub>g</sub> − F<sub>n</sub>. The paper feeds (x, F<sub>t</sub>) to a learned network (Eq. 12) to get the nine tendon lengths. The network and its 10,000-pose dataset are not reproduced here. The demo only checks whether F<sub>t</sub> stays inside the trained load range (6.2 to 15.3 N), which caps F<sub>n</sub> at F<sub>g</sub> − 6.2 N (Sec. V-C).</li>
+          <li>The arm drawing is a schematic, not a simulation of its deflection.</li>
+        </ul>
+      </details>
+    </aside>
+  </main>
+  <script src="../../assets/chart.js"></script>
+  <script>
+  (function () {
+    "use strict";
+    const $ = (id) => document.getElementById(id);
+    const FG_MIN = 6.2, FG_MAX = 15.3, L_ARM = 710, PAPER_K_MEAS = 9.96;
+    const st = { phiIn: 0, phiOut: 0, last: performance.now() };
+
+    function model() {
+      const mode = $("mode").value, ro = +$("ro").value, ri = Math.min(+$("ri").value, ro - 0.5), mu = +$("mu").value, Fn = +$("Fn").value;
+      const P = Fn / (Math.PI * ro * ro); // N/mm^2
+      const Min = (2 * Math.PI * mu * P * ri ** 3) / 3;                    // Eq. 5
+      const Mout = (2 * Math.PI * mu * P * (ro ** 3 - ri ** 3)) / 3;       // Eq. 6
+      const Mnet = mode === "uni" ? (2 * Math.PI * mu * P * ro ** 3) / 3 : Mout - Min; // Eq. 4 / Eq. 7
+      const Muni = (2 / 3) * mu * ro * Fn;
+      return { mode, ro, ri, mu, Fn, P, Min, Mout, Mnet, Muni };
+    }
+
+    // ---------- drawing ----------
+    const cv = $("view"), g = cv.getContext("2d");
+    const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+    function size(c) { const dpr = Math.min(devicePixelRatio || 1, 2), w = c.clientWidth, h = c.clientHeight; if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); } c.getContext("2d").setTransform(dpr, 0, 0, dpr, 0, 0); return { w, h }; }
+    function arrowArc(cx, cy, r, a0, a1, color, lw) {
+      g.strokeStyle = color; g.fillStyle = color; g.lineWidth = lw; g.beginPath(); g.arc(cx, cy, r, a0, a1, a1 < a0); g.stroke();
+      const dir = a1 > a0 ? 1 : -1, x = cx + r * Math.cos(a1), y = cy + r * Math.sin(a1), tx = -Math.sin(a1) * dir, ty = Math.cos(a1) * dir, s = 4 + lw * 1.6;
+      g.beginPath(); g.moveTo(x + tx * s, y + ty * s); g.lineTo(x - ty * s * 0.6, y + tx * s * 0.6); g.lineTo(x + ty * s * 0.6, y - tx * s * 0.6); g.closePath(); g.fill();
+    }
+    function arrow(x0, y0, x1, y1, color, label) {
+      g.strokeStyle = color; g.fillStyle = color; g.lineWidth = 3; g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+      const a = Math.atan2(y1 - y0, x1 - x0); g.beginPath(); g.moveTo(x1, y1); g.lineTo(x1 - 10 * Math.cos(a - 0.4), y1 - 10 * Math.sin(a - 0.4)); g.lineTo(x1 - 10 * Math.cos(a + 0.4), y1 - 10 * Math.sin(a + 0.4)); g.closePath(); g.fill();
+      if (label) { g.font = "12px system-ui"; g.fillText(label, x1 + 8, (y0 + y1) / 2 + 4); }
+    }
+    function draw() {
+      const now = performance.now(), dt = Math.min(0.05, (now - st.last) / 1000); st.last = now;
+      const m = model(), w = (+$("w").value * 2 * Math.PI) / 60;
+      st.phiIn += w * dt; st.phiOut -= ((m.mode === "uni" ? -1 : 16 / 50) * w) * dt;
+      const { w: W, h: H } = size(cv); g.clearRect(0, 0, W, H);
+      const ink = css("--ink"), muted = css("--muted"), line = css("--line");
+      // left: brush from below
+      const half = W > 520 ? W * 0.5 : W, cx = half / 2, cy = H / 2 + 6, Rpx = Math.min(half * 0.36, H * 0.38), s = Rpx / 60;
+      const roPx = m.ro * s, riPx = m.ri * s;
+      // ring colouring by dM/dr (Eq. 3), signed
+      const N = 40, maxd = 2 * Math.PI * m.mu * m.P * m.ro * m.ro || 1;
+      for (let k = N - 1; k >= 0; k--) {
+        const r = ((k + 0.5) / N) * m.ro, inner = m.mode === "counter" && r < m.ri, val = (2 * Math.PI * m.mu * m.P * r * r) / maxd;
+        g.fillStyle = inner ? `rgba(47,111,222,${0.15 + 0.75 * val})` : `rgba(224,69,58,${0.15 + 0.75 * val})`;
+        g.beginPath(); g.arc(cx, cy, ((k + 1) / N) * roPx, 0, 2 * Math.PI); g.fill();
+      }
+      // bristle dots
+      g.fillStyle = ink;
+      for (let ring = 1; ring <= 9; ring++) {
+        const r = (ring / 9.5) * m.ro, inner = m.mode === "counter" && r < m.ri, ph = inner || m.mode === "uni" ? st.phiIn : st.phiOut, n = Math.max(6, Math.round(ring * 7));
+        for (let j = 0; j < n; j++) { const a = ph + (j / n) * 2 * Math.PI; g.beginPath(); g.arc(cx + r * s * Math.cos(a), cy + r * s * Math.sin(a), 1.5, 0, 2 * Math.PI); g.fill(); }
+      }
+      g.strokeStyle = ink; g.lineWidth = 1.5; g.beginPath(); g.arc(cx, cy, roPx, 0, 2 * Math.PI); g.stroke();
+      if (m.mode === "counter") { g.setLineDash([4, 3]); g.beginPath(); g.arc(cx, cy, riPx, 0, 2 * Math.PI); g.stroke(); g.setLineDash([]);
+        const idealRi = m.ro / Math.cbrt(2); g.strokeStyle = "#2e9d6b"; g.beginPath(); g.arc(cx, cy, idealRi * s, 0, 2 * Math.PI); g.stroke(); }
+      // moment arrows scaled by magnitude
+      const mmax = Math.max(m.Muni, 1e-9);
+      if (m.mode === "counter") {
+        arrowArc(cx, cy, riPx * 0.55, -2.2, -2.2 + 1.6 * Math.min(1.6, m.Min / mmax * 2.2), "#2f6fde", 3);
+        arrowArc(cx, cy, (riPx + roPx) / 2, -0.6, -0.6 - 1.6 * Math.min(1.6, m.Mout / mmax * 2.2), "#e0453a", 3);
+      } else arrowArc(cx, cy, roPx * 0.7, -2.2, -2.2 + 1.6 * Math.min(1.6, m.Mnet / mmax * 2.2), "#e0453a", 3);
+      g.fillStyle = ink; g.font = "13px system-ui"; g.textAlign = "center";
+      g.fillText(m.mode === "counter" ? `net moment ${m.Mnet >= 0 ? "" : "−"}${Math.abs(m.Mnet).toFixed(1)} N·mm (Eq. 7)` : `moment ${m.Mnet.toFixed(1)} N·mm (Eq. 4)`, cx, cy + roPx + 22);
+      g.fillStyle = muted; g.font = "11px system-ui";
+      if (m.mode === "counter") g.fillText("blue: inner face · red: outer face · green: ideal rᵢ = rₒ/2^(1/3)", cx, Math.max(44, cy - roPx - 12));
+      // right: arm statics schematic
+      if (W > 520) {
+        const x0 = W * 0.5, aw = W * 0.5, baseY = 56, surfY = H - 44, ax = x0 + aw * 0.42;
+        const Fg = +$("Fg").value, Fn = +$("Fn").value, Ft = Fg - Fn, ok = Ft >= FG_MIN - 1e-9 && Ft <= FG_MAX + 1e-9;
+        g.strokeStyle = line; g.lineWidth = 1; g.beginPath(); g.moveTo(x0 + 8, 0); g.lineTo(x0 + 8, H); g.stroke();
+        g.fillStyle = muted; g.fillRect(ax - 40, baseY - 12, 80, 12);
+        // arm: three stages of a bellows-like body
+        const brushY = surfY - 14, bodyTop = baseY;
+        g.strokeStyle = ink; g.lineWidth = 2;
+        for (let k = 0; k < 18; k++) { const y = bodyTop + (k / 18) * (brushY - 20 - bodyTop), wd = 16 + 4 * Math.sin(k * 1.3 + st.phiIn); g.beginPath(); g.moveTo(ax - wd, y); g.lineTo(ax + wd, y + (brushY - 20 - bodyTop) / 36); g.lineTo(ax - wd, y + (brushY - 20 - bodyTop) / 18); g.stroke(); }
+        for (const f of [1 / 3, 2 / 3, 1]) { const y = bodyTop + f * (brushY - 20 - bodyTop); g.fillStyle = muted; g.fillRect(ax - 26, y - 3, 52, 6); }
+        g.fillStyle = "#d9822b"; g.fillRect(ax - 34, brushY - 20, 68, 12); // gearbox / mass
+        g.fillStyle = ink; g.fillRect(ax - 30, brushY - 8, 60, 8);
+        for (let k = -28; k <= 28; k += 4) { g.beginPath(); g.moveTo(ax + k, brushY); g.lineTo(ax + k, surfY); g.stroke(); }
+        g.strokeStyle = muted; g.lineWidth = 2; g.beginPath(); g.moveTo(x0 + 20, surfY); g.lineTo(W - 10, surfY); g.stroke();
+        const sc = Math.min(9, (brushY - bodyTop) / 40); // px per N
+        g.textAlign = "left";
+        arrow(ax + 70, brushY - 14, ax + 70, brushY - 14 + Fg * sc, "#e0453a", `F_g = ${Fg.toFixed(1)} N (weight)`);
+        g.textAlign = "right";
+        arrow(ax - 70, surfY, ax - 70, surfY - Fn * sc, "#2e9d6b", "");
+        g.fillText(`F_n = ${Fn.toFixed(1)} N (surface)`, ax - 76, surfY - Fn * sc / 2);
+        g.textAlign = "left";
+        arrow(ax + 70, brushY - 40, ax + 70, brushY - 40 - Math.max(0, Ft) * sc, ok ? "#2f6fde" : "#c8102e", `F_t = ${Ft.toFixed(1)} N (tendons)`);
+        g.fillStyle = ok ? muted : "#c8102e"; g.font = "12px system-ui"; g.textAlign = "left";
+        g.fillText(ok ? "F_t inside the trained load range" : "F_t outside the trained range (6.2 to 15.3 N)", x0 + 18, H - 8);
+        g.fillStyle = muted; g.fillText(`arm length L = ${L_ARM} mm (schematic, not to scale)`, x0 + 18, H - 24);
+      }
+      requestAnimationFrame(draw);
+    }
+
+    // ---------- chart ----------
+    const chart = TRLChart.create($("chart"), { xlabel: "Normal force F (N)", ylabel: "Moment on arm (N·mm)" });
+    function update() {
+      if (+$("ri").value >= +$("ro").value) $("ri").value = +$("ro").value - 0.5;
+      const m = model(), d = +$("d").value;
+      $("roOut").textContent = `${m.ro.toFixed(1)} mm`; $("riOut").textContent = `${m.ri.toFixed(1)} mm  (rᵢ/rₒ = ${(m.ri / m.ro).toFixed(3)})`;
+      $("muOut").textContent = m.mu.toFixed(2); $("FnOut").textContent = `${m.Fn.toFixed(1)} N`; $("wOut").textContent = `${$("w").value} RPM`;
+      $("FgOut").textContent = `${(+$("Fg").value).toFixed(1)} N`; $("dOut").textContent = `${d.toFixed(1)} N·mm`;
+      const kUni = (2 / 3) * m.mu * m.ro, kEq7 = (2 * m.mu * (m.ro ** 3 - 2 * m.ri ** 3)) / (3 * m.ro ** 2), kPaper = (2 / 3) * m.mu * Math.abs(m.ro - 2 * m.ri);
+      const ideal = m.ro / Math.cbrt(2);
+      $("read1").textContent =
+        `contact pressure P = F/(πrₒ²) = ${(m.P * 1000).toFixed(2)} kPa\n` +
+        (m.mode === "counter"
+          ? `inner face M = ${m.Min.toFixed(1)} N·mm (Eq. 5)\nouter face M = ${m.Mout.toFixed(1)} N·mm (Eq. 6)\nnet M = ${m.Mnet.toFixed(1)} N·mm (Eq. 7)\n` +
+            `single disc of rₒ would give ${m.Muni.toFixed(1)} N·mm → ${(100 * (1 - Math.abs(m.Mnet) / m.Muni)).toFixed(0)}% less\n` +
+            `zero-moment rᵢ for this rₒ: ${ideal.toFixed(1)} mm (rₒ is ${(100 * (m.ro / (m.ri * Math.cbrt(2)) - 1)).toFixed(1)}% over ideal for this rᵢ)\n` +
+            `outer face speed: −${((16 / 50) * +$("w").value).toFixed(1)} RPM (16-tooth sun, 50-tooth ring)`
+          : `M = (2/3)μ r F = ${m.Mnet.toFixed(1)} N·mm (Eq. 4)\nslope ${kUni.toFixed(2)} N·mm per N`);
+      const Fg = +$("Fg").value, Ft = Fg - m.Fn, Fnmax = Fg - FG_MIN;
+      $("read2").innerHTML =
+        `tendon tension F<sub>t</sub> = F<sub>g</sub> − F<sub>n</sub> = ${Ft.toFixed(2)} N (Eq. 11)\n` +
+        `largest F<sub>n</sub> inside the training data at this weight: ${Fnmax.toFixed(1)} N\n` +
+        (Ft < FG_MIN - 1e-9 ? `<span class="warn">F<sub>n</sub> is above that limit: the learned model (Eq. 12) would be extrapolating.</span>` : "within the trained load range") +
+        `\nthe paper's tests: F<sub>g</sub> = 15.3 N allowed F<sub>n</sub> up to 8.5 N (Sec. V-C)`;
+      const xs = Array.from({ length: 61 }, (_, i) => (i / 60) * 12);
+      const series = [
+        { name: "Unidirectional, Eq. 4", x: xs, y: xs.map((F) => kUni * F), color: "#e0453a" },
+        { name: "Counter-rotating, Eq. 7", x: xs, y: xs.map((F) => kEq7 * F), color: "#2f6fde" },
+        { name: "Counter-rotating, §IV-B form kF − δ (k from the paper's expression)", x: xs, y: xs.map((F) => kPaper * F - d), color: "#2e9d6b" },
+        { name: "current F", x: [m.Fn, m.Fn], y: [Math.min(0, -d), kUni * 12], color: "#9aa3b2" },
+      ];
+      chart.setSeries(series, { xlabel: "Normal force F (N)", ylabel: "Moment on arm (N·mm)" });
+      $("legend").innerHTML = series.slice(0, 3).map((s) => `<span><i style="background:${s.color}"></i>${s.name}${s === series[2] ? ` (k = ${kPaper.toFixed(2)}; paper's fit: ${PAPER_K_MEAS})` : ` (slope ${(s === series[0] ? kUni : kEq7).toFixed(2)})`}</span>`).join("");
+    }
+    ["mode", "ro", "ri", "mu", "Fn", "w", "Fg", "d"].forEach((id) => $(id).addEventListener("input", update));
+    $("ideal").addEventListener("click", () => { $("ri").value = (+$("ro").value / Math.cbrt(2)).toFixed(1); update(); });
+    window.addEventListener("resize", update);
+    update(); requestAnimationFrame(draw);
+  })();
+  </script>
+</body>
+</html>

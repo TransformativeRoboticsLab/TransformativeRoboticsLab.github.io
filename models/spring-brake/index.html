@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HSA Spring-Brake Hopper</title>
+  <link rel="icon" href="../../assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../../assets/site.css" />
+  <style>
+    .chart-box { height: 230px; border: 1px solid var(--line); border-radius: 8px; margin-top: 6px; }
+    .chart-box canvas, #view { width: 100%; height: 100%; display: block; }
+    .note { font-size: 12.5px; }
+    aside select, aside input[type="range"] { width: 100%; }
+    .seg { display: flex; gap: 4px; flex-wrap: wrap; }
+    .seg .btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  </style>
+</head>
+<body>
+  <header class="site"><div class="wrap">
+    <a class="brand" href="../../"><img src="../../assets/icon.svg" alt="" />Transformative Robotics Lab</a>
+    <nav class="site"><a href="../../">Projects</a></nav>
+  </div></header>
+  <main class="model">
+    <div class="stage" id="stage">
+      <canvas id="view" aria-label="Side view of the HSA hopping leg"></canvas>
+      <div class="overlay" id="ov">Spring-mass hopping, side view (schematic)</div>
+    </div>
+    <aside>
+      <h1>Spring-Brake hopper</h1>
+      <p class="muted note">Illustrative model based on Sullivan, Good, Burden &amp; Lipton, "Spring-Brake! Handed Shearing Auxetics Improve Efficiency of Hopping and Standing" (arXiv 2505.22898), Sec. III-A, III-D, Eq. 1–2, Tables I–II.</p>
+
+      <h2>Mode</h2>
+      <div class="seg" id="modeSeg">
+        <button class="btn" data-mode="hop" aria-pressed="true">Hop (spring)</button>
+        <button class="btn" data-mode="stand" aria-pressed="false">Stand (brake)</button>
+      </div>
+
+      <h2>Robot</h2>
+      <label>Added mass: <b id="maLbl"></b><input id="madd" type="range" min="0" max="1.5" step="0.05" value="0" /></label>
+      <label>Target hop height h: <b id="hLbl"></b><input id="h" type="range" min="1" max="10" step="0.5" value="5" /></label>
+      <label>Design stroke Δx: <b id="dxLbl"></b><input id="dx" type="range" min="2" max="8" step="0.5" value="5" /></label>
+      <label>HSA twist (twist servo): <b id="twLbl"></b><input id="tw" type="range" min="0" max="150" step="5" value="0" /></label>
+      <label id="loadWrap">Static load on leg F: <b id="fLbl"></b><input id="F" type="range" min="0" max="100" step="1" value="40" /></label>
+
+      <h2>Readout</h2>
+      <div class="readout" id="out"></div>
+      <label>Chart <select id="chartQ">
+        <option value="f">Hop frequency vs. stiffness (Eq. 1)</option>
+        <option value="p">Leg-motor holding power vs. load (Eq. 2)</option>
+      </select></label>
+      <div class="chart-box"><canvas id="chart" aria-label="Chart"></canvas></div>
+      <p class="muted note" id="chartNote"></p>
+
+      <h2>How this model works</h2>
+      <p class="note"><b>Spring sizing (Sec. III-A).</b> Stance is modelled as a spring-mass oscillator, m ẍ + K(x − x₀) + mg = 0. Equating the energy at the lowest point to a hop of height h gives K = 2mg(h + Δx)Δx⁻². For m = 1.3 kg and Δx = h = 5 cm, that is about 1 kN/m.</p>
+      <p class="note"><b>Hop frequency (Eq. 1).</b> f ≈ (2√(2h/g) + π√(m/K))⁻¹, which is flight time plus stance time. The paper finds f(1.3, 1000) ≈ 3.2 Hz.</p>
+      <p class="note"><b>HSA stiffness.</b> The 8-row, 3-column FPU50 HSA averaged 912 N/m over a 5 cm stroke at positive twist. Twisting it to about 135° jams it against a rigid inner insert (Sec. III-D), and the stiffness then exceeds 16 kN/m, 21× the lowest value (Fig. 2). Here that is reduced to two states: 912 N/m below 135° and 16 kN/m once jammed. The full Fig. 2 map is not reproduced.</p>
+      <p class="note"><b>Holding power (Eq. 2).</b> P<sub>elec</sub> = RI² + τθ̇. Holding still means θ̇ = 0, so only Joule heating RI² remains, with R = 0.143 Ω (Table II). The current comes from I = τ<sub>m</sub>/K<sub>t</sub>, with τ<sub>m</sub> = F·ℓ / 6 (1:6 gear, Table I). The table's motor constant "105" is read as 105 rpm/V, giving K<sub>t</sub> = 60/(2π·105) ≈ 0.091 N·m/A. The moment arm ℓ is assumed to be the 7 cm thigh length. Both are assumptions. When the HSA is jammed, the brake carries the load and the leg motor needs no torque. The paper measured that the twist servo's power grows only linearly with load (Fig. 4), but gives no fit, so the servo is not modelled.</p>
+      <p class="note"><b>Simplified:</b> the animation is an ideal lossless spring-mass hop at the chosen height. The HSA's damping, the leg linkage and the controller are not modelled. The paper itself notes that it has no dynamic HSA model (Sec. VII-A).</p>
+      <p class="note muted">Reported results: the HSA cut hopping electrical cost by 24–32% across masses. Hopping cost of transport was comparable to SPEAR (equivalent COT 2.46), and spring efficiency was η = 29% vs 64% for SPEAR's steel spring (Sec. VI–VII).</p>
+    </aside>
+  </main>
+  <script src="../../assets/chart.js"></script>
+  <script>
+  (function () {
+    "use strict";
+    const $ = (id) => document.getElementById(id);
+    const g = 9.81, M0 = 1.3, K_HSA = 912, K_JAM = 16000, JAM_DEG = 135, R = 0.143, KT = 60 / (2 * Math.PI * 105), GEAR = 6, ARM = 0.07;
+    const st = { mode: "hop" };
+    const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+    function params() {
+      const m = M0 + Number($("madd").value), h = Number($("h").value) / 100, dx = Number($("dx").value) / 100, tw = Number($("tw").value), F = Number($("F").value);
+      const jam = tw >= JAM_DEG, K = jam ? K_JAM : K_HSA;
+      const Kreq = (2 * m * g * (h + dx)) / (dx * dx);
+      const freq = (m2, K2, h2) => 1 / (2 * Math.sqrt((2 * h2) / g) + Math.PI * Math.sqrt(m2 / K2));
+      // actual peak compression for a hop of height h with stiffness K: ½KΔ² − mgΔ = mgh
+      const comp = (m * g + Math.sqrt((m * g) ** 2 + 2 * K * m * g * h)) / K;
+      const Pleg = (F2) => R * (((F2 * ARM) / GEAR) / KT) ** 2;
+      return { m, h, dx, tw, F, jam, K, Kreq, freq, comp, Pleg };
+    }
+
+    // ---- hop simulation (analytic phases) ----
+    let sim = { t: 0, last: performance.now() };
+    function hopState(p, t) {
+      const w = Math.sqrt(p.K / p.m), v0 = Math.sqrt(2 * g * p.h), tf = 2 * v0 / g;
+      // stance: y = foot compression below touchdown (0 at touchdown). y'' = g - (K/m) y  → y = mg/K (1 - cos wt) + v0/w sin wt
+      const a = (p.m * g) / p.K;
+      // stance ends when y returns to 0 (t>0): solve numerically once
+      let ts = Math.PI / w; for (let i = 0; i < 30; i += 1) { const y = a * (1 - Math.cos(w * ts)) + (v0 / w) * Math.sin(w * ts), yd = a * w * Math.sin(w * ts) + v0 * Math.cos(w * ts); ts -= y / yd; }
+      const T = tf + ts, tt = t % T;
+      if (tt < tf) { const s = tt; return { phase: "flight", height: v0 * s - 0.5 * g * s * s, comp: 0, T, ts, tf }; }
+      const s = tt - tf; const y = a * (1 - Math.cos(w * s)) + (v0 / w) * Math.sin(w * s);
+      return { phase: "stance", height: -y, comp: y, T, ts, tf };
+    }
+
+    // ---- drawing ----
+    const cv = $("view"), ctx = cv.getContext("2d");
+    function draw(p) {
+      const dpr = Math.min(devicePixelRatio || 1, 2), W = cv.clientWidth, H = cv.clientHeight;
+      if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+      const ink = css("--ink"), muted = css("--muted"), line = css("--line"), acc = css("--accent");
+      const s = Math.min(W / 0.6, H / 0.42) * 0.85; // px per metre
+      const gx = W * 0.5, gy = H - 40;
+      // ground
+      ctx.strokeStyle = muted; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(20, gy); ctx.lineTo(W - 20, gy); ctx.stroke();
+      for (let x = 30; x < W - 20; x += 16) { ctx.beginPath(); ctx.moveTo(x, gy); ctx.lineTo(x - 8, gy + 8); ctx.stroke(); }
+      // rail
+      ctx.strokeStyle = line; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(gx - 0.13 * s, 20); ctx.lineTo(gx - 0.13 * s, gy); ctx.stroke();
+      let hs = { height: 0, comp: 0, phase: "stand" };
+      if (st.mode === "hop") hs = hopState(p, sim.t);
+      const L0 = 0.20; // nominal leg (foot to body) at touchdown, metres (schematic)
+      let leg = L0 - hs.comp, footY = hs.phase === "flight" ? hs.height : 0;
+      if (st.mode === "stand") { const c = p.jam ? p.F / K_JAM : 0; leg = L0 - c; footY = 0; }
+      const bodyY = footY + leg;
+      const by = gy - bodyY * s, fy = gy - footY * s;
+      // HSA element (vertical, schematic lattice) between body and foot
+      const hx = gx + 0.03 * s, hw = 0.034 * s, top = by + 26, bot = fy - 8, rows = 8;
+      const twist = (p.tw / 150) * 0.6;
+      ctx.lineWidth = 2; ctx.strokeStyle = p.jam ? acc : "#2f6fde";
+      for (let i = 0; i < 6; i += 1) {
+        ctx.beginPath();
+        for (let j = 0; j <= rows; j += 1) {
+          const ph = (i / 6) * Math.PI * 2 + j * (0.5 + twist / rows * 4), x = hx + Math.cos(ph) * hw / 2, y = top + ((bot - top) * j) / rows;
+          if (j) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+        }
+        ctx.stroke();
+      }
+      if (p.jam) { ctx.fillStyle = acc; ctx.globalAlpha = 0.25; ctx.fillRect(hx - hw * 0.28, top, hw * 0.56, bot - top); ctx.globalAlpha = 1; }
+      // leg linkage (thigh + shank), schematic knee
+      const kneeX = gx - 0.10 * s, hipY = by + 20, Lt = 0.07 * s, Ls = 0.15 * s;
+      const dy = fy - hipY, dxL = 0.09 * s; // foot offset
+      const footX = gx - 0.13 * s + dxL;
+      const d = Math.hypot(footX - (gx - 0.13 * s), dy);
+      const a = Math.acos(Math.max(-1, Math.min(1, (Lt * Lt + d * d - Ls * Ls) / (2 * Lt * d))));
+      const base = Math.atan2(dy, footX - (gx - 0.13 * s));
+      const kx = gx - 0.13 * s + Lt * Math.cos(base - a), ky = hipY + Lt * Math.sin(base - a);
+      ctx.strokeStyle = ink; ctx.lineWidth = 5; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(gx - 0.13 * s, hipY); ctx.lineTo(kx, ky); ctx.lineTo(footX, fy - 4); ctx.stroke();
+      // foot plate + rod to HSA
+      ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(footX - 10, fy - 4); ctx.lineTo(hx + hw, fy - 4); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(hx, fy - 4); ctx.lineTo(hx, bot); ctx.stroke();
+      // body (cart + motor)
+      ctx.fillStyle = css("--chip"); ctx.strokeStyle = ink; ctx.lineWidth = 2;
+      ctx.fillRect(gx - 0.17 * s, by - 10, 0.26 * s, 36); ctx.strokeRect(gx - 0.17 * s, by - 10, 0.26 * s, 36);
+      ctx.beginPath(); ctx.arc(gx - 0.13 * s, hipY, 9, 0, Math.PI * 2); ctx.fillStyle = muted; ctx.fill();
+      ctx.fillStyle = ink; ctx.font = "12px system-ui, sans-serif"; ctx.textAlign = "center";
+      ctx.fillText(`${p.m.toFixed(2)} kg`, gx - 0.04 * s, by + 12);
+      // apex marker
+      if (st.mode === "hop") {
+        const apex = gy - (L0 + p.h) * s;
+        ctx.setLineDash([4, 4]); ctx.strokeStyle = muted; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(gx - 0.25 * s, apex - 10); ctx.lineTo(gx + 0.2 * s, apex - 10); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillStyle = muted; ctx.textAlign = "left"; ctx.fillText(`apex (h = ${(p.h * 100).toFixed(1)} cm)`, gx + 0.2 * s + 4, apex - 6);
+        ctx.fillText(hs.phase, 24, 24);
+      } else {
+        ctx.fillStyle = muted; ctx.textAlign = "left"; ctx.fillText(p.jam ? "HSA jammed: brake carries the load" : "HSA free: leg motor carries the load", 24, 24);
+        // load arrow
+        ctx.strokeStyle = acc; ctx.fillStyle = acc; ctx.lineWidth = 3; const ax = gx - 0.04 * s, ay = by - 14, len = 20 + p.F * 0.8;
+        ctx.beginPath(); ctx.moveTo(ax, ay - len); ctx.lineTo(ax, ay); ctx.stroke(); ctx.beginPath(); ctx.moveTo(ax - 6, ay - 8); ctx.lineTo(ax + 6, ay - 8); ctx.lineTo(ax, ay); ctx.fill();
+        ctx.fillText(`F = ${p.F} N`, ax + 10, ay - len / 2);
+      }
+    }
+
+    // ---- readout + chart ----
+    const chart = TRLChart.create($("chart"), {});
+    function update() {
+      const p = params();
+      $("maLbl").textContent = `${Number($("madd").value).toFixed(2)} kg (total ${p.m.toFixed(2)} kg)`;
+      $("hLbl").textContent = `${(p.h * 100).toFixed(1)} cm`; $("dxLbl").textContent = `${(p.dx * 100).toFixed(1)} cm`;
+      $("twLbl").textContent = `${p.tw}°${p.jam ? " (jammed, ≥135°)" : ""}`; $("fLbl").textContent = `${p.F} N`;
+      $("loadWrap").style.display = st.mode === "stand" ? "" : "none";
+      let s = `required stiffness K = 2mg(h+Δx)/Δx²  ${p.Kreq.toFixed(0)} N/m\n`;
+      s += `HSA stiffness (${p.jam ? "jammed" : "free"})           ${p.K.toLocaleString()} N/m\n`;
+      s += `f(m, K_req)  ${p.freq(p.m, p.Kreq, p.h).toFixed(2)} Hz    f(m, K_HSA)  ${p.freq(p.m, p.K, p.h).toFixed(2)} Hz\n`;
+      if (st.mode === "hop") {
+        const hs = hopState(p, 0);
+        s += `stance ${(hs.ts * 1000).toFixed(0)} ms, flight ${(hs.tf * 1000).toFixed(0)} ms\n`;
+        s += `peak compression ${(p.comp * 100).toFixed(1)} cm ${p.comp > p.dx ? "(exceeds stroke Δx)" : ""}\n`;
+        s += `peak HSA force ${(p.K * p.comp).toFixed(0)} N   (paper's load spec: 1.5·K·5 cm = 75 N)`;
+        if (p.jam) s += `\nJammed HSA is too stiff to hop well: it acts as a brake.`;
+      } else {
+        s += `leg-motor current I   ${p.jam ? "0" : (((p.F * ARM) / GEAR) / KT).toFixed(1)} A\n`;
+        s += `leg-motor Joule power ${p.jam ? "≈0 (brake holds)" : p.Pleg(p.F).toFixed(1) + " W"}\n`;
+        s += `brake deflection      ${p.jam ? ((p.F / K_JAM) * 1000).toFixed(1) + " mm" : "n/a"}`;
+      }
+      $("out").textContent = s;
+      if ($("chartQ").value === "f") {
+        const ks = []; for (let k = 200; k <= 20000; k *= 1.05) ks.push(k);
+        chart.setSeries([
+          { name: `f, m = ${p.m.toFixed(2)} kg, h = ${(p.h * 100).toFixed(1)} cm`, x: ks, y: ks.map((k) => p.freq(p.m, k, p.h)) },
+          { name: "K_req", x: [p.Kreq, p.Kreq], y: [0, p.freq(p.m, p.Kreq, p.h)] },
+          { name: "HSA free 912 N/m", x: [K_HSA, K_HSA], y: [0, p.freq(p.m, K_HSA, p.h)] },
+          { name: "HSA jammed 16 kN/m", x: [K_JAM, K_JAM], y: [0, p.freq(p.m, K_JAM, p.h)] },
+        ], { xlabel: "Stiffness K (N/m)", ylabel: "Hop frequency f (Hz)" });
+        $("chartNote").textContent = "Eq. 1. Vertical lines mark the required K and the two HSA states. The paper's target is f > 2 Hz at h = 5 cm.";
+      } else {
+        const Fs = []; for (let f = 0; f <= 100; f += 2) Fs.push(f);
+        chart.setSeries([
+          { name: "leg motor RI² (modelled)", x: Fs, y: Fs.map(p.Pleg) },
+          { name: "leg motor with HSA jammed", x: Fs, y: Fs.map(() => 0) },
+        ], { xlabel: "Blocked load F (N)", ylabel: "Holding power (W)" });
+        $("chartNote").textContent = "Quadratic Joule-heating model (Eq. 2, θ̇ = 0). K_t and the moment arm are assumptions. The paper's measured points (Fig. 4) are not reproduced.";
+      }
+    }
+    document.querySelectorAll("#modeSeg [data-mode]").forEach((b) => b.addEventListener("click", () => {
+      st.mode = b.dataset.mode; document.querySelectorAll("#modeSeg [data-mode]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+      if (st.mode === "stand" && Number($("tw").value) < JAM_DEG) $("tw").value = 135;
+      if (st.mode === "hop") { $("tw").value = 0; $("chartQ").value = "f"; } else $("chartQ").value = "p";
+      update();
+    }));
+    ["madd", "h", "dx", "tw", "F", "chartQ"].forEach((id) => $(id).addEventListener("input", update));
+    window.addEventListener("resize", () => draw(params()));
+    update();
+    (function loop(now) {
+      requestAnimationFrame(loop);
+      const dt = Math.min(0.05, (now - sim.last) / 1000); sim.last = now; sim.t += dt * 0.5; // half-speed playback
+      draw(params());
+    })(performance.now());
+    $("ov").textContent = "Side view (schematic), playback at half speed";
+  })();
+  </script>
+</body>
+</html>

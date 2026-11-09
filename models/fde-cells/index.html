@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FDE Unit-Cell Homogenizer</title>
+  <link rel="icon" href="../../assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../../assets/site.css" />
+  <style>
+    #view { touch-action: none; cursor: crosshair; }
+    .model aside label output { float: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+    .model aside label input[type="range"] { width: 100%; }
+    .btns { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+    .btns .btn { padding: 3px 8px; font-size: 12px; }
+    #prop { width: 100%; height: auto; display: block; }
+    ol.eq { padding-left: 18px; font-size: 13px; margin: 6px 0; }
+    ol.eq li { margin: 4px 0; }
+    table.t1 { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+    table.t1 td, table.t1 th { border-bottom: 1px solid var(--line); padding: 2px 3px; text-align: right; }
+    table.t1 td:first-child, table.t1 th:first-child { text-align: left; }
+  </style>
+</head>
+<body>
+  <header class="site"><div class="wrap">
+    <a class="brand" href="../../"><img src="../../assets/icon.svg" alt="" />Transformative Robotics Lab</a>
+    <nav class="site"><a href="../../">Projects</a><a href="../vtp-coiling/">VTP coiling</a><a href="../fde/">FDE test data</a><a href="https://github.com/TransformativeRoboticsLab/FDE-Metamaterials">FDE-Metamaterials on GitHub</a></nav>
+  </div></header>
+  <main class="model">
+    <div class="stage" id="stage">
+      <canvas id="view" aria-label="Deformed 3 by 3 array of the unit cell"></canvas>
+      <div class="overlay">3 × 3 array of the periodic unit cell, deformed under the selected load · Click/drag the middle cell to paint</div>
+    </div>
+    <aside>
+      <h1>Fabrication-directed entanglement: unit cells</h1>
+      <p class="muted">Illustrative model based on Revier, Emery, Miske &amp; Lipton, “Fabrication-Directed Entanglement…”, <i>Adv. Eng. Mater.</i> 2025 (arXiv 2505.03064, §3.2, §6.4, Table 1). VTP prints two foam “phases” from one filament: dense coils (E ≈ 3.4 MPa) and sparse coils (E ≈ 0.11 MPa). Pattern them in a unit cell, and periodic homogenization (the paper's FE method) gives the effective stiffness matrix C. That yields anisotropy, Poisson's ratio and normal–shear coupling (chirality).</p>
+
+      <h2>Unit cell</h2>
+      <label>Pattern <select id="preset" style="width:100%">
+        <option value="rot">Rotating squares (cf. Fig. 1b, 2b)</option>
+        <option value="oct">Linked octagons (cf. Fig. 2c)</option>
+        <option value="par" selected>Sheared parallelogram lattice (cf. Fig. 2d)</option>
+        <option value="lam">Horizontal laminate (anisotropic)</option>
+        <option value="grid">Square grid</option>
+        <option value="dense">Homogeneous dense</option>
+        <option value="sparse">Homogeneous sparse</option>
+      </select></label>
+      <label>Pattern parameter <output id="parO"></output><input id="par" type="range" min="0" max="1" step="0.01" value="0.5" /></label>
+      <label>Paint <select id="brush"><option value="1">dense (HD)</option><option value="0">sparse (LD)</option><option value="off">off</option></select></label>
+      <label>VTP feature thickening <output id="dilO"></output><input id="dil" type="range" min="0" max="3" step="1" value="0" /></label>
+      <div class="btns"><button class="btn" type="button" id="mirror">Mirror (remove chirality)</button><button class="btn" type="button" id="clear">Clear to sparse</button><button class="btn" type="button" id="keep">Keep as point on chart</button></div>
+
+      <h2>Phases (FDE §6.1–6.3)</h2>
+      <label>Dense E<sub>HD</sub> <output id="ehO"></output><input id="eh" type="range" min="0.5" max="10" step="0.1" value="3.4" /></label>
+      <label>Sparse E<sub>LD</sub> <output id="elO"></output><input id="elr" type="range" min="0.01" max="1" step="0.01" value="0.11" /></label>
+      <label>ν<sub>HD</sub> <output id="nhO"></output><input id="nh" type="range" min="0" max="0.49" step="0.01" value="0.35" /></label>
+      <label>ν<sub>LD</sub> <output id="nlO"></output><input id="nl" type="range" min="0" max="0.49" step="0.01" value="0.45" /></label>
+
+      <h2>View</h2>
+      <label>Load <select id="load"><option value="2">uniaxial compression along x₂ (vertical)</option><option value="1">uniaxial compression along x₁ (horizontal)</option><option value="3">pure shear stress τ₁₂</option></select></label>
+      <label>Deformation scale <output id="ampO"></output><input id="amp" type="range" min="0" max="0.3" step="0.01" value="0.12" /></label>
+      <label><input type="checkbox" id="anim" checked /> Animate</label>
+
+      <h2>Effective properties</h2>
+      <div class="readout" id="props">solving…</div>
+
+      <h2>Property space</h2>
+      <label>Axes <select id="axes"><option value="E">E₂ vs E₁ (Fig. 4b)</option><option value="nu">ν₂₁ vs E₂ (Fig. 4c)</option><option value="eta" selected>η₂₁₂ vs E₂ (Fig. 4d)</option><option value="lam">λ̂₂ vs λ̂₁ (Fig. 4e)</option></select></label>
+      <svg id="prop" viewBox="0 0 320 240" role="img" aria-label="Property space chart"></svg>
+      <div style="font-size:12px" id="propLeg"></div>
+      <p class="muted" style="font-size:12px;margin:2px 0">Black hexagons: homogeneous sparse and dense phases, with the dashed line for a linear mix. Red: the current design. Grey dots: designs you kept. Squares: the four fabricated designs as <b>measured</b> in FDE Table 1 (reported values, not computed here).</p>
+
+      <h2>FDE Table 1 (measured)</h2>
+      <table class="t1"><tr><th>design</th><th>E₁</th><th>E₂</th><th>ν₁₂</th><th>ν₂₁</th><th>η₁₁₂</th><th>η₂₁₂</th></tr>
+        <tr><td>Unimode, vertical</td><td>0.54</td><td>0.29</td><td>0.24</td><td>0.15</td><td>0.08</td><td>0.00</td></tr>
+        <tr><td>Unimode, bulk</td><td>0.61</td><td>0.47</td><td>0.06</td><td>0.06</td><td>0.03</td><td>0.03</td></tr>
+        <tr><td>Bimode, bulk</td><td>0.23</td><td>0.22</td><td>0.56</td><td>0.52</td><td>0.02</td><td>0.02</td></tr>
+        <tr><td>Unimode, normal–shear</td><td>0.37</td><td>0.21</td><td>0.30</td><td>0.14</td><td>0.03</td><td>0.72</td></tr>
+      </table>
+      <p class="muted" style="font-size:12px;margin:2px 0">E normalized to the dense-phase modulus (≈3.4 MPa). Measured values from FDE Table 1. The presets here are parametric look-alikes, not the paper's optimized topologies, so their numbers will differ.</p>
+
+      <h2>How this model works</h2>
+      <ol class="eq">
+        <li><b>Two phases</b>: element density ρ = 1 is the dense VTP pair (V*, H*) = (0.15, 6.93), and ρ = 0 is the sparse pair (0.40, 14.81) (§6.1). The phases have E<sub>HD</sub> ≈ 3.4 MPa and E<sub>LD</sub> ≈ 0.11 MPa (§6.2), and ν<sub>HD</sub> ≈ 0.35 and ν<sub>LD</sub> ≈ 0.45 (§6.3). Both are treated as isotropic and linear elastic in plane stress.</li>
+        <li><b>Periodic homogenization</b> (§6.4, after Andreassen &amp; Andreasen 2014): on a 32 × 32 bilinear-quad mesh with periodic boundaries, solve K χ<sup>A</sup> = f<sup>A</sup> for the three unit strains ε<sup>A</sup> ∈ {ε₁₁, ε₂₂, γ₁₂}. Then C<sub>AB</sub> = |Y|<sup>−1</sup> Σ<sub>e</sub> (u₀<sup>A</sup> − χ<sup>A</sup>)<sub>e</sub><sup>T</sup> k<sub>e</sub> (u₀<sup>B</sup> − χ<sup>B</sup>)<sub>e</sub>. The solver is preconditioned conjugate gradients in the browser.</li>
+        <li><b>Properties</b> (§4): S = C<sup>−1</sup>, E₁ = 1/S₁₁ and E₂ = 1/S₂₂. ν<sub>ji</sub> = −ε<sub>ii</sub>/ε<sub>jj</sub> gives ν₁₂ = −S₂₁/S₁₁ and ν₂₁ = −S₁₂/S₂₂. η<sub>kij</sub> = γ<sub>ij</sub>/ε<sub>kk</sub> gives η₁₁₂ = S₃₁/S₁₁ and η₂₁₂ = S₃₂/S₂₂. A nonzero η needs a pattern without mirror symmetry about the axes, i.e. a chiral or rotated one (§4.2).</li>
+        <li><b>Normalized eigenvalues</b> (§4.4, Fig. 4e): λ̂<sub>i</sub> = λ<sub>i</sub>/λ₃ of C in Mandel form (shear terms scaled by √2 and 2). A homogeneous ν = 0.4 phase sits at (0.43, 0.43), as the paper reports.</li>
+        <li><b>Feature thickening</b>: VTP cannot resolve features finer than a coil (≈1.2 mm, §3.1), so thin dense features print thicker. The paper calibrated this with the projection dilation χ (§6.5). Here it is approximated by dilating the dense phase by 0–3 elements. One element is 25 mm / 32 ≈ 0.8 mm for the paper's 150 mm, 6 × 6 arrays.</li>
+      </ol>
+      <p class="muted" style="font-size:12px">Simplified: no topology optimization (MMA/eigenstructure target T*), only hand-designed or painted cells. The analysis is 2D, linear and small-strain, so it captures neither the buckling the paper saw above ≈5% strain nor any entanglement or contact mechanics.</p>
+      <h2>Related</h2>
+      <p style="font-size:14px"><a href="../vtp-coiling/">VTP coiling designer</a>: how (V*, H*) set the two phases' density and stiffness.<br /><a href="../fde/">FDE compression tests</a>: measured data explorer.</p>
+    </aside>
+  </main>
+  <script>
+  (function () {
+    "use strict";
+    const $ = (id) => document.getElementById(id), stage = $("stage"), cv = $("view");
+    const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+    const N = 32, NE = N * N, NDOF = 2 * N * N;
+    let rho = new Uint8Array(NE);        // painted design (0 sparse, 1 dense)
+    let rhoEff = new Uint8Array(NE);     // after VTP feature thickening
+
+    // ---------- element stiffness (bilinear quad, plane stress, unit E, square element) ----------
+    function keQ4(nu) {
+      const D = [[1, nu, 0], [nu, 1, 0], [0, 0, (1 - nu) / 2]].map((r) => r.map((v) => v / (1 - nu * nu)));
+      const ke = Array.from({ length: 8 }, () => new Float64Array(8));
+      const g = 1 / Math.sqrt(3), xi = [[-g, -g], [g, -g], [g, g], [-g, g]];
+      const nodes = [[-1, -1], [1, -1], [1, 1], [-1, 1]];
+      for (const [a, b] of xi) {
+        // element maps [-1,1]^2 to unit square: dx/dxi = 1/2, detJ = 1/4
+        const dN = nodes.map(([na, nb]) => [0.25 * na * (1 + nb * b) * 2, 0.25 * nb * (1 + na * a) * 2]); // dN/dx, dN/dy
+        const B = [new Float64Array(8), new Float64Array(8), new Float64Array(8)];
+        dN.forEach(([dx, dy], i) => { B[0][2 * i] = dx; B[1][2 * i + 1] = dy; B[2][2 * i] = dy; B[2][2 * i + 1] = dx; });
+        for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) {
+          let s = 0;
+          for (let p = 0; p < 3; p++) for (let q = 0; q < 3; q++) s += B[p][i] * D[p][q] * B[q][j];
+          ke[i][j] += s * 0.25;
+        }
+      }
+      return ke;
+    }
+    // element connectivity with periodic wrap: nodes (i,j),(i+1,j),(i+1,j+1),(i,j+1)
+    const EDOF = new Int32Array(NE * 8);
+    for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+      const e = j * N + i, nd = [[i, j], [i + 1, j], [i + 1, j + 1], [i, j + 1]].map(([a, b]) => (b % N) * N + (a % N));
+      nd.forEach((n, k) => { EDOF[e * 8 + 2 * k] = 2 * n; EDOF[e * 8 + 2 * k + 1] = 2 * n + 1; });
+    }
+    const LOC = [[0, 0], [1, 0], [1, 1], [0, 1]];
+    function u0(A) { // element nodal displacements for unit strain A (eps11, eps22, gamma12)
+      const out = new Float64Array(8);
+      LOC.forEach(([x, y], k) => {
+        if (A === 0) { out[2 * k] = x; } else if (A === 1) { out[2 * k + 1] = y; } else { out[2 * k] = y / 2; out[2 * k + 1] = x / 2; }
+      });
+      return out;
+    }
+
+    let KE = null, Evec = null, KEsel = null;
+    function setupMaterial() {
+      const Eh = 1, El = Number($("elr").value) / Number($("eh").value);
+      const keH = keQ4(Number($("nh").value)), keL = keQ4(Number($("nl").value));
+      KE = [keL, keH];
+      Evec = new Float64Array(NE); KEsel = new Uint8Array(NE);
+      for (let e = 0; e < NE; e++) { Evec[e] = rhoEff[e] ? Eh : El; KEsel[e] = rhoEff[e]; }
+    }
+    function matvec(x, y) {
+      y.fill(0);
+      const xe = new Float64Array(8);
+      for (let e = 0; e < NE; e++) {
+        const o = e * 8, ke = KE[KEsel[e]], E = Evec[e];
+        for (let a = 0; a < 8; a++) xe[a] = x[EDOF[o + a]];
+        for (let a = 0; a < 8; a++) {
+          const r = ke[a]; let s = 0;
+          for (let b = 0; b < 8; b++) s += r[b] * xe[b];
+          y[EDOF[o + a]] += E * s;
+        }
+      }
+      y[0] = x[0]; y[1] = x[1]; // pin node 0 (removes rigid translation)
+    }
+    function diagK() {
+      const d = new Float64Array(NDOF);
+      for (let e = 0; e < NE; e++) { const ke = KE[KEsel[e]]; for (let a = 0; a < 8; a++) d[EDOF[e * 8 + a]] += Evec[e] * ke[a][a]; }
+      d[0] = 1; d[1] = 1; return d;
+    }
+    function pcg(b, M) {
+      const x = new Float64Array(NDOF), r = Float64Array.from(b), z = new Float64Array(NDOF), Ap = new Float64Array(NDOF);
+      r[0] = 0; r[1] = 0;
+      for (let i = 0; i < NDOF; i++) z[i] = r[i] / M[i];
+      const p = Float64Array.from(z);
+      let rz = 0; for (let i = 0; i < NDOF; i++) rz += r[i] * z[i];
+      const b2 = Math.sqrt(b.reduce((s, v) => s + v * v, 0));
+      if (b2 < 1e-13) return { x, it: 0 };
+      let it = 0;
+      for (; it < 4000; it++) {
+        matvec(p, Ap);
+        let pAp = 0; for (let i = 0; i < NDOF; i++) pAp += p[i] * Ap[i];
+        if (!(pAp > 0)) break;
+        const al = rz / pAp;
+        let rr = 0;
+        for (let i = 0; i < NDOF; i++) { x[i] += al * p[i]; r[i] -= al * Ap[i]; rr += r[i] * r[i]; }
+        if (Math.sqrt(rr) < 1e-9 * b2) break;
+        let rzN = 0; for (let i = 0; i < NDOF; i++) { z[i] = r[i] / M[i]; rzN += r[i] * z[i]; }
+        const be = rzN / rz; rz = rzN;
+        for (let i = 0; i < NDOF; i++) p[i] = z[i] + be * p[i];
+      }
+      return { x, it };
+    }
+
+    let chi = null, C = null, S = null, iters = 0;
+    function solve() {
+      setupMaterial();
+      const M = diagK(); chi = []; iters = 0;
+      const U0 = [u0(0), u0(1), u0(2)];
+      for (let A = 0; A < 3; A++) {
+        const f = new Float64Array(NDOF);
+        for (let e = 0; e < NE; e++) {
+          const ke = KE[KEsel[e]], E = Evec[e];
+          for (let a = 0; a < 8; a++) { let s = 0; for (let b = 0; b < 8; b++) s += ke[a][b] * U0[A][b]; f[EDOF[e * 8 + a]] += E * s; }
+        }
+        const { x, it } = pcg(f, M); chi.push(x); iters += it;
+      }
+      C = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+      const dA = new Float64Array(8), dB = new Float64Array(8);
+      for (let e = 0; e < NE; e++) {
+        const ke = KE[KEsel[e]], E = Evec[e];
+        for (let A = 0; A < 3; A++) {
+          for (let a = 0; a < 8; a++) dA[a] = U0[A][a] - chi[A][EDOF[e * 8 + a]];
+          for (let B = A; B < 3; B++) {
+            for (let a = 0; a < 8; a++) dB[a] = U0[B][a] - chi[B][EDOF[e * 8 + a]];
+            let s = 0; for (let a = 0; a < 8; a++) { let t = 0; for (let b = 0; b < 8; b++) t += ke[a][b] * dB[b]; s += dA[a] * t; }
+            C[A][B] += (E * s) / NE;
+          }
+        }
+      }
+      C[1][0] = C[0][1]; C[2][0] = C[0][2]; C[2][1] = C[1][2];
+      S = inv3(C);
+    }
+    function inv3(m) {
+      const [a, b, c] = m[0], [d, e, f] = m[1], [g, h, i] = m[2];
+      const A = e * i - f * h, B = -(d * i - f * g), Cc = d * h - e * g, det = a * A + b * B + c * Cc;
+      return [[A / det, -(b * i - c * h) / det, (b * f - c * e) / det], [B / det, (a * i - c * g) / det, -(a * f - c * d) / det], [Cc / det, -(a * h - b * g) / det, (a * e - b * d) / det]];
+    }
+    function eig3sym(m) { // Jacobi
+      const a = m.map((r) => r.slice());
+      for (let sweep = 0; sweep < 30; sweep++) {
+        for (const [p, q] of [[0, 1], [0, 2], [1, 2]]) {
+          if (Math.abs(a[p][q]) < 1e-14) continue;
+          const th = 0.5 * Math.atan2(2 * a[p][q], a[q][q] - a[p][p]), c = Math.cos(th), s = Math.sin(th);
+          for (let k = 0; k < 3; k++) { const akp = a[k][p], akq = a[k][q]; a[k][p] = c * akp - s * akq; a[k][q] = s * akp + c * akq; }
+          for (let k = 0; k < 3; k++) { const apk = a[p][k], aqk = a[q][k]; a[p][k] = c * apk - s * aqk; a[q][k] = s * apk + c * aqk; }
+        }
+      }
+      return [a[0][0], a[1][1], a[2][2]].sort((x, y) => x - y);
+    }
+    function properties(Cm, Sm) {
+      const r2 = Math.SQRT2;
+      const CM = [[Cm[0][0], Cm[0][1], r2 * Cm[0][2]], [Cm[1][0], Cm[1][1], r2 * Cm[1][2]], [r2 * Cm[2][0], r2 * Cm[2][1], 2 * Cm[2][2]]];
+      const lam = eig3sym(CM);
+      return {
+        E1: 1 / Sm[0][0], E2: 1 / Sm[1][1], nu12: -Sm[1][0] / Sm[0][0], nu21: -Sm[0][1] / Sm[1][1],
+        eta112: Sm[2][0] / Sm[0][0], eta212: Sm[2][1] / Sm[1][1], l1: lam[0] / lam[2], l2: lam[1] / lam[2], G: 1 / Sm[2][2], vf: 0,
+      };
+    }
+    function isoProps(E, nu) {
+      const c = E / (1 - nu * nu), Ci = [[c, c * nu, 0], [c * nu, c, 0], [0, 0, (c * (1 - nu)) / 2]];
+      return properties(Ci, inv3(Ci));
+    }
+
+    // ---------- presets ----------
+    function preset() {
+      const p = $("preset").value, t = Number($("par").value);
+      const lab = { rot: "rotation θ", oct: "ring width", par: "bar width", lam: "dense fraction", grid: "bar width", dense: "–", sparse: "–" }[p];
+      const fr = (v) => v - Math.floor(v);
+      let f;
+      if (p === "dense") f = () => 1;
+      else if (p === "sparse") f = () => 0;
+      else if (p === "lam") f = (x, y) => (Math.abs(y - 0.5) < (0.1 + 0.8 * t) / 2 ? 1 : 0);
+      else if (p === "grid") { const w = 0.06 + 0.3 * t; f = (x, y) => (Math.abs(x - 0.5) < w / 2 || Math.abs(y - 0.5) < w / 2 ? 1 : 0); }
+      else if (p === "rot") {
+        const th = 0.05 + 0.5 * t, a = 0.25 / (Math.cos(th) + Math.sin(th)) + 0.012;
+        f = (x, y) => {
+          const i = x < 0.5 ? 0 : 1, j = y < 0.5 ? 0 : 1, cx = 0.25 + 0.5 * i, cy = 0.25 + 0.5 * j, s = (i + j) % 2 ? th : -th;
+          const u = (x - cx) * Math.cos(s) + (y - cy) * Math.sin(s), v = -(x - cx) * Math.sin(s) + (y - cy) * Math.cos(s);
+          return Math.max(Math.abs(u), Math.abs(v)) < a ? 1 : 0;
+        };
+      } else if (p === "oct") {
+        const w = 0.04 + 0.12 * t;
+        f = (x, y) => {
+          const u = Math.abs(x - 0.5), v = Math.abs(y - 0.5), d8 = Math.max(u, v, (u + v) / Math.SQRT2);
+          if (Math.abs(d8 - 0.36) < w / 2) return 1;
+          if ((v < w / 2 && u > 0.34) || (u < w / 2 && v > 0.34)) return 1;
+          return 0;
+        };
+      } else { // sheared parallelogram lattice: horizontal bars + bars of slope 2 (periodic), handed
+        const w = 0.05 + 0.2 * t;
+        f = (x, y) => {
+          if (Math.abs(fr(y * 2) - 0.5) < w) return 1;        // horizontal bars at y = 0.25, 0.75
+          const s = fr(2 * (x + 0.5 * y));                    // slanted bars x = -0.5 y + k/2
+          return Math.abs(s - 0.5) * 0.5 / Math.hypot(1, 0.5) < w / 2 ? 1 : 0;
+        };
+      }
+      for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) rho[j * N + i] = f((i + 0.5) / N, (j + 0.5) / N);
+      $("parO").textContent = lab === "–" ? "–" : `${lab} ${t.toFixed(2)}`;
+    }
+    function dilate() {
+      const r = Number($("dil").value); rhoEff = Uint8Array.from(rho);
+      if (!r) return;
+      for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+        if (rho[j * N + i]) continue;
+        let hit = 0;
+        for (let dj = -r; dj <= r && !hit; dj++) for (let di = -r; di <= r && !hit; di++) {
+          if (di * di + dj * dj > r * r + 0.5) continue;
+          if (rho[((j + dj + N) % N) * N + ((i + di + N) % N)]) hit = 1;
+        }
+        rhoEff[j * N + i] = hit;
+      }
+    }
+
+    // ---------- property chart ----------
+    const kept = [];
+    const T1 = [
+      { n: "Unimode, vertical", E1: 0.54, E2: 0.29, nu21: 0.15, eta212: 0.0 },
+      { n: "Unimode, bulk", E1: 0.61, E2: 0.47, nu21: 0.06, eta212: 0.03 },
+      { n: "Bimode, bulk", E1: 0.23, E2: 0.22, nu21: 0.52, eta212: 0.02 },
+      { n: "Unimode, normal–shear", E1: 0.37, E2: 0.21, nu21: 0.14, eta212: 0.72 },
+    ];
+    let cur = null;
+    function drawChart() {
+      const ax = $("axes").value, svg = $("prop"), W = 320, H = 240, L = 44, R = 10, T = 10, B = 34;
+      const def = { E: ["E₁ / E_HD", "E₂ / E_HD", (p) => p.E1, (p) => p.E2, [0, 1.05], [0, 1.05]],
+        nu: ["E₂ / E_HD", "ν₂₁", (p) => p.E2, (p) => p.nu21, [0, 1.05], [-0.2, 0.9]],
+        eta: ["E₂ / E_HD", "η₂₁₂", (p) => p.E2, (p) => p.eta212, [0, 1.05], [-0.9, 0.9]],
+        lam: ["λ̂₁", "λ̂₂", (p) => p.l1, (p) => p.l2, [0, 1.02], [0, 1.02]] }[ax];
+      const [xl, yl, fx, fy, [x0, x1], [y0, y1]] = def;
+      const sx = (v) => L + ((v - x0) / (x1 - x0)) * (W - L - R), sy = (v) => H - B - ((v - y0) / (y1 - y0)) * (H - T - B);
+      const ink = css("--ink"), muted = css("--muted"), line = css("--line"), acc = css("--accent");
+      let s = `<rect x="${L}" y="${T}" width="${W - L - R}" height="${H - T - B}" fill="none" stroke="${line}"/>`;
+      const ticks = (a, b) => { const out = []; const st = (b - a) > 1.2 ? 0.3 : 0.2; for (let v = Math.ceil(a / st) * st; v <= b + 1e-9; v += st) out.push(+v.toFixed(2)); return out; };
+      for (const v of ticks(x0, x1)) s += `<line x1="${sx(v)}" x2="${sx(v)}" y1="${T}" y2="${H - B}" stroke="${line}"/><text x="${sx(v)}" y="${H - B + 13}" font-size="10" text-anchor="middle" fill="${muted}">${v}</text>`;
+      for (const v of ticks(y0, y1)) s += `<line x1="${L}" x2="${W - R}" y1="${sy(v)}" y2="${sy(v)}" stroke="${line}"/><text x="${L - 4}" y="${sy(v) + 3}" font-size="10" text-anchor="end" fill="${muted}">${v}</text>`;
+      s += `<text x="${(L + W - R) / 2}" y="${H - 4}" font-size="11" text-anchor="middle" fill="${ink}">${xl}</text><text transform="translate(12 ${(T + H - B) / 2}) rotate(-90)" font-size="11" text-anchor="middle" fill="${ink}">${yl}</text>`;
+      const clampY = (v) => Math.max(y0, Math.min(y1, v)), clampX = (v) => Math.max(x0, Math.min(x1, v));
+      // homogeneous phases + mixing line (Voigt-type linear interpolation of the properties)
+      const El = Number($("elr").value) / Number($("eh").value);
+      const hd = isoProps(1, Number($("nh").value)), ld = isoProps(El, Number($("nl").value));
+      s += `<line x1="${sx(clampX(fx(ld)))}" y1="${sy(clampY(fy(ld)))}" x2="${sx(clampX(fx(hd)))}" y2="${sy(clampY(fy(hd)))}" stroke="${ink}" stroke-dasharray="4 3" opacity="0.7"/>`;
+      const hex = (x, y, r) => `<polygon points="${[0, 1, 2, 3, 4, 5].map((k) => `${(x + r * Math.cos((k * Math.PI) / 3)).toFixed(1)},${(y + r * Math.sin((k * Math.PI) / 3)).toFixed(1)}`).join(" ")}" fill="${ink}"/>`;
+      s += hex(sx(clampX(fx(ld))), sy(clampY(fy(ld))), 5) + hex(sx(clampX(fx(hd))), sy(clampY(fy(hd))), 5);
+      for (const k of kept) s += `<circle cx="${sx(clampX(fx(k)))}" cy="${sy(clampY(fy(k)))}" r="3.5" fill="${muted}"><title>${k.name}</title></circle>`;
+      if (ax !== "lam") T1.forEach((t, i) => {
+        const X = sx(clampX(fx(t))), Y = sy(clampY(fy(t)));
+        s += `<rect x="${X - 4}" y="${Y - 4}" width="8" height="8" fill="none" stroke="${TRLPAL[i]}" stroke-width="1.8"><title>${t.n} (measured, Table 1)</title></rect>`;
+      });
+      if (cur) s += `<circle cx="${sx(clampX(fx(cur)))}" cy="${sy(clampY(fy(cur)))}" r="6" fill="${acc}" stroke="${css("--panel")}" stroke-width="1.5"><title>current design</title></circle>`;
+      svg.innerHTML = s;
+    }
+    const TRLPAL = ["#2f6fde", "#2e9d6b", "#d9822b", "#8a4fd6"];
+    $("propLeg").innerHTML = T1.map((t, i) => `<span style="white-space:nowrap;margin-right:8px;color:${TRLPAL[i]}">□ ${t.n}</span>`).join(" ");
+
+    // ---------- 2D view ----------
+    let t0 = performance.now();
+    function draw() {
+      const w = stage.clientWidth, h = stage.clientHeight, dpr = Math.min(devicePixelRatio || 1, 2);
+      if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+      cv.style.width = w + "px"; cv.style.height = h + "px";
+      const ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
+      if (!chi) return;
+      const tiles = 3, size = Math.min(w, h - 30) * 0.78, cell = size / tiles, h0 = cell / N;
+      const ox = (w - size) / 2, oy = (h - 30 - size) / 2 + size + 8; // origin bottom-left
+      // macro strain for the selected unit stress (compressive)
+      const load = Number($("load").value), sig = load === 1 ? [-1, 0, 0] : load === 2 ? [0, -1, 0] : [0, 0, 1];
+      const eb = [0, 1, 2].map((r) => S[r][0] * sig[0] + S[r][1] * sig[1] + S[r][2] * sig[2]);
+      const m = Math.max(...eb.map(Math.abs)) || 1;
+      const ph = $("anim").checked ? 0.5 - 0.5 * Math.cos(((performance.now() - t0) / 1600) * Math.PI * 2) : 1;
+      const k = (Number($("amp").value) * ph) / m;
+      const e = eb.map((v) => v * k);
+      // node displacement (in element units) for node (I,J) in global array coordinates
+      const disp = (I, J) => {
+        const n = (J % N) * N + (I % N);
+        const ux = e[0] * I + (e[2] / 2) * J - (e[0] * chi[0][2 * n] + e[1] * chi[1][2 * n] + e[2] * chi[2][2 * n]);
+        const uy = (e[2] / 2) * I + e[1] * J - (e[0] * chi[0][2 * n + 1] + e[1] * chi[1][2 * n + 1] + e[2] * chi[2][2 * n + 1]);
+        return [ox + (I + ux) * h0, oy - (J + uy) * h0];
+      };
+      const NN = N * tiles + 1, P = new Float64Array(NN * NN * 2);
+      for (let J = 0; J < NN; J++) for (let I = 0; I < NN; I++) { const [X, Y] = disp(I, J); P[(J * NN + I) * 2] = X; P[(J * NN + I) * 2 + 1] = Y; }
+      const dense = css("--accent"), sparse = css("--chip"), edge = css("--line");
+      const isCenter = (I, J) => I >= N && I < 2 * N && J >= N && J < 2 * N;
+      for (let J = 0; J < N * tiles; J++) for (let I = 0; I < N * tiles; I++) {
+        const d = rhoEff[(J % N) * N + (I % N)], painted = rho[(J % N) * N + (I % N)];
+        const a = (J * NN + I) * 2, b = (J * NN + I + 1) * 2, c = ((J + 1) * NN + I + 1) * 2, dd = ((J + 1) * NN + I) * 2;
+        ctx.beginPath(); ctx.moveTo(P[a], P[a + 1]); ctx.lineTo(P[b], P[b + 1]); ctx.lineTo(P[c], P[c + 1]); ctx.lineTo(P[dd], P[dd + 1]); ctx.closePath();
+        ctx.globalAlpha = isCenter(I, J) ? 1 : 0.55;
+        ctx.fillStyle = d ? dense : sparse; ctx.fill();
+        if (d && !painted) { ctx.fillStyle = "rgba(255,255,255,0.25)"; ctx.fill(); }
+      }
+      ctx.globalAlpha = 1;
+      // centre cell outline
+      ctx.strokeStyle = css("--ink"); ctx.lineWidth = 1.2; ctx.beginPath();
+      [[N, N], [2 * N, N], [2 * N, 2 * N], [N, 2 * N]].forEach(([I, J], i) => { const q = (J * NN + I) * 2; i ? ctx.lineTo(P[q], P[q + 1]) : ctx.moveTo(P[q], P[q + 1]); });
+      ctx.closePath(); ctx.stroke();
+      ctx.fillStyle = css("--muted"); ctx.font = "12px system-ui";
+      ctx.fillText(`x₁ →   x₂ ↑   load: ${$("load").selectedOptions[0].text}`, ox, oy + 18);
+      view.geom = { ox, oy, h0 };
+    }
+    const view = { geom: null };
+
+    // painting on the centre cell (undeformed coordinates)
+    let painting = false;
+    function paintAt(ev) {
+      if ($("brush").value === "off" || !view.geom) return;
+      const r = cv.getBoundingClientRect(), { ox, oy, h0 } = view.geom;
+      const I = Math.floor((ev.clientX - r.left - ox) / h0), J = Math.floor((oy - (ev.clientY - r.top)) / h0);
+      if (I < 0 || J < 0 || I >= 3 * N || J >= 3 * N) return;
+      const i = I % N, j = J % N, v = Number($("brush").value);
+      let changed = false;
+      for (let dj = -1; dj <= 0; dj++) for (let di = -1; di <= 0; di++) {
+        const k = ((j + dj + N) % N) * N + ((i + di + N) % N);
+        if (rho[k] !== v) { rho[k] = v; changed = true; }
+      }
+      if (changed) { dirty = true; }
+    }
+    cv.addEventListener("pointerdown", (e) => { painting = true; cv.setPointerCapture(e.pointerId); paintAt(e); });
+    cv.addEventListener("pointermove", (e) => { if (painting) paintAt(e); });
+    cv.addEventListener("pointerup", () => { painting = false; dirty = true; });
+
+    function readout() {
+      const p = properties(C, S);
+      let vf = 0; for (let e = 0; e < NE; e++) vf += rhoEff[e]; vf /= NE;
+      p.vf = vf; cur = p;
+      const f = (v) => (Math.abs(v) < 5e-4 ? "0.000" : v.toFixed(3));
+      $("props").textContent =
+        `dense area fraction  ${(vf * 100).toFixed(1)} %\n` +
+        `E₁ ${f(p.E1)}   E₂ ${f(p.E2)}   (× E_HD = ${Number($("eh").value).toFixed(1)} MPa)\n` +
+        `E₁/E₂ ${(p.E1 / p.E2).toFixed(2)}   G₁₂ ${f(p.G)}\n` +
+        `ν₁₂ ${f(p.nu12)}   ν₂₁ ${f(p.nu21)}\n` +
+        `η₁₁₂ ${f(p.eta112)}   η₂₁₂ ${f(p.eta212)}\n` +
+        `λ̂₁ ${f(p.l1)}   λ̂₂ ${f(p.l2)}\n` +
+        `C / E_HD =\n${C.map((r) => r.map((v) => (v >= 0 ? " " : "") + v.toFixed(4)).join("  ")).join("\n")}\n` +
+        `PCG iterations (3 load cases): ${iters}`;
+    }
+
+    let dirty = true;
+    function recompute() { dilate(); solve(); readout(); drawChart(); }
+    $("preset").addEventListener("input", () => { preset(); dirty = true; });
+    $("par").addEventListener("input", () => { preset(); dirty = true; });
+    ["dil", "eh", "elr", "nh", "nl"].forEach((id) => $(id).addEventListener("input", () => { syncOut(); dirty = true; }));
+    $("axes").addEventListener("input", drawChart);
+    $("amp").addEventListener("input", syncOut);
+    $("clear").addEventListener("click", () => { rho.fill(0); dirty = true; });
+    $("mirror").addEventListener("click", () => { // mirror the left half onto the right half (x1 -> 1 - x1)
+      for (let j = 0; j < N; j++) for (let i = 0; i < N / 2; i++) rho[j * N + (N - 1 - i)] = rho[j * N + i];
+      dirty = true;
+    });
+    $("keep").addEventListener("click", () => { if (cur) { kept.push({ ...cur, name: `${$("preset").selectedOptions[0].text}, kept #${kept.length + 1}` }); drawChart(); } });
+    function syncOut() {
+      $("dilO").textContent = `${$("dil").value} element(s) ≈ ${(Number($("dil").value) * 25 / N).toFixed(1)} mm`;
+      $("ehO").textContent = `${Number($("eh").value).toFixed(1)} MPa`; $("elO").textContent = `${Number($("elr").value).toFixed(2)} MPa`;
+      $("nhO").textContent = Number($("nh").value).toFixed(2); $("nlO").textContent = Number($("nl").value).toFixed(2);
+      $("ampO").textContent = Number($("amp").value).toFixed(2);
+    }
+    syncOut(); preset();
+    // self-check: homogeneous dense must return the isotropic plane-stress matrix
+    (function selfCheck() {
+      const save = Uint8Array.from(rho); rho.fill(1); dilate(); solve();
+      const p = properties(C, S);
+      console.info(`[fde-cells] homogeneous check: E1=${p.E1.toFixed(4)} nu12=${p.nu12.toFixed(4)} (expect 1, ${$("nh").value})`);
+      rho = save;
+    })();
+    (function loop() {
+      requestAnimationFrame(loop);
+      if (dirty && !painting) { dirty = false; recompute(); }
+      else if (dirty && painting) { dilate(); }
+      draw();
+    })();
+    window.addEventListener("resize", draw);
+    window.__fde = { get C() { return C; }, properties: () => properties(C, S), rho: () => rho };
+  })();
+  </script>
+</body>
+</html>

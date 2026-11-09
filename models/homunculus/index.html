@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Homunculus Teleoperation</title>
+  <link rel="icon" href="../../assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../../assets/site.css" />
+  <style>
+    [hidden] { display: none !important; }
+    aside select { max-width: 100%; }
+    .row { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; }
+    ol.alg { font-size: 12.5px; padding-left: 22px; margin: 4px 0; }
+    ol.alg li { padding: 1px 4px; border-radius: 4px; }
+    ol.alg li.on { background: var(--chip); color: var(--ink); font-weight: 600; }
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+  </style>
+</head>
+<body>
+  <header class="site"><div class="wrap">
+    <a class="brand" href="../../"><img src="../../assets/icon.svg" alt="" />Transformative Robotics Lab</a>
+    <nav class="site"><a href="../../">Projects</a><a href="https://arxiv.org/abs/1703.01270">Baxter's Homunculus on arXiv</a></nav>
+  </div></header>
+  <main class="model">
+    <div class="stage" id="stage">
+      <div class="overlay">Drag: orbit · Right-drag: pan · Wheel: zoom. The small cyan box in Baxter's head is the VR control room.</div>
+    </div>
+    <aside>
+      <h1>Baxter's homunculus</h1>
+      <p class="muted">Illustrative model based on Lipton, Fay &amp; Rus, <i>Baxter's Homunculus: Virtual Reality Spaces for Teleoperation in Manufacturing</i> (IEEE RA-L 2018; arXiv 1703.01270), Section III, Eqs. 4–9 and Algorithm 1. The operator sits in a virtual control room mapped inside the robot's head and drives each arm by grabbing a virtual gripper orb.</p>
+      <h2>Operator's hand in the control room (m)</h2>
+      <div class="two">
+        <label>x <b id="vhx"></b><input id="hx" type="range" min="-0.4" max="0.4" step="0.01" value="0.18" /></label>
+        <label>roll <b id="vhr"></b>°<input id="hr" type="range" min="-90" max="90" step="5" value="0" /></label>
+        <label>y <b id="vhy"></b><input id="hy" type="range" min="-0.4" max="0.4" step="0.01" value="-0.1" /></label>
+        <label>pitch <b id="vhp"></b>°<input id="hp" type="range" min="-90" max="90" step="5" value="30" /></label>
+        <label>z <b id="vhz"></b><input id="hz" type="range" min="-0.4" max="0.3" step="0.01" value="-0.12" /></label>
+        <label>yaw <b id="vhw"></b>°<input id="hw" type="range" min="-180" max="180" step="5" value="0" /></label>
+      </div>
+      <label>Arm <select id="arm"><option value="R">right</option><option value="L">left</option></select></label>
+      <label>Mapping M<sub>HG</sub> (Alg. 1, line 1) <select id="mode"><option value="pose">position and orientation (index finger out)</option><option value="pos" selected>position only, gripper kept pointing down (whole-hand grab)</option></select></label>
+      <label>Control-room scale λ<sub>GG</sub> <b id="vlam"></b> <input id="lam" type="range" min="0.1" max="1" step="0.05" value="0.35" /></label>
+      <div class="row"><button class="btn primary" id="grab" type="button">Grab orb</button><button class="btn" id="release" type="button">Release</button></div>
+      <ol class="alg" id="alg">
+        <li>User selects type of model M<sub>HG</sub></li>
+        <li>User grabs virtual gripper G<sup>V</sup> with hand H<sup>V</sup></li>
+        <li>Set C̄<sub>r</sub>, C̄<sub>n</sub>, C̄<sub>θ</sub> from M<sub>HG</sub> type</li>
+        <li>User releases G<sup>V</sup></li>
+        <li>A ← PLANNER(r<sup>R</sup>, n̂<sup>R</sup>, θ<sup>R</sup>)</li>
+        <li>if A valid: move joints, else colour orb as error</li>
+      </ol>
+      <h2>State</h2>
+      <div class="readout" id="out"></div>
+      <h2>Network profile (Section V)</h2>
+      <select id="net" style="width:100%">
+        <option value="lan">Wired local network</option>
+        <option value="wifi">Same building, Wi-Fi</option>
+        <option value="hotel">Hotel Internet, Arlington VA → MIT</option>
+      </select>
+      <div class="readout" id="netout" style="margin-top:6px"></div>
+      <h2>Reported results (Table I)</h2>
+      <div class="readout">block assembly success over 20 trials
+  automated, no IOL     41%
+  automated, with IOL   66%
+  VR teleoperation     100%
+teleoperated time 52 s ± 15 s; grasping 100% for all three</div>
+      <h2>How this model works</h2>
+      <p class="muted" style="font-size:13px">The paper decouples user and robot through a virtual space V (Fig. 1D). Robot grippers appear in V by M<sub>GG</sub>: r<sup>V</sup> = T̄<sub>GG</sub> r<sup>R</sup> + O with T̄<sub>GG</sub> = λ<sub>GG</sub>R̄<sub>GG</sub> (Eqs. 4–6); here R̄ is the identity, O places the control room in Baxter's head, and the page inverts this map to turn the orb's position into a robot target. While grabbed, M<sub>HG</sub> couples the orb to the hand: r<sup>V</sup> = C̄<sub>r</sub> r<sup>V</sup><sub>H</sub>, n̂ = C̄<sub>n</sub> n̂<sub>H</sub>, θ = C̄<sub>θ</sub>θ<sub>H</sub> (Eqs. 7–9), with C̄ = I for the coupled quantities and 0 otherwise (Algorithm 1). On release a planner checks the target; the orb turns red if it is unreachable and blue if valid (Section IV).</p>
+      <p class="muted" style="font-size:13px">Simplified: Baxter's 7-DOF arm and its motion planner are replaced by a two-link arm with 0.55 m links and a reach-sphere check from each shoulder; dimensions are approximate. No stereo video, latency or headset rendering is simulated.</p>
+    </aside>
+  </main>
+  <script src="../../assets/three.min.js"></script>
+  <script>
+  (function () {
+    const $ = (id) => document.getElementById(id), stage = $("stage");
+    const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+    const scene = new THREE.Scene(), camera = new THREE.PerspectiveCamera(45, 1, 0.01, 50); camera.up.set(0, 0, 1);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true }); renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); stage.prepend(renderer.domElement);
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x445566, 0.9)); const dl = new THREE.DirectionalLight(0xffffff, 0.6); dl.position.set(2, -3, 4); scene.add(dl);
+    const mat = (c, o = 1) => new THREE.MeshStandardMaterial({ color: c, transparent: o < 1, opacity: o, roughness: 0.7 });
+    const box = (w, d, h, m) => new THREE.Mesh(new THREE.BoxGeometry(w, d, h), m);
+    // world: robot at origin facing +x, table in front
+    const grid = new THREE.GridHelper(4, 16, 0x888888, 0x888888); grid.rotation.x = Math.PI / 2; grid.material.transparent = true; grid.material.opacity = 0.2; scene.add(grid);
+    const table = box(0.8, 1.4, 0.04, mat(0xb08560)); table.position.set(0.85, 0, 0.78); scene.add(table);
+    [[0.5, -0.65], [0.5, 0.65], [1.2, -0.65], [1.2, 0.65]].forEach(([x, y]) => { const l = box(0.04, 0.04, 0.78, mat(0x806040)); l.position.set(x, y, 0.39); scene.add(l); });
+    const block = box(0.06, 0.06, 0.06, mat(0x2e9d6b)); block.position.set(0.75, -0.25, 0.83); scene.add(block);
+    const ped = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.25, 0.9, 24), mat(0x555a63)); ped.rotation.x = Math.PI / 2; ped.position.set(0, 0, 0.45); scene.add(ped);
+    const torso = box(0.3, 0.45, 0.5, mat(0xc8102e)); torso.position.set(0, 0, 1.15); scene.add(torso);
+    const head = box(0.18, 0.26, 0.16, mat(0x333842, 0.35)); head.position.set(0.04, 0, 1.55); scene.add(head);
+    const camL = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.03, 12), mat(0x111111)); camL.rotation.z = Math.PI / 2; camL.position.set(0.14, 0.04, 1.58); scene.add(camL);
+    const camR = camL.clone(); camR.position.y = -0.04; scene.add(camR);
+    const SH = { R: new THREE.Vector3(0.05, -0.27, 1.32), L: new THREE.Vector3(0.05, 0.27, 1.32) }, L1 = 0.55, L2 = 0.55;
+    // VR control room (virtual space V) placed inside the head; O_V = room centre
+    const O_V = new THREE.Vector3(0.04, 0, 1.55), ROOM = 0.14;
+    const room = new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(ROOM, ROOM * 1.4, ROOM * 0.8)), new THREE.LineBasicMaterial({ color: 0x16a9c7 })); room.position.copy(O_V); scene.add(room);
+    // reach sphere of selected arm
+    const reach = new THREE.Mesh(new THREE.SphereGeometry(L1 + L2, 32, 16), new THREE.MeshBasicMaterial({ color: 0x2f6fde, wireframe: true, transparent: true, opacity: 0.08 })); scene.add(reach);
+    // arms
+    function makeArm() { const g = new THREE.Group(); const m = mat(0x9aa3b2); const a = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 1, 12), m), b = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1, 12), m); const grip = new THREE.Group(); const palm = box(0.05, 0.1, 0.03, mat(0x333333)); const f1 = box(0.012, 0.012, 0.08, mat(0x333333)), f2 = f1.clone(); f1.position.set(0, 0.04, -0.05); f2.position.set(0, -0.04, -0.05); grip.add(palm, f1, f2); g.add(a, b, grip); scene.add(g); return { a, b, grip, elbow: new THREE.Vector3(), tip: new THREE.Vector3(), quat: new THREE.Quaternion() }; }
+    const arms = { R: makeArm(), L: makeArm() };
+    function link(mesh, p, q) { const d = new THREE.Vector3().subVectors(q, p); mesh.scale.set(1, d.length(), 1); mesh.position.copy(p).addScaledVector(d, 0.5); mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.clone().normalize()); }
+    function ik(sh, target) { // planar 2-link IK in the plane containing shoulder, target and world up
+      const d = new THREE.Vector3().subVectors(target, sh), r = Math.min(d.length(), L1 + L2 - 1e-4), dir = d.clone().normalize();
+      const a = Math.acos(Math.max(-1, Math.min(1, (L1 * L1 + r * r - L2 * L2) / (2 * L1 * r))));
+      let side = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0, 0, 1)); if (side.lengthSq() < 1e-6) side.set(0, 1, 0); side.normalize();
+      const up = new THREE.Vector3().crossVectors(side, dir).normalize();
+      const elbow = sh.clone().addScaledVector(dir, L1 * Math.cos(a)).addScaledVector(up, L1 * Math.sin(a));
+      return { elbow, tip: sh.clone().addScaledVector(dir, r) };
+    }
+    // virtual hand + orb (in V) and robot target marker
+    const hand = new THREE.Mesh(new THREE.SphereGeometry(0.008, 12, 8), mat(0xfbbf24)); scene.add(hand);
+    const orb = new THREE.Mesh(new THREE.SphereGeometry(0.011, 16, 12), new THREE.MeshBasicMaterial({ color: 0x2f6fde })); scene.add(orb);
+    const tgt = new THREE.Mesh(new THREE.SphereGeometry(0.03, 16, 12), new THREE.MeshBasicMaterial({ color: 0x2f6fde, transparent: true, opacity: 0.5 })); scene.add(tgt);
+    const ray = new THREE.Line(new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]), new THREE.LineDashedMaterial({ color: 0x16a9c7, dashSize: 0.03, gapSize: 0.02 })); scene.add(ray);
+
+    // state
+    const st = { grabbed: false, step: 0, valid: true, cmd: { R: new THREE.Vector3(0.7, -0.35, 0.95), L: new THREE.Vector3(0.6, 0.4, 1.0) }, quat: { R: new THREE.Quaternion(), L: new THREE.Quaternion() }, orbV: { R: null, L: null } };
+    const down = new THREE.Quaternion(); // gripper fingers along -z = pointing down
+    const toV = (rR, lam) => rR.clone().sub(SH_MID()).multiplyScalar(lam * ROOM / 0.6).add(O_V); // M_GG (Eq. 4), scaled so the workspace fits the room
+    const toR = (rV, lam) => rV.clone().sub(O_V).multiplyScalar(0.6 / (lam * ROOM)).add(SH_MID());
+    function SH_MID() { return new THREE.Vector3(0.05, 0, 1.32); }
+    function handV() { return new THREE.Vector3(+$("hx").value, +$("hy").value, +$("hz").value).multiplyScalar(ROOM / 0.8).add(O_V); }
+    function handQ() { return new THREE.Quaternion().setFromEuler(new THREE.Euler((+$("hr").value * Math.PI) / 180, (+$("hp").value * Math.PI) / 180, (+$("hw").value * Math.PI) / 180, "XYZ")); }
+    function reachable(arm, p) { return p.distanceTo(SH[arm]) <= L1 + L2 && p.z > 0.8; }
+    function setStep(i) { st.step = i; [...$("alg").children].forEach((li, k) => li.classList.toggle("on", k === i)); }
+    function update() {
+      const arm = $("arm").value, lam = +$("lam").value, mode = $("mode").value;
+      ["hx", "hy", "hz"].forEach((k) => ($("v" + k).textContent = (+$(k).value).toFixed(2)));
+      $("vhr").textContent = $("hr").value; $("vhp").textContent = $("hp").value; $("vhw").textContent = $("hw").value; $("vlam").textContent = lam.toFixed(2);
+      const hv = handV(); hand.position.copy(hv);
+      if (st.grabbed) {
+        // Eqs. 7–9 with C̄ from Algorithm 1 lines 3–6
+        st.orbV[arm] = hv.clone();
+        st.target = toR(hv, lam); st.tq = mode === "pose" ? handQ() : down.clone();
+      }
+      const ov = st.orbV[arm] || toV(st.cmd[arm], lam);
+      orb.position.copy(ov);
+      const rTarget = st.grabbed ? st.target : st.cmd[arm];
+      tgt.position.copy(rTarget); tgt.visible = st.grabbed;
+      ray.geometry.setFromPoints([ov, rTarget]); ray.computeLineDistances();
+      reach.position.copy(SH[arm]);
+      const ok = reachable(arm, rTarget);
+      orb.material.color.set(st.grabbed ? (ok ? 0x2f6fde : 0xe0453a) : st.valid ? 0x2f6fde : 0xe0453a);
+      tgt.material.color.set(ok ? 0x2f6fde : 0xe0453a);
+      const C = mode === "pose" ? "C̄r = I3, C̄n = I3, C̄θ = I1" : "C̄r = I3, C̄n = 0, C̄θ = 0 (gripper down)";
+      const p = rTarget;
+      $("out").textContent = `${st.grabbed ? "orb coupled to hand" : "orb released"} · arm: ${arm === "R" ? "right" : "left"}\n${C}\nhand in room   (${hv.clone().sub(O_V).toArray().map((v) => v.toFixed(3)).join(", ")}) m\nrobot target   (${p.toArray().map((v) => v.toFixed(2)).join(", ")}) m\nmotion scale 1/λ = ${(0.6 / (lam * ROOM)).toFixed(1)}× hand motion\n${st.grabbed ? (ok ? "target reachable — orb blue" : "target out of reach — orb red") : st.valid ? "last command valid" : "last command invalid: arm did not move"}`;
+      const net = $("net").value;
+      $("netout").textContent = net === "lan" ? "wired LAN with LCM messaging; full-rate hand cameras\n(paper: used for the Table I trials)" : net === "wifi" ? "different networks in one building over Wi-Fi\nhand-camera update rate reduced to 5 Hz" : "Canopy relay between ROS masters, 5 Mbps cap\nhand cameras 1 Hz, range sensor 5 Hz,\nstereo cameras reduced to 800×600";
+    }
+    $("grab").addEventListener("click", () => { st.grabbed = true; setStep(2); update(); });
+    $("release").addEventListener("click", () => {
+      if (!st.grabbed) return; const arm = $("arm").value; st.grabbed = false; setStep(4);
+      const ok = reachable(arm, st.target);
+      if (ok) { st.cmd[arm] = st.target.clone(); st.quat[arm] = st.tq.clone(); st.valid = true; st.orbV[arm] = null; }
+      else { st.valid = false; }
+      setTimeout(() => setStep(5), 300); update();
+    });
+    $("arm").addEventListener("input", () => { st.grabbed = false; setStep(0); update(); });
+    $("mode").addEventListener("input", () => { setStep(0); update(); });
+    document.querySelectorAll("aside input, #net").forEach((el) => el.addEventListener("input", update));
+    setStep(0);
+    // animate arms toward commanded targets (robot side runs in its own loop, Section III)
+    function animArms() {
+      for (const k of ["R", "L"]) {
+        const A = arms[k], s = ik(SH[k], st.cmd[k]);
+        A.elbow.lerp(s.elbow, 0.08); A.tip.lerp(s.tip, 0.08); A.quat.slerp(st.quat[k], 0.08);
+        if (A.elbow.lengthSq() < 1e-6) { A.elbow.copy(s.elbow); A.tip.copy(s.tip); }
+        link(A.a, SH[k], A.elbow); link(A.b, A.elbow, A.tip); A.grip.position.copy(A.tip); A.grip.quaternion.copy(A.quat);
+      }
+    }
+    // camera controls (as in the TRUNC explorer)
+    const cam = { r: 3.4, az: -0.6, el: 0.35, target: new THREE.Vector3(0.45, 0, 1.05) };
+    function place() { camera.position.set(cam.target.x + cam.r * Math.cos(cam.el) * Math.cos(cam.az), cam.target.y + cam.r * Math.cos(cam.el) * Math.sin(cam.az), cam.target.z + cam.r * Math.sin(cam.el)); camera.lookAt(cam.target); }
+    function resize() { const w = stage.clientWidth, h = stage.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+    let drag = null; const el = renderer.domElement;
+    el.addEventListener("contextmenu", (e) => e.preventDefault());
+    el.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY, pan: e.button === 2 || e.shiftKey }; el.setPointerCapture(e.pointerId); });
+    el.addEventListener("pointermove", (e) => { if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY; if (drag.pan) { const s = cam.r / 700; cam.target.add(new THREE.Vector3(-Math.sin(cam.az), Math.cos(cam.az), 0).multiplyScalar(-dx * s)); cam.target.z += dy * s; } else { cam.az -= dx * 0.008; cam.el = Math.max(-1.4, Math.min(1.5, cam.el + dy * 0.008)); } });
+    el.addEventListener("pointerup", () => (drag = null));
+    el.addEventListener("wheel", (e) => { e.preventDefault(); cam.r = Math.max(0.3, Math.min(10, cam.r * Math.exp(e.deltaY * 0.0012))); }, { passive: false });
+    window.addEventListener("resize", resize);
+    update(); resize();
+    (function loop() { requestAnimationFrame(loop); animArms(); place(); renderer.render(scene, camera); })();
+  })();
+  </script>
+</body>
+</html>

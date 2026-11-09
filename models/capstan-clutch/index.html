@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>JR Capstan Clutch</title>
+  <link rel="icon" href="../../assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../../assets/site.css" />
+  <style>
+    .chart-box { height: 220px; border: 1px solid var(--line); border-radius: 8px; margin-top: 6px; }
+    .chart-box canvas { width: 100%; height: 100%; display: block; }
+    .note { font-size: 12.5px; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
+    .row2 label { margin: 2px 0; }
+    .row2 select { width: 100%; }
+    aside input[type="range"] { width: 100%; }
+    .warn { color: var(--accent); font-weight: 600; }
+    .legend { display: flex; gap: 10px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .legend i { display: inline-block; width: 22px; height: 8px; border-radius: 3px; vertical-align: middle; margin-right: 4px; }
+  </style>
+</head>
+<body>
+  <header class="site"><div class="wrap">
+    <a class="brand" href="../../"><img src="../../assets/icon.svg" alt="" />Transformative Robotics Lab</a>
+    <nav class="site"><a href="../../">Projects</a><a href="https://transformativerobotlab.com/assets/pdf/JR_clutch.pdf">Paper (PDF)</a></nav>
+  </div></header>
+  <main class="model">
+    <div class="stage" id="stage">
+      <div class="overlay">Drag: orbit · Right-drag: pan · Wheel: zoom · Band colour = local band tension</div>
+    </div>
+    <aside>
+      <h1>Johnsen-Rahbek capstan clutch</h1>
+      <p class="muted note">Illustrative model based on Amish et al., "Johnsen-Rahbek Capstan Clutch: A High Torque Electrostatic Clutch" (ICRA 2024), Sec. III, Eqs. (1)–(8). Default parameters are from Sec. IV–V.</p>
+
+      <h2>Drive</h2>
+      <label>Applied voltage V: <b id="vLbl"></b>
+        <input id="V" type="range" min="0" max="500" step="5" value="350" /></label>
+      <label>Wrap angle θ: <b id="wLbl"></b>
+        <input id="wraps" type="range" min="0.25" max="4" step="0.25" value="3" /></label>
+
+      <h2>Band and interface</h2>
+      <div class="row2">
+        <label>Band
+          <select id="band">
+            <option value="thin">25.4 µm, unpolished</option>
+            <option value="thick">76.2 µm, polished</option>
+          </select></label>
+        <label>Pretension T<sub>hold</sub>
+          <select id="thold">
+            <option value="0.05">0.05 N</option>
+            <option value="0.3">0.3 N</option>
+            <option value="1.1">1.1 N</option>
+            <option value="2">2 N</option>
+          </select></label>
+      </div>
+      <label>Air gap g: <b id="gLbl"></b>
+        <input id="gap" type="range" min="1.5" max="6" step="0.1" value="4.1" /></label>
+      <label>Coefficient of friction µ: <b id="muLbl"></b>
+        <input id="mu" type="range" min="0.05" max="0.5" step="0.01" value="0.20" /></label>
+      <p class="muted note" id="gapNote"></p>
+
+      <h2>Readout</h2>
+      <div class="readout" id="out"></div>
+
+      <h2>Chart</h2>
+      <select id="chartQ" style="width:100%">
+        <option value="V">Holding torque vs voltage</option>
+        <option value="W">Holding torque vs wrap angle</option>
+        <option value="A">Capstan advantage vs wrap angle (Eq. 6)</option>
+        <option value="S">Specific shear stress vs wrap angle</option>
+      </select>
+      <div class="chart-box"><canvas id="chart" aria-label="Clutch model chart"></canvas></div>
+      <div class="legend" id="legend"></div>
+      <p class="muted note">All curves are model output, not measured data.</p>
+
+      <h2>How this model works</h2>
+      <p class="note">A stainless-steel band wraps a shaft covered in a 55 µm polybenzimidazole (PBI) film. With voltage on, electrostatic adhesion pulls the band onto the shaft. That adds a normal force on top of the ordinary capstan normal force, so friction grows exponentially along the wrap (Fig. 2).</p>
+      <p class="note"><b>Capstan only</b> (Eq. 1): T<sub>load</sub> = T<sub>hold</sub> e<sup>µθ</sup>.</p>
+      <p class="note"><b>Electrostatic capstan</b> (Eqs. 2–3): the electrostatic normal force per unit angle is α = β·l·r. Integrating gives T<sub>load</sub> = T<sub>hold</sub>e<sup>µθ</sup> + α(e<sup>µθ</sup> − 1).</p>
+      <p class="note"><b>JR + Coulomb pressure</b> (Eq. 4): β = (ε<sub>0</sub>/2)V²[(ε<sub>g</sub>ε<sub>d</sub>/(dε<sub>g</sub> + gε<sub>d</sub>))² + (ε<sub>g</sub>/g)²]. The second term is the Johnsen-Rahbek term. Charge migrates through the slightly conductive PBI, so the voltage drops mostly across the micron-scale air gap g rather than the dielectric thickness d.</p>
+      <p class="note"><b>Planar equivalent</b> (Eq. 5): the same area laid flat gives T<sub>planar</sub> = µβ·l·r·θ. Their ratio is the capstan advantage, Adv ≈ (e<sup>µθ</sup> − 1)/(µθ) (Eq. 6). It is always above 1.</p>
+      <p class="note"><b>Torque and band stress</b>: τ = T<sub>load</sub>·r. The band stress is T<sub>load</sub>/(l·h), and τ<sub>max</sub> = l·h·r·σ<sub>max</sub> (Eqs. 7–8).</p>
+      <p class="note"><b>Parameters</b> (Sec. IV–V): shaft Ø 25.4 mm (r = 12.7 mm), band width l = 10 mm, PBI d = 55 µm, ε<sub>d</sub> = 3.9, ε<sub>g</sub> = 1, µ = 0.20. The fitted gaps are from Fig. 4: 2.3, 2.3, 2.9, 2.9, 3.6 and 4.1 µm for 0.5–3 wraps on the thin band, and 1.9 µm for the polished band at 2.25 wraps. T<sub>hold</sub> is 0.05 N for the thin band. The thick band used 2 N, modelled as 0.3 N (Sec. V-B).</p>
+      <p class="note"><b>Reported results quoted</b>: the 25.4 µm band snapped at ≈2.5 N·m (Sec. V-A). The 76.2 µm band held 7.1 N·m at 500 V, which is 31.3 N/cm² at 2.5 mW/cm² (Abstract, Sec. VI).</p>
+      <p class="note"><b>Simplified</b>: the gap is a free parameter that the paper fitted per wrap angle. Changing the wraps here snaps g to the nearest fitted value, and you can then override it. Power draw, band bending stiffness and peeling are not modelled. The band is drawn as a 10° helix (Sec. IV-A).</p>
+    </aside>
+  </main>
+  <script src="../../assets/three.min.js"></script>
+  <script src="../../assets/chart.js"></script>
+  <script>
+  (function () {
+    "use strict";
+    const $ = (id) => document.getElementById(id);
+    const EPS0 = 8.854e-12, EPS_D = 3.9, EPS_G = 1, D_PBI = 55e-6, L_BAND = 0.010, R_SHAFT = 0.0127;
+    const BANDS = { thin: { h: 25.4e-6, label: "25.4 µm" }, thick: { h: 76.2e-6, label: "76.2 µm" } };
+    // Fig. 4 fitted gaps (µm) by number of wraps, thin band
+    const FIT_GAPS = [[0.5, 2.3], [1, 2.3], [1.5, 2.9], [2, 2.9], [2.5, 3.6], [3, 4.1]];
+
+    // ---------- model (Sec. III) ----------
+    function beta(V, g) { // electrostatic normal pressure, Pa  (bracket of Eq. 4)
+      const coul = (EPS_G * EPS_D) / (D_PBI * EPS_G + g * EPS_D), jr = EPS_G / g;
+      return { total: 0.5 * EPS0 * V * V * (coul * coul + jr * jr), coul: 0.5 * EPS0 * V * V * coul * coul, jr: 0.5 * EPS0 * V * V * jr * jr };
+    }
+    function model(p) {
+      const th = p.wraps * 2 * Math.PI, e = Math.exp(p.mu * th), b = beta(p.V, p.g);
+      const alpha = b.total * L_BAND * R_SHAFT;                  // Eq. 2, N per rad
+      const Tload = p.Thold * e + alpha * (e - 1);                // Eqs. 3-4
+      const Tcap = p.Thold * e;                                   // Eq. 1
+      const Tplanar = p.mu * alpha * th;                          // Eq. 5
+      const adv = (p.Thold / alpha + 1) * (e - 1) / (p.mu * th);  // Eq. 6
+      const area = L_BAND * R_SHAFT * th;                         // m^2 of contact
+      return { th, e, b, alpha, Tload, Tcap, Tplanar, adv, area, tau: Tload * R_SHAFT, tauPlanar: Tplanar * R_SHAFT,
+        shear: Tload / area / 1e4, stress: Tload / (L_BAND * BANDS[p.band].h) };
+    }
+    function params() {
+      return { V: +$("V").value, wraps: +$("wraps").value, mu: +$("mu").value, g: +$("gap").value * 1e-6, Thold: +$("thold").value, band: $("band").value };
+    }
+
+    // ---------- three.js scene ----------
+    const stage = $("stage");
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(40, 1, 1, 5000);
+    camera.up.set(0, 0, 1);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+    stage.prepend(renderer.domElement);
+    scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+    const sun = new THREE.DirectionalLight(0xffffff, 0.8); sun.position.set(80, -120, 160); scene.add(sun);
+    const rim = new THREE.DirectionalLight(0xffffff, 0.35); rim.position.set(-100, 80, -40); scene.add(rim);
+
+    const r = 12.7; // mm
+    const shaftLen = 90;
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(r * 0.995, r * 0.995, shaftLen, 48), new THREE.MeshStandardMaterial({ color: 0x9aa3ad, metalness: 0.7, roughness: 0.35 }));
+    shaft.rotation.x = Math.PI / 2; scene.add(shaft);
+    const pbi = new THREE.Mesh(new THREE.CylinderGeometry(r * 1.01, r * 1.01, shaftLen * 0.8, 48, 1, true), new THREE.MeshStandardMaterial({ color: 0xc8892a, transparent: true, opacity: 0.45, side: THREE.DoubleSide, roughness: 0.6 }));
+    pbi.rotation.x = Math.PI / 2; scene.add(pbi);
+    let band = null, tails = null;
+    const weight = new THREE.Mesh(new THREE.BoxGeometry(10, 10, 12), new THREE.MeshStandardMaterial({ color: 0x4b5563, roughness: 0.6 }));
+    scene.add(weight);
+    const arrow = new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), new THREE.Vector3(), 30, 0xe0453a, 8, 5);
+    scene.add(arrow);
+
+    const ramp = (t) => { const c = new THREE.Color(); c.setHSL(0.62 - 0.62 * Math.max(0, Math.min(1, t)), 0.8, 0.5); return c; };
+    const HELIX = Math.tan((10 * Math.PI) / 180);
+    function buildBand(m, p) {
+      if (band) { scene.remove(band); band.geometry.dispose(); }
+      if (tails) { scene.remove(tails); tails.geometry.dispose(); }
+      const th = m.th, N = Math.max(24, Math.ceil(th * 30)), rb = r * 1.03, wl = 10;
+      const zOff = -(rb * th * HELIX) / 2;
+      const pos = [], col = [], idx = [];
+      const Tmax = m.Tload;
+      for (let i = 0; i <= N; i += 1) {
+        const ph = (th * i) / N, x = rb * Math.cos(ph), y = rb * Math.sin(ph), z = zOff + rb * ph * HELIX;
+        // local tension along the wrap: same law with theta -> phi (from hold end)
+        const e = Math.exp(p.mu * ph), T = p.Thold * e + m.alpha * (e - 1), c = ramp(Math.log(1 + T) / Math.log(1 + Tmax));
+        pos.push(x, y, z - wl / 2, x, y, z + wl / 2);
+        col.push(c.r, c.g, c.b, c.r, c.g, c.b);
+        if (i < N) { const k = 2 * i; idx.push(k, k + 2, k + 1, k + 1, k + 2, k + 3); }
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+      g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+      g.setIndex(idx); g.computeVertexNormals();
+      band = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, side: THREE.DoubleSide, metalness: 0.3, roughness: 0.4 }));
+      scene.add(band);
+      // straight tails: hold end leaves along -tangent at phi=0, load end leaves along tangent at phi=th
+      const p0 = new THREE.Vector3(rb, 0, zOff), t0 = new THREE.Vector3(0, -1, 0);
+      const p1 = new THREE.Vector3(rb * Math.cos(th), rb * Math.sin(th), zOff + rb * th * HELIX), t1 = new THREE.Vector3(-Math.sin(th), Math.cos(th), 0);
+      const holdEnd = p0.clone().addScaledVector(t0, 35), loadEnd = p1.clone().addScaledVector(t1, 35);
+      const tg = new THREE.BufferGeometry().setFromPoints([p0, holdEnd, p1, loadEnd]);
+      tails = new THREE.LineSegments(tg, new THREE.LineBasicMaterial({ color: 0x9aa3ad }));
+      scene.add(tails);
+      weight.position.copy(holdEnd).add(new THREE.Vector3(0, -6, 0));
+      arrow.position.copy(loadEnd); arrow.setDirection(t1);
+      const L = 12 + 30 * Math.min(1, Math.log10(1 + m.Tload) / 3);
+      arrow.setLength(L, 7, 5);
+    }
+
+    const cam = { r: 230, az: -1.1, el: 0.5, target: new THREE.Vector3() };
+    function place() {
+      camera.position.set(cam.target.x + cam.r * Math.cos(cam.el) * Math.cos(cam.az), cam.target.y + cam.r * Math.cos(cam.el) * Math.sin(cam.az), cam.target.z + cam.r * Math.sin(cam.el));
+      camera.lookAt(cam.target);
+    }
+    function resize() { const w = stage.clientWidth, h = stage.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+    let drag = null;
+    const el = renderer.domElement;
+    el.style.touchAction = "none";
+    el.addEventListener("contextmenu", (e) => e.preventDefault());
+    el.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY, pan: e.button === 2 || e.shiftKey }; el.setPointerCapture(e.pointerId); });
+    el.addEventListener("pointermove", (e) => {
+      if (!drag) return;
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
+      if (drag.pan) { const s = cam.r / 700; cam.target.add(new THREE.Vector3(-Math.sin(cam.az), Math.cos(cam.az), 0).multiplyScalar(-dx * s)); cam.target.z += dy * s; }
+      else { cam.az -= dx * 0.008; cam.el = Math.max(-1.4, Math.min(1.5, cam.el + dy * 0.008)); }
+    });
+    el.addEventListener("pointerup", () => { drag = null; });
+    el.addEventListener("wheel", (e) => { e.preventDefault(); cam.r = Math.max(60, Math.min(900, cam.r * Math.exp(e.deltaY * 0.0012))); }, { passive: false });
+
+    // ---------- chart ----------
+    const chart = TRLChart.create($("chart"), {});
+    const COLORS = { jr: "#2e9d6b", planar: "#2f6fde", cap: "#d9822b", now: "#e0453a" };
+    function drawChart(p, m) {
+      const q = $("chartQ").value, S = [];
+      const lin = (a, b, n) => Array.from({ length: n }, (_, i) => a + ((b - a) * i) / (n - 1));
+      let xl, yl, legend;
+      if (q === "V") {
+        const xs = lin(0, 500, 101);
+        S.push({ name: "JRCC (Eq. 4)", color: COLORS.jr, x: xs, y: xs.map((V) => model({ ...p, V }).tau) });
+        S.push({ name: "Planar equivalent (Eq. 5)", color: COLORS.planar, x: xs, y: xs.map((V) => model({ ...p, V }).tauPlanar) });
+        S.push({ name: "Capstan only (Eq. 1)", color: COLORS.cap, x: xs, y: xs.map(() => m.Tcap * R_SHAFT) });
+        S.push({ name: "current", color: COLORS.now, x: [p.V, p.V], y: [0, m.tau] });
+        xl = "Voltage V (V)"; yl = "Holding torque (N·m)";
+      } else {
+        const xs = lin(0.1, 4, 79);
+        if (q === "W") {
+          S.push({ name: "JRCC (Eq. 4)", color: COLORS.jr, x: xs, y: xs.map((w) => model({ ...p, wraps: w }).tau) });
+          S.push({ name: "Planar equivalent (Eq. 5)", color: COLORS.planar, x: xs, y: xs.map((w) => model({ ...p, wraps: w }).tauPlanar) });
+          S.push({ name: "Capstan only (Eq. 1)", color: COLORS.cap, x: xs, y: xs.map((w) => model({ ...p, wraps: w }).Tcap * R_SHAFT) });
+          S.push({ name: "current", color: COLORS.now, x: [p.wraps, p.wraps], y: [0, m.tau] });
+          yl = "Holding torque (N·m)";
+        } else if (q === "A") {
+          S.push({ name: "(e^µθ − 1)/(µθ)", color: COLORS.jr, x: xs, y: xs.map((w) => { const t = w * 2 * Math.PI; return (Math.exp(p.mu * t) - 1) / (p.mu * t); }) });
+          S.push({ name: "planar = 1", color: COLORS.planar, x: [xs[0], xs[xs.length - 1]], y: [1, 1] });
+          S.push({ name: "current", color: COLORS.now, x: [p.wraps, p.wraps], y: [0, m.adv] });
+          yl = "Capstan advantage (–)";
+        } else {
+          S.push({ name: "JRCC", color: COLORS.jr, x: xs, y: xs.map((w) => model({ ...p, wraps: w }).shear) });
+          S.push({ name: "Planar equivalent", color: COLORS.planar, x: xs, y: xs.map((w) => { const mm = model({ ...p, wraps: w }); return mm.Tplanar / mm.area / 1e4; }) });
+          S.push({ name: "current", color: COLORS.now, x: [p.wraps, p.wraps], y: [0, m.shear] });
+          yl = "Specific shear stress (N/cm²)";
+        }
+        xl = "Wrap angle θ (wraps, 1 wrap = 2π)";
+      }
+      chart.setSeries(S, { xlabel: xl, ylabel: yl });
+      $("legend").innerHTML = S.map((s) => `<span><i style="background:${s.color}"></i>${s.name}</span>`).join("");
+    }
+
+    // ---------- UI ----------
+    function nearestFitGap(w) { let best = FIT_GAPS[0]; for (const f of FIT_GAPS) if (Math.abs(f[0] - w) < Math.abs(best[0] - w)) best = f; return best; }
+    function update() {
+      const p = params(), m = model(p);
+      $("vLbl").textContent = `${p.V} V`;
+      $("wLbl").textContent = `${p.wraps} wraps = ${(m.th).toFixed(2)} rad (${(p.wraps * 360).toFixed(0)}°)`;
+      $("gLbl").textContent = `${(p.g * 1e6).toFixed(1)} µm`;
+      $("muLbl").textContent = p.mu.toFixed(2);
+      const snapLimit = p.band === "thin" && m.tau > 2.5;
+      const coulShare = (100 * m.b.coul) / (m.b.total || 1);
+      $("out").innerHTML =
+        `holding tension  T_load = ${m.Tload.toFixed(1)} N\n` +
+        `holding torque   τ = ${m.tau.toFixed(2)} N·m${snapLimit ? `  <span class="warn">above ≈2.5 N·m, where the 25.4 µm band snapped</span>` : ""}\n` +
+        `capstan only (V = 0)  ${(m.Tcap * R_SHAFT).toFixed(3)} N·m\n` +
+        `planar equivalent     ${m.tauPlanar.toFixed(2)} N·m\n` +
+        `capstan advantage (Eq. 6)  ${m.adv.toFixed(2)}×\n` +
+        `electrostatic pressure β  ${(m.b.total / 1000).toFixed(1)} kPa\n` +
+        `   JR term ${(100 - coulShare).toFixed(1)}% · Coulomb term ${coulShare.toFixed(1)}%\n` +
+        `α = β·l·r  ${m.alpha.toFixed(2)} N/rad\n` +
+        `contact area  ${(m.area * 1e4).toFixed(2)} cm²\n` +
+        `specific shear stress  ${m.shear.toFixed(1)} N/cm²\n` +
+        `band stress  ${(m.stress / 1e6).toFixed(0)} MPa (${BANDS[p.band].label} band)`;
+      const f = nearestFitGap(p.wraps);
+      $("gapNote").textContent = p.band === "thick"
+        ? "Polished 76.2 µm band: Fig. 4 fits g = 1.9 µm at 2.25 wraps."
+        : `Fig. 4 fitted g = ${f[1]} µm at ${f[0]} wraps for the thin band. The gap grows with wrap angle because the band lifts and twists.`;
+      buildBand(m, p);
+      drawChart(p, m);
+    }
+    function snapGap() {
+      const w = +$("wraps").value;
+      $("gap").value = $("band").value === "thick" ? 1.9 : nearestFitGap(w)[1];
+    }
+    $("wraps").addEventListener("input", () => { snapGap(); update(); });
+    $("band").addEventListener("change", () => {
+      if ($("band").value === "thick") { $("wraps").value = 2.25; $("thold").value = "0.3"; $("V").value = 500; }
+      else { $("thold").value = "0.05"; }
+      snapGap(); update();
+    });
+    ["V", "gap", "mu", "thold", "chartQ"].forEach((id) => $(id).addEventListener("input", update));
+    window.addEventListener("resize", resize);
+    update(); resize();
+    (function loop() { requestAnimationFrame(loop); place(); renderer.render(scene, camera); })();
+  })();
+  </script>
+</body>
+</html>

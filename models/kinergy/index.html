@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kinergy Kinetic Units</title>
+  <link rel="icon" href="../../assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../../assets/site.css" />
+  <style>
+    [hidden] { display: none !important; }
+    aside select { max-width: 100%; }
+    .split { position: absolute; inset: 0; display: grid; grid-template-rows: minmax(0, 1.25fr) minmax(0, 1fr); }
+    .split > div { position: relative; min-height: 0; overflow: hidden; }
+    .split canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; }
+    .chartbox { border-top: 1px solid var(--line); }
+    .chartbox canvas { left: 8px; top: 8px; width: calc(100% - 16px); height: calc(100% - 16px); }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; margin: 8px 0; }
+    .grp[hidden] { display: none; }
+    .warn { color: var(--accent); }
+    @media (max-width: 860px) { .model { grid-template-rows: auto auto; } .model .stage { height: 580px; } .split { grid-template-rows: 320px 260px; } }
+  </style>
+</head>
+<body>
+  <header class="site"><div class="wrap">
+    <a class="brand" href="../../"><img src="../../assets/icon.svg" alt="" />Transformative Robotics Lab</a>
+    <nav class="site"><a href="../../">Projects</a><a href="https://doi.org/10.1145/3526113.3545636">Kinergy paper (UIST 2022)</a></nav>
+  </div></header>
+  <main class="model">
+    <div class="stage">
+      <div class="split">
+        <div><canvas id="view" aria-label="Kinetic unit schematic"></canvas>
+          <div class="overlay">Charge the spring, then release. Idealised preview: no friction, no part mass except the end-effector.</div></div>
+        <div class="chartbox"><canvas id="chart" aria-label="Stored energy versus spring deformation"></canvas></div>
+      </div>
+    </div>
+    <aside>
+      <h1>Kinergy kinetic unit</h1>
+      <p class="muted">Illustrative model based on He, Su, Peng, Lipton &amp; Froehlich, <i>Kinergy</i> (UIST 2022), Section 3.3.2 and Table 2 (Eqs. 1–10). A printed spring stores energy; a gear train and a linkage turn it into one of the paper's output motions.</p>
+      <h2>Kinetic unit (Table 1)</h2>
+      <select id="unit" style="width:100%">
+        <option value="itrans">Instant translation (helical spring)</option>
+        <option value="irot">Instant rotation (spiral spring)</option>
+        <option value="ctrans">Continuous translation (press, rack output)</option>
+        <option value="crot" selected>Continuous rotation (turn, e.g. pull-back car)</option>
+        <option value="recip">Reciprocation (turn, Scotch yoke)</option>
+        <option value="geneva">Intermittent rotation (turn, Geneva drive)</option>
+      </select>
+      <div class="grp" id="gHel">
+        <h2>Helical spring (Fig. 2a)</h2>
+        <label>Spring diameter D <b id="vD"></b> mm <input id="D" type="range" min="8" max="40" step="1" value="20" /></label>
+        <label>Coil thickness d <b id="vd"></b> mm <input id="d" type="range" min="0.8" max="4" step="0.1" value="2" /></label>
+        <label>Number of coils N <b id="vN"></b> <input id="N" type="range" min="2" max="15" step="1" value="6" /></label>
+        <label>Compression X <b id="vX"></b> mm <input id="X" type="range" min="1" max="40" step="1" value="15" /></label>
+      </div>
+      <div class="grp" id="gSpi">
+        <h2>Spiral spring (Fig. 2b)</h2>
+        <label>Strip width b <b id="vb"></b> mm <input id="b" type="range" min="2" max="15" step="0.5" value="6" /></label>
+        <label>Strip thickness t <b id="vt"></b> mm <input id="t" type="range" min="0.6" max="2.5" step="0.1" value="1.2" /></label>
+        <label>Number of coils N <b id="vNs"></b> <input id="Ns" type="range" min="2" max="10" step="1" value="5" /></label>
+        <label>Wind-up angle θ <b id="vth"></b>° <input id="th" type="range" min="90" max="1440" step="30" value="360" /></label>
+      </div>
+      <div class="grp" id="gGear">
+        <h2>Gear train (Eq. 4)</h2>
+        <label>Bull gear radius R <b id="vR"></b> mm <input id="R" type="range" min="6" max="25" step="1" value="15" /></label>
+        <label>Spur gear radius r <b id="vr"></b> mm <input id="r" type="range" min="4" max="20" step="1" value="6" /></label>
+        <label>Bull/spur gear sets n <b id="vn"></b> <input id="n" type="range" min="0" max="3" step="1" value="1" /></label>
+        <label id="lCrank">Crank length r<sub>c</sub> <b id="vc"></b> mm <input id="c" type="range" min="3" max="20" step="1" value="8" /></label>
+        <label id="lSlots">Geneva slots n<sub>s</sub> <b id="vs"></b> <input id="s" type="range" min="3" max="8" step="1" value="4" /></label>
+      </div>
+      <h2>Material and load (assumed)</h2>
+      <label>Printed material <select id="mat"><option value="3.5" data-s="50">PLA (E ≈ 3.5 GPa, σ ≈ 50 MPa)</option><option value="2.1" data-s="50">PETG (E ≈ 2.1 GPa, σ ≈ 50 MPa)</option><option value="0.05" data-s="30">TPU 95A (E ≈ 0.05 GPa, σ ≈ 30 MPa)</option></select></label>
+      <label>End-effector mass <b id="vm"></b> g <input id="m" type="range" min="5" max="300" step="5" value="50" /></label>
+      <div class="row"><button class="btn" id="charge" type="button">Charge</button><button class="btn primary" id="release" type="button">Release</button></div>
+      <h2>Outputs</h2>
+      <div class="readout" id="out"></div>
+      <p class="muted" style="font-size:12px">Chart: stored energy for the current spring (red) and a coil 0.4 mm thinner (blue) / thicker (green) — or strip ±0.3 mm for spiral springs — showing the d⁴ (t³) scaling of Eqs. 1–2.</p>
+      <h2>How this model works</h2>
+      <p class="muted" style="font-size:13px">Kinergy states proportionalities (Table 2): helical energy P<sub>e</sub> ∝ d⁴X²/(D³N) (Eq. 1), spiral energy P<sub>e</sub> ∝ b t³θ²/N (Eq. 2), gear ratio G = (R/r)<sup>n</sup> (Eq. 4), travel/revolutions ∝ X·G or θ·G (Eqs. 5–7), Scotch-yoke stroke ∝ r (Eq. 8) and Geneva step angle ∝ 1/n<sub>s</sub> (Eq. 10). To give numbers, this page fills in the textbook constants the paper cites (spring theory, its ref. [4]): k = G<sub>s</sub>d⁴/(8D³N) with G<sub>s</sub> = E/(2(1+ν)), ν = 0.36; spiral k<sub>θ</sub> = E b t³/(12L) with strip length L = 2πN·(10 mm mean radius); P<sub>e</sub> = ½kX² or ½k<sub>θ</sub>θ². A helical spring drives the train through a rack and a 6 mm pinion (Fig. 4f); a spiral spring is coaxial with the first gear (Fig. 4g). The paper limits G to 1/5–5 (Section 6.1); values outside are flagged. Like Kinergy's own preview (Section 3.3.3), motion assumes no friction and Hooke's-law springs. Material moduli and strengths are typical datasheet values, not from the paper; the stress check (helical τ = 8FD/(πd³), spiral σ = 6M/(bt²), shear limit taken as half the tensile strength) is our addition to flag springs that would likely break.</p>
+      <p class="muted" style="font-size:13px">Not modelled: compliant locks (Fig. 3), print tolerances (0.3 mm gear gap, Section 4), and spring fatigue.</p>
+    </aside>
+  </main>
+  <script src="../../assets/chart.js"></script>
+  <script>
+  (function () {
+    const $ = (id) => document.getElementById(id);
+    const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+    const view = $("view"), ctx = view.getContext("2d");
+    const chart = TRLChart.create($("chart"), { xlabel: "spring deformation", ylabel: "stored energy (mJ)" });
+    const PINION = 6; // mm, rack-and-pinion input radius (assumed)
+    const RMEAN = 10; // mm, spiral mean radius (assumed)
+    let phase = 1, anim = null; // 1 = fully charged, 0 = released
+
+    const spiralUnit = (u) => ["irot", "crot", "recip", "geneva"].includes(u);
+    function params() {
+      const p = {}; ["D", "d", "N", "X", "b", "t", "Ns", "th", "R", "r", "n", "c", "s", "m"].forEach((k) => (p[k] = Number($(k).value)));
+      p.unit = $("unit").value; p.E = Number($("mat").value) * 1e9; p.sy = Number($("mat").selectedOptions[0].dataset.s); return p;
+    }
+    function model(p) {
+      const o = {}; const Gs = p.E / (2 * (1 + 0.36));
+      if (spiralUnit(p.unit)) {
+        const L = 2 * Math.PI * p.Ns * RMEAN * 1e-3;
+        o.k = (p.E * (p.b * 1e-3) * (p.t * 1e-3) ** 3) / (12 * L); // N·m/rad
+        o.def = (p.th * Math.PI) / 180; o.Pe = 0.5 * o.k * o.def ** 2; o.torque = o.k * o.def;
+        o.inRad = o.def; o.stress = (6 * o.torque) / ((p.b * 1e-3) * (p.t * 1e-3) ** 2) / 1e6; // bending, MPa
+      } else {
+        o.k = (Gs * (p.d * 1e-3) ** 4) / (8 * (p.D * 1e-3) ** 3 * p.N); // N/m
+        o.def = p.X * 1e-3; o.Pe = 0.5 * o.k * o.def ** 2; o.force = o.k * o.def;
+        o.inRad = p.X / PINION; // rack drives first gear
+        o.stress = (8 * o.force * p.D * 1e-3) / (Math.PI * (p.d * 1e-3) ** 3) / 1e6; // torsional shear, MPa
+      }
+      o.G = (p.R / p.r) ** p.n; o.Gok = o.G >= 0.2 - 1e-9 && o.G <= 5 + 1e-9;
+      o.outRad = o.inRad * o.G; o.rev = o.outRad / (2 * Math.PI);
+      const mkg = p.m * 1e-3;
+      if (p.unit === "itrans") o.v = Math.sqrt((2 * o.Pe) / mkg);
+      return o;
+    }
+    const f = (v, n = 2) => (Math.abs(v) >= 1000 || (Math.abs(v) < 0.01 && v !== 0) ? v.toExponential(2) : v.toFixed(n));
+
+    function update() {
+      const p = params(), o = model(p), u = p.unit;
+      $("gHel").hidden = spiralUnit(u); $("gSpi").hidden = !spiralUnit(u);
+      $("gGear").hidden = u === "itrans" || u === "irot";
+      $("lCrank").hidden = u !== "recip"; $("lSlots").hidden = u !== "geneva";
+      [["D", "vD"], ["d", "vd"], ["N", "vN"], ["X", "vX"], ["b", "vb"], ["t", "vt"], ["Ns", "vNs"], ["th", "vth"], ["R", "vR"], ["r", "vr"], ["n", "vn"], ["c", "vc"], ["s", "vs"], ["m", "vm"]].forEach(([a, b]) => ($(b).textContent = $(a).value));
+      let s = `stored energy Pe = ${f(o.Pe * 1000)} mJ\n`;
+      s += spiralUnit(u) ? `spiral stiffness kθ = ${f(o.k * 1000)} N·mm/rad\nwind-up torque = ${f(o.torque * 1000)} N·mm\n` : `helical stiffness k = ${f(o.k / 1000)} N/mm\nmax spring force = ${f(o.force)} N\n`;
+      const lim = spiralUnit(u) ? p.sy : 0.5 * p.sy;
+      s += `peak ${spiralUnit(u) ? "bending" : "shear"} stress ≈ ${f(o.stress, 0)} MPa ${o.stress > lim ? "⚠ above" : "below"} ~${lim} MPa\n`;
+      if (u === "itrans") s += `end-effector stroke = ${p.X} mm\nideal launch speed = ${f(o.v)} m/s (all Pe → ½mv²)`;
+      else if (u === "irot") s += `rotation on release = ${f(p.th / 360)} rev (Eq. 3)`;
+      else {
+        s += `gear ratio G = (R/r)^n = ${f(o.G, 3)}${o.Gok ? "" : "  ⚠ outside Kinergy's 1/5–5"}\n`;
+        s += `output torque ≈ ${f(((spiralUnit(u) ? o.torque : o.force * PINION * 1e-3) / o.G) * 1000)} N·mm\n`;
+        if (u === "ctrans") s += `rack travel Dis = ${f(o.rev * 2 * Math.PI * PINION, 1)} mm (Eq. 5)`;
+        if (u === "crot") s += `output revolutions Rr = ${f(o.rev)} (Eq. 6)\n(e.g. ${f(o.rev * Math.PI * 40, 0)} mm of travel on a 40 mm wheel)`;
+        if (u === "recip") s += `stroke Str = 2rc = ${2 * p.c} mm (Eq. 8)\nreciprocations = ${f(o.rev, 1)} (Eq. 7)`;
+        if (u === "geneva") s += `step angle θint = 360°/ns = ${f(360 / p.s, 1)}° (Eq. 10)\nsteps per release = ${Math.floor(o.rev)} (one per crank turn)`;
+      }
+      $("out").innerHTML = s.replace(/⚠[^\n]*/g, (m) => `<span class="warn">${m}</span>`);
+      // chart: energy vs deformation, current geometry and thicker/thinner coil
+      const series = [];
+      if (spiralUnit(u)) {
+        for (const dt of [-0.3, 0, 0.3]) {
+          const tt = p.t + dt; if (tt <= 0) continue;
+          const xs = [], ys = [];
+          for (let a = 0; a <= 1440; a += 30) { const q = { ...p, t: tt, th: a }; xs.push(a); ys.push(model(q).Pe * 1000); }
+          series.push({ name: `t = ${tt.toFixed(1)} mm`, x: xs, y: ys });
+        }
+        chart.setSeries(series, { xlabel: "wind-up angle θ (deg)", ylabel: "stored energy Pe (mJ)" });
+      } else {
+        for (const dd of [-0.4, 0, 0.4]) {
+          const d2 = p.d + dd; if (d2 <= 0) continue;
+          const xs = [], ys = [];
+          for (let x = 0; x <= 40; x += 1) { const q = { ...p, d: d2, X: x }; xs.push(x); ys.push(model(q).Pe * 1000); }
+          series.push({ name: `d = ${d2.toFixed(1)} mm`, x: xs, y: ys });
+        }
+        chart.setSeries(series, { xlabel: "compression X (mm)", ylabel: "stored energy Pe (mJ)" });
+      }
+      draw();
+    }
+
+    // ---------- drawing ----------
+    function gear(cx, cy, rad, ang, teeth, col) {
+      ctx.save(); ctx.translate(cx, cy); ctx.rotate(ang); ctx.beginPath();
+      const T = Math.max(8, teeth), h = Math.min(6, rad * 0.18);
+      for (let i = 0; i <= T * 2; i++) { const a = (i / (T * 2)) * Math.PI * 2, rr = i % 2 ? rad - h : rad; ctx.lineTo(rr * Math.cos(a), rr * Math.sin(a)); }
+      ctx.closePath(); ctx.fillStyle = col; ctx.globalAlpha = 0.25; ctx.fill(); ctx.globalAlpha = 1; ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(rad * 0.8, 0); ctx.stroke();
+      ctx.beginPath(); ctx.arc(0, 0, 3, 0, 7); ctx.fill(); ctx.restore();
+    }
+    function draw() {
+      const dpr = Math.min(devicePixelRatio || 1, 2), W = view.clientWidth, H = view.clientHeight;
+      if (view.width !== Math.round(W * dpr)) { view.width = Math.round(W * dpr); view.height = Math.round(H * dpr); }
+      if (view.height !== Math.round(H * dpr)) view.height = Math.round(H * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+      const ink = css("--ink"), mut = css("--muted"), acc = css("--accent"), blue = "#2f6fde", green = "#2e9d6b";
+      const p = params(), o = model(p), u = p.unit;
+      const sc = Math.min(W / 160, H / 85); // px per mm
+      const cy = H * 0.5;
+      ctx.font = "12px system-ui, sans-serif"; ctx.fillStyle = mut;
+      // spring + its deformation state
+      const inAng = o.inRad * (1 - phase); // how much the input has turned since release
+      let x0 = 20;
+      if (!spiralUnit(u)) {
+        const free = p.D * 2.2 + 30, len = (free - p.X * phase) * sc * 0.9, h = p.D * sc * 0.5;
+        const sx = x0, n = p.N;
+        ctx.strokeStyle = blue; ctx.lineWidth = Math.max(1.5, p.d * sc * 0.35); ctx.beginPath(); ctx.moveTo(sx, cy);
+        for (let i = 0; i <= n * 2; i++) ctx.lineTo(sx + (len * i) / (n * 2), cy + (i % 2 ? -h : h) * (i === 0 || i === n * 2 ? 0 : 1));
+        ctx.stroke();
+        ctx.fillStyle = mut; ctx.fillRect(sx - 8, cy - h - 10, 6, 2 * h + 20);
+        ctx.fillText(`helical spring, X = ${(p.X * phase).toFixed(0)} mm`, sx, cy - h - 16);
+        x0 = sx + len;
+        if (u === "itrans") {
+          ctx.fillStyle = acc; ctx.fillRect(x0, cy - h - 6, 26 * sc * 0.5 + 10, 2 * h + 12);
+          ctx.fillStyle = mut; ctx.fillText("end-effector", x0, cy + h + 22); return;
+        }
+        // rack driving pinion
+        const pr = PINION * sc * 0.6; const rackY = cy; ctx.fillStyle = mut; ctx.fillRect(x0, rackY - 3, 50, 6);
+        x0 += 50; var gx = x0, gy = rackY - 3 - pr, gr = pr; gear(gx, gy, pr, -inAng, 10, ink);
+      } else {
+        // spiral spring as Archimedean spiral; tighter when charged
+        const R0 = 34 * sc * 0.5, turns = p.Ns + (p.th / 360) * phase * 0.6;
+        const cx = x0 + R0 + 6; ctx.strokeStyle = blue; ctx.lineWidth = Math.max(1.2, p.t * sc * 0.4); ctx.beginPath();
+        for (let i = 0; i <= 400; i++) { const tt = i / 400, a = tt * turns * 2 * Math.PI - inAng, rr = 4 + tt * R0; ctx.lineTo(cx + rr * Math.cos(a), cy + rr * Math.sin(a)); }
+        ctx.stroke(); ctx.fillStyle = mut; ctx.fillText(`spiral spring, θ = ${(p.th * phase).toFixed(0)}°`, cx - R0, cy - R0 - 10);
+        if (u === "irot") {
+          ctx.strokeStyle = acc; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + (R0 + 30) * Math.cos(-inAng), cy + (R0 + 30) * Math.sin(-inAng)); ctx.stroke();
+          ctx.fillStyle = mut; ctx.fillText("end-effector", cx + R0 + 10, cy + R0 + 16); return;
+        }
+        var gx = cx, gy = cy, gr = R0;
+      }
+      // gear train (Fig. 4): shaft 0 carries the drive and a bull gear R; each stage adds a shaft whose
+      // spur r meshes with the previous bull and whose bull drives the next, so speed rises by R/r per stage.
+      const bull = p.R * sc * 0.6, spur = p.r * sc * 0.6;
+      let ang = -inAng, shaftX = gx, shaftY = gy;
+      if (p.n > 0) gear(shaftX, shaftY, bull, ang, 18, ink);
+      for (let k = 0; k < p.n; k++) {
+        shaftX += bull + spur + 2; ang = -ang * (p.R / p.r);
+        gear(shaftX, shaftY, spur, ang, 9, ink);
+        if (k < p.n - 1) gear(shaftX, shaftY, bull, ang, 18, mut);
+      }
+      const outA = o.outRad * (1 - phase); // magnitude of output rotation
+      const ox = shaftX + Math.max(spur, gr) + 40, oy = shaftY;
+      ctx.strokeStyle = mut; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(shaftX, oy); ctx.lineTo(ox, oy); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = mut;
+      if (u === "crot") {
+        const wr = 26; ctx.strokeStyle = acc; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(ox, oy, wr, 0, 7); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(ox, oy); ctx.lineTo(ox + wr * Math.cos(-outA), oy + wr * Math.sin(-outA)); ctx.stroke();
+        ctx.fillText(`output wheel: ${(o.rev * (1 - phase)).toFixed(1)} rev`, ox - wr, oy + wr + 16);
+      } else if (u === "ctrans") {
+        const pr = spur, tr = Math.min(outA * PINION * sc * 0.6, W - ox - 50);
+        ctx.fillStyle = acc; ctx.fillRect(ox - 40 + tr, oy + pr + 2, 70, 8);
+        ctx.fillStyle = mut; ctx.fillText(`output rack: ${(outA * PINION).toFixed(0)} mm`, ox - 40, oy + pr + 28);
+      } else if (u === "recip") {
+        const rc = p.c * sc * 0.6, a = -outA;
+        ctx.strokeStyle = ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(ox, oy, rc, 0, 7); ctx.stroke();
+        const px = ox + rc * Math.cos(a), py = oy + rc * Math.sin(a);
+        ctx.fillStyle = acc; ctx.fillRect(px - 4, oy - rc - 14, 8, 2 * rc + 28); ctx.fillRect(px + 4, oy - 4, 70, 8);
+        ctx.beginPath(); ctx.arc(px, py, 4, 0, 7); ctx.fillStyle = ink; ctx.fill(); ctx.fillStyle = mut; ctx.fillText("Scotch yoke slider", ox - rc, oy + rc + 30);
+      } else if (u === "geneva") {
+        // one slot (360°/ns) per revolution of the driving crank, moving during the engaged part of the turn
+        const nS = p.s, cyc = outA / (2 * Math.PI), whole = Math.floor(cyc), fr = cyc - whole;
+        const engaged = 1 / 2 - 1 / nS; // fraction of crank turn spent driving the wheel (external Geneva)
+        const prog = fr < engaged ? 0.5 - 0.5 * Math.cos((fr / engaged) * Math.PI) : 1;
+        const wa = ((whole + prog) * 2 * Math.PI) / nS, wr = 30;
+        ctx.save(); ctx.translate(ox + 14, oy); ctx.rotate(wa); ctx.strokeStyle = acc; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.arc(0, 0, wr, 0, 7); ctx.stroke();
+        for (let i = 0; i < nS; i++) { const sa = (i * 2 * Math.PI) / nS; ctx.beginPath(); ctx.moveTo(wr * 0.35 * Math.cos(sa), wr * 0.35 * Math.sin(sa)); ctx.lineTo(wr * Math.cos(sa), wr * Math.sin(sa)); ctx.stroke(); }
+        ctx.restore(); ctx.fillStyle = mut; ctx.fillText(`Geneva wheel, ${nS} slots: step ${whole}`, ox - 20, oy + wr + 18);
+      }
+      ctx.fillStyle = mut; ctx.fillText(phase > 0.999 ? "charged — press Release" : phase < 0.001 ? "released" : "releasing…", 12, H - 12);
+    }
+    function animateTo(target) {
+      cancelAnimationFrame(anim); const start = phase, t0 = performance.now(), dur = 1800;
+      (function step(now) {
+        const s = Math.min(1, (now - t0) / dur);
+        // free release of a Hooke's-law spring: deformation ∝ cos(ωt) over a quarter period
+        phase = target < start ? start * Math.cos((s * Math.PI) / 2) : start + (target - start) * s;
+        draw(); if (s < 1) anim = requestAnimationFrame(step); else { phase = target; draw(); }
+      })(t0);
+    }
+    $("release").addEventListener("click", () => animateTo(0));
+    $("charge").addEventListener("click", () => animateTo(1));
+    document.querySelectorAll("aside input, aside select").forEach((el) => el.addEventListener("input", () => { phase = 1; update(); }));
+    window.addEventListener("resize", draw);
+    update();
+  })();
+  </script>
+</body>
+</html>

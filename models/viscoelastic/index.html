@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Printed Viscoelastic Dampers</title>
+  <link rel="icon" href="../../assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../../assets/site.css" />
+  <style>
+    .chart-box { height: 220px; border: 1px solid var(--line); border-radius: 8px; margin-top: 6px; }
+    .chart-box canvas { width: 100%; height: 100%; display: block; }
+    .note { font-size: 12.5px; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
+    .row2 label { margin: 2px 0; }
+    .row2 select { width: 100%; }
+    aside input[type="range"] { width: 100%; }
+    .warn { color: var(--accent); font-weight: 600; }
+    .seg { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+    #view { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    .legend { display: flex; gap: 10px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .legend i { display: inline-block; width: 22px; height: 8px; border-radius: 3px; vertical-align: middle; margin-right: 4px; }
+  </style>
+</head>
+<body>
+  <header class="site"><div class="wrap">
+    <a class="brand" href="../../"><img src="../../assets/icon.svg" alt="" />Transformative Robotics Lab</a>
+    <nav class="site"><a href="../../">Projects</a><a href="https://matterassembly.org/assets/pdf/preprints/2016_MacCurdy-Printable_Programmable_Viscoelastic_Materials_for_Robots.pdf">Paper (PDF)</a></nav>
+  </div></header>
+  <main class="model">
+    <div class="stage" id="stage">
+      <canvas id="view" aria-label="Drop test on a printed viscoelastic puck"></canvas>
+      <div class="overlay">Left: drop test on the printed puck (slow motion) · Right: voxel cross-section from Algorithm 2</div>
+    </div>
+    <aside>
+      <h1>Program a printed damper</h1>
+      <p class="muted note">Illustrative model based on MacCurdy, Lipton, Li and Rus, "Printable Programmable Viscoelastic Materials for Robots" (IROS 2016): Table II, Eqs. (2)–(13) and Algorithm 2.</p>
+
+      <h2>Material</h2>
+      <label>Liquid fraction P<sub>l</sub>: <b id="plLbl"></b>
+        <input id="pl" type="range" min="0" max="50" step="1" value="6" /></label>
+      <p class="muted note" id="plNote"></p>
+
+      <h2>Drop test (Sec. IV-B)</h2>
+      <div class="row2">
+        <label>Impactor mass
+          <select id="mass"><option value="0.0444">44.4 g</option><option value="0.223" selected>223 g</option></select></label>
+        <label>Drop height
+          <select id="hgt"><option value="0.1">100 mm</option><option value="0.2">200 mm</option><option value="0.3">300 mm</option><option value="0.4">400 mm</option><option value="0.5" selected>500 mm</option></select></label>
+      </div>
+      <div class="seg"><button class="btn primary" id="drop">Drop</button></div>
+
+      <h2>Vibration isolation (Sec. V-B)</h2>
+      <label>Isolated mass m: <b id="miLbl"></b>
+        <input id="mi" type="range" min="-1.36" max="1.3" step="0.01" value="-1.35" /></label>
+      <p class="muted note">Puck geometry: Ø 63.5 mm × 12.7 mm, so A₀ = 3.17×10⁻³ m² and L₀ = 12.7 mm. These are the sample sizes from Sec. IV-B, also used for Fig. 8.</p>
+
+      <h2>Readout</h2>
+      <div class="readout" id="out"></div>
+
+      <h2>Chart</h2>
+      <select id="chartQ" style="width:100%">
+        <option value="E">E′ and E″ vs frequency (Eqs. 3–4)</option>
+        <option value="P">E′, E″ at 1 Hz and tan δ vs liquid fraction (Table II)</option>
+        <option value="R">Coefficient of restitution vs liquid fraction (Eq. 6)</option>
+        <option value="T">Base-excitation transmissibility (Eq. 10)</option>
+      </select>
+      <div class="chart-box"><canvas id="chart" aria-label="Viscoelastic model chart"></canvas></div>
+      <div class="legend" id="legend"></div>
+      <p class="muted note">All curves are the paper's fitted models, not the measured points.</p>
+
+      <h2>How this model works</h2>
+      <p class="note"><b>Printing.</b> An inkjet printer deposits a rubbery solid (TangoBlack+) and a non-curing liquid side by side. Algorithm 2 assigns each voxel inside the part to the liquid with probability P<sub>l</sub>, and to the solid otherwise. The right panel shows one such random cross-section with 30 × 40 µm voxels drawn enlarged.</p>
+      <p class="note"><b>Small strain</b> (ε &lt; 0.01, Sec. IV-A). DMA tests from 1 to 100 Hz showed power laws E′ = E′|<sub>1Hz</sub>·ω<sup>n1</sup> and E″ = E″|<sub>1Hz</sub>·ω<sup>n2</sup> (Eqs. 3–4). E′|<sub>1Hz</sub>, E″|<sub>1Hz</sub> and tan δ|<sub>1Hz</sub> follow a·e<sup>bP<sub>l</sub></sup> + c·e<sup>dP<sub>l</sub></sup>. n1 and n2 change form at 25% liquid, where the paper suggests the material becomes an open-cell foam (Table II).</p>
+      <p class="note"><b>Large strain / impact</b> (Eq. 6). e* = p₁P<sub>l</sub>³ + p₂P<sub>l</sub>² + p₃P<sub>l</sub> + p₄, fitted to drop tests with 0–36% liquid. Its minimum near 4–10% liquid is the most energy-absorbing mix. Successive bounce heights scale as e*².</p>
+      <p class="note"><b>Isolation</b> (Eqs. 7–10). The puck is a complex spring K* = (A₀/L₀)E′|<sub>1Hz</sub>(ω<sup>n1</sup> + i·tan δ|<sub>1Hz</sub>·ω<sup>n2</sup>) (Eq. 8). It carries a mass m on a vibrating base.</p>
+      <p class="note"><b>Our choices and simplifications.</b> (1) In Eqs. 3–5, ω is read as frequency in Hz normalised by 1 Hz, so the moduli equal their 1 Hz values at 1 Hz. The inertia term uses ω = 2πf. (2) Eq. 10 is printed as K*/(mω² + K*). We use the standard base-excitation form K*/(K* − mω²) so that a resonance can appear. (3) Above 100 Hz, and outside 0–36% liquid for e*, the fits are extrapolated, and this is flagged. (4) The peak force readout is our own linear-spring estimate, F ≈ v·√(m·K′|<sub>1Hz</sub>). It is not a model from the paper. The paper reports measured peak forces in Fig. 2b and a ≈700 N drop from 0% to 25% liquid. (5) In the drop animation the contact phase is slowed down further and is not to time scale.</p>
+      <p class="note"><b>Reported robot result</b> (Sec. V-A, Fig. 4): an 18% liquid skin roughly halved the jumping cube's peak landing acceleration compared with a cast foam skin, and reduced bouncing.</p>
+    </aside>
+  </main>
+  <script src="../../assets/chart.js"></script>
+  <script>
+  (function () {
+    "use strict";
+    const $ = (id) => document.getElementById(id);
+    // ---------- Table II ----------
+    const dexp = (a, b, c, d, P) => a * Math.exp(b * P) + c * Math.exp(d * P);
+    const E1 = (P) => dexp(0.595, -0.282, 0.635, -0.031, P);      // MPa
+    const E2 = (P) => dexp(1.00, -0.272, 0.135, -0.021, P);       // MPa
+    const TD = (P) => dexp(0.832, -0.118, 0.085, 0.032, P);
+    const n1 = (P) => (P <= 25 ? 2.21e-4 * P * P - 1.37e-2 * P + 0.494 : 4.30e-3 * P + 1.85e-1);
+    const n2 = (P) => (P <= 25 ? -3.82e-3 * P + 7.51e-1 : 0 * P + 6.73e-1);
+    const ESTAR = (P) => -1.23e-5 * P ** 3 + 8.05e-4 * P ** 2 - 8.55e-3 * P + 1.5e-1; // Eq. 6
+    const A0 = 3.17e-3, L0 = 1.27e-2, G = 9.81;
+    const Ep = (P, f) => E1(P) * f ** n1(P);                      // Eq. 3, MPa
+    const Epp = (P, f) => E2(P) * f ** n2(P);                     // Eq. 4, MPa
+    function Kstar(P, f) { // Eq. 8, N/m, complex [re, im] using tan δ|1Hz form of Eq. 5
+      const k = (A0 / L0) * E1(P) * 1e6;
+      return [k * f ** n1(P), k * TD(P) * f ** n2(P)];
+    }
+    function transmiss(P, f, m) { // |K*/(K* - m ω²)|
+      const [re, im] = Kstar(P, f), w = 2 * Math.PI * f, dr = re - m * w * w;
+      return Math.hypot(re, im) / Math.hypot(dr, im);
+    }
+
+    // ---------- canvas view ----------
+    const stage = $("stage"), cv = $("view"), ctx = cv.getContext("2d");
+    const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+    let voxels = null, voxSeed = -1;
+    const VX = 64, VY = 14;
+    function rng(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
+    function makeVoxels(P) { // Algorithm 2 on a 2D slice
+      const r = rng(12345), out = new Uint8Array(VX * VY);
+      for (let i = 0; i < out.length; i += 1) out[i] = r() > P / 100 ? 0 : 1; // 0 = Material A (solid), 1 = Material B (liquid)
+      return out;
+    }
+    const sim = { y: 0, v: 0, phase: "idle", h: 0.5, e: 0.15, bounces: 0, contactT: 0, vIn: 0, peak: 0, trail: [] };
+    function startDrop() {
+      const P = +$("pl").value;
+      sim.h = +$("hgt").value; sim.y = sim.h; sim.v = 0; sim.phase = "fall"; sim.e = Math.max(0, ESTAR(P)); sim.bounces = 0; sim.trail = [];
+      sim.peakSeen = 0;
+    }
+    function step(dt) {
+      if (sim.phase === "fall") {
+        sim.v -= G * dt; sim.y += sim.v * dt;
+        if (sim.y <= 0) { sim.y = 0; sim.vIn = -sim.v; sim.phase = "contact"; sim.contactT = 0; }
+      } else if (sim.phase === "contact") {
+        sim.contactT += dt;
+        if (sim.contactT > 0.06) {
+          const vOut = sim.e * sim.vIn;
+          if (vOut < 0.05) { sim.phase = "rest"; sim.v = 0; return; }
+          sim.v = vOut; sim.bounces += 1; sim.phase = "fall"; sim.y = 1e-6;
+        }
+      }
+    }
+    function draw() {
+      const dpr = Math.min(devicePixelRatio || 1, 2), W = stage.clientWidth, H = stage.clientHeight;
+      if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+      const P = +$("pl").value, ink = css("--ink"), muted = css("--muted"), line = css("--line");
+      const narrow = W < 620;
+      const leftW = narrow ? W : W * 0.55;
+      // ---- drop test ----
+      const ground = H - 96, puckH = 40, puckW = Math.min(240, leftW * 0.6), cx = leftW / 2;
+      const scale = (ground - puckH - 90) / 0.5; // px per m of drop height
+      ctx.fillStyle = muted; ctx.fillRect(cx - puckW, ground, puckW * 2, 6);
+      // compression (visual): half-sine during contact, depth from linear-spring estimate (exaggerated ×4)
+      const K = (A0 / L0) * E1(P) * 1e6, m = +$("mass").value;
+      let comp = 0;
+      if (sim.phase === "contact") comp = Math.sin(Math.PI * Math.min(1, sim.contactT / 0.06)) * Math.min(puckH * 0.7, 4 * sim.vIn * Math.sqrt(m / K) * scale);
+      // puck
+      const ph = puckH - comp, py = ground - ph;
+      ctx.fillStyle = "#1f2937"; ctx.fillRect(cx - puckW / 2, py, puckW, ph);
+      ctx.strokeStyle = muted; ctx.strokeRect(cx - puckW / 2, py, puckW, ph);
+      const cols = 30, rows = 5, cw = puckW / cols, rh = ph / rows;
+      ctx.fillStyle = "#38bdf8";
+      for (let j = 0; j < rows; j += 1) for (let i = 0; i < cols; i += 1) if (voxels[(j * 2 + 2) * VX + i * 2 + 2]) ctx.fillRect(cx - puckW / 2 + i * cw, py + j * rh, cw - 0.5, rh - 0.5);
+      // impactor
+      const blockH = 40, blockW = 60, by = py - blockH - (sim.phase === "contact" ? 0 : sim.y * scale);
+      ctx.fillStyle = "#9aa3ad"; ctx.fillRect(cx - blockW / 2, by, blockW, blockH);
+      ctx.strokeStyle = ink; ctx.lineWidth = 1; ctx.strokeRect(cx - blockW / 2, by, blockW, blockH);
+      ctx.fillStyle = "#111827"; ctx.font = "11px system-ui"; ctx.textAlign = "center"; ctx.fillText(`${(m * 1000).toFixed(1)} g`, cx, by + blockH / 2 + 4);
+      // height scale and expected rebounds
+      ctx.strokeStyle = line; ctx.fillStyle = muted; ctx.textAlign = "right"; ctx.font = "12px system-ui";
+      const sx = cx - puckW / 2 - 18;
+      const e = Math.max(0, ESTAR(P)), h0 = +$("hgt").value;
+      let lastY = -Infinity;
+      for (let k = 0; k < 4; k += 1) {
+        const hk = h0 * e ** (2 * k), yk = py - blockH - hk * scale + blockH;
+        if (yk - lastY < 14) continue;
+        lastY = yk;
+        ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.moveTo(sx, yk); ctx.lineTo(cx + puckW / 2 + 10, yk); ctx.stroke(); ctx.setLineDash([]);
+        ctx.fillText(k === 0 ? `drop ${(hk * 1000).toFixed(0)} mm` : `bounce ${k}: ${(hk * 1000).toFixed(1)} mm`, sx - 4, yk + 4);
+        if (hk < 0.002) break;
+      }
+      ctx.textAlign = "center"; ctx.fillStyle = ink; ctx.font = "13px system-ui";
+      ctx.fillText(`e* = ${e.toFixed(3)} (Eq. 6) · rebound height ratio e*² = ${(e * e).toFixed(4)}`, cx, H - 64);
+      ctx.fillStyle = muted; ctx.font = "12px system-ui";
+      ctx.fillText(sim.phase === "idle" ? "Press Drop to run the test" : `bounces above 0.05 m/s: ${sim.bounces}`, cx, H - 46);
+      // ---- voxel slice ----
+      if (!narrow) {
+        const x0 = leftW + 4, wAvail = W - x0 - 24, pix = Math.max(3, Math.floor(Math.min(wAvail / VX, (H * 0.5) / VY)));
+        const y0 = H / 2 - (VY * pix) / 2;
+        ctx.fillStyle = ink; ctx.textAlign = "left"; ctx.font = "13px system-ui";
+        ctx.fillText(`Occupancy matrix M(v), one slice, ${P}% liquid`, x0, y0 - 14);
+        for (let j = 0; j < VY; j += 1) for (let i = 0; i < VX; i += 1) {
+          ctx.fillStyle = voxels[j * VX + i] ? "#38bdf8" : "#1f2937";
+          ctx.fillRect(x0 + i * pix, y0 + j * pix, pix - (pix > 4 ? 1 : 0), pix - (pix > 4 ? 1 : 0));
+        }
+        const nL = voxels.reduce((s, v) => s + v, 0);
+        ctx.fillStyle = muted; ctx.font = "12px system-ui";
+        ctx.fillText(`blue = liquid, dark = TangoBlack+ solid`, x0, y0 + VY * pix + 18);
+        ctx.fillText(`${nL} of ${VX * VY} voxels liquid`, x0, y0 + VY * pix + 36);
+        ctx.fillText(`printer voxel ≈ 30 × 30 × 40 µm (Sec. IV), drawn enlarged`, x0, y0 + VY * pix + 54);
+      }
+    }
+
+    // ---------- chart ----------
+    const chart = TRLChart.create($("chart"), {});
+    function drawChart() {
+      const q = $("chartQ").value, P = +$("pl").value, m = 10 ** +$("mi").value;
+      let S = [], xl, yl;
+      if (q === "E") {
+        const fs = Array.from({ length: 81 }, (_, i) => 10 ** ((i / 80) * 2));
+        const pls = [0, 10, 25, 40];
+        pls.forEach((p, k) => {
+          S.push({ name: `E′ ${p}%`, color: TRLChart.PALETTE[k], x: fs.map(Math.log10), y: fs.map((f) => Math.log10(Ep(p, f))) });
+        });
+        S.push({ name: `E′ ${P}% (current)`, color: "#e0453a", x: fs.map(Math.log10), y: fs.map((f) => Math.log10(Ep(P, f))) });
+        S.push({ name: `E″ ${P}% (current)`, color: "#8a4fd6", x: fs.map(Math.log10), y: fs.map((f) => Math.log10(Epp(P, f))) });
+        xl = "log₁₀ frequency (Hz), 1–100 Hz"; yl = "log₁₀ modulus (MPa)";
+      } else if (q === "P") {
+        const ps = Array.from({ length: 51 }, (_, i) => i);
+        S = [
+          { name: "E′|1Hz (MPa)", color: "#2f6fde", x: ps, y: ps.map(E1) },
+          { name: "E″|1Hz (MPa)", color: "#8a4fd6", x: ps, y: ps.map(E2) },
+          { name: "tan δ|1Hz", color: "#2e9d6b", x: ps, y: ps.map(TD) },
+          { name: "current", color: "#e0453a", x: [P, P], y: [0, Math.max(E1(P), TD(P))] },
+        ];
+        xl = "Liquid fraction P_l (%)"; yl = "Value at 1 Hz";
+      } else if (q === "R") {
+        const ps = Array.from({ length: 37 }, (_, i) => i);
+        S = [
+          { name: "e* (Eq. 6), fitted range 0–36%", color: "#2f6fde", x: ps, y: ps.map(ESTAR) },
+          { name: "current", color: "#e0453a", x: [P, P], y: [0, ESTAR(Math.min(P, 50))] },
+        ];
+        xl = "Liquid fraction P_l (%)"; yl = "Coefficient of restitution e*";
+      } else {
+        const fs = Array.from({ length: 161 }, (_, i) => 10 ** ((i / 160) * 3.7));
+        [0, 25, 50].forEach((p, k) => S.push({ name: `${p}%`, color: TRLChart.PALETTE[k], x: fs.map(Math.log10), y: fs.map((f) => 20 * Math.log10(transmiss(p, f, m))) }));
+        S.push({ name: `${P}% (current)`, color: "#e0453a", x: fs.map(Math.log10), y: fs.map((f) => 20 * Math.log10(transmiss(P, f, m))) });
+        xl = "log₁₀ f (Hz); fitted to 100 Hz (= 2)"; yl = "|Y/X| (dB)";
+      }
+      chart.setSeries(S, { xlabel: xl, ylabel: yl });
+      $("legend").innerHTML = S.map((s) => `<span><i style="background:${s.color}"></i>${s.name}</span>`).join("");
+    }
+
+    function update() {
+      const P = +$("pl").value, m = +$("mass").value, h = +$("hgt").value, mi = 10 ** +$("mi").value;
+      $("plLbl").textContent = `${P}% liquid (${100 - P}% TangoBlack+)`;
+      $("miLbl").textContent = mi < 1 ? `${(mi * 1000).toFixed(1)} g` : `${mi.toFixed(2)} kg`;
+      $("plNote").innerHTML = P > 36 ? `<span class="warn">Beyond the 0–36% impact-test range: e* is extrapolated.</span>` : P > 25 ? "Above 25% liquid the paper saw liquid films on the surface and slow leaking (Sec. IV-A)." : "";
+      if (voxSeed !== P) { voxels = makeVoxels(P); voxSeed = P; }
+      const e = ESTAR(P), v = Math.sqrt(2 * G * h), K = (A0 / L0) * E1(P) * 1e6;
+      // resonance where K'(f) = m (2πf)^2
+      let fres = NaN; for (let f = 1; f < 2e5; f *= 1.01) { if (Kstar(P, f)[0] < mi * (2 * Math.PI * f) ** 2) { fres = f; break; } }
+      const fmt = (f) => (f >= 1000 ? `${(f / 1000).toFixed(2)} kHz` : `${f.toFixed(0)} Hz`);
+      $("out").innerHTML =
+        `E′|1Hz = ${E1(P).toFixed(3)} MPa   E″|1Hz = ${E2(P).toFixed(3)} MPa\n` +
+        `tan δ|1Hz = ${TD(P).toFixed(3)}   n1 = ${n1(P).toFixed(3)}   n2 = ${n2(P).toFixed(3)}\n` +
+        `E′ at 100 Hz = ${Ep(P, 100).toFixed(2)} MPa\n` +
+        `puck stiffness K′|1Hz = A₀E′/L₀ = ${(K / 1000).toFixed(0)} kN/m\n` +
+        `— drop: ${(m * 1000).toFixed(1)} g from ${(h * 1000).toFixed(0)} mm, v = ${v.toFixed(2)} m/s, E₀ = ${(m * G * h).toFixed(3)} J\n` +
+        `e* = ${e.toFixed(3)}${P > 36 ? " (extrapolated)" : ""}   energy returned ≈ ${(100 * e * e).toFixed(1)}%\n` +
+        `peak force, linear-spring estimate ≈ ${(v * Math.sqrt(m * K)).toFixed(0)} N\n` +
+        `— isolation of ${mi < 1 ? (mi * 1000).toFixed(1) + " g" : mi.toFixed(2) + " kg"}: resonance where K′(f) = mω² ≈ ${Number.isFinite(fres) ? fmt(fres) : "> 200 kHz"}${fres > 100 ? " (extrapolated)" : ""}\n` +
+        `|Y/X| at 1 kHz = ${(20 * Math.log10(transmiss(P, 1000, mi))).toFixed(1)} dB`;
+      drawChart();
+    }
+
+    $("drop").addEventListener("click", startDrop);
+    ["pl", "mass", "hgt", "mi", "chartQ"].forEach((id) => $(id).addEventListener("input", update));
+    update();
+    let last = 0;
+    (function loop(ts) {
+      requestAnimationFrame(loop);
+      const dt = last ? Math.min(0.05, (ts - last) / 1000) : 0; last = ts;
+      const slow = 0.35;
+      for (let k = 0; k < 4; k += 1) step((dt * slow) / 4);
+      draw();
+    })(0);
+  })();
+  </script>
+</body>
+</html>

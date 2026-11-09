@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HERDS Deployment</title>
+  <link rel="icon" href="../../assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../../assets/site.css" />
+  <style>
+    .chart-box { height: 210px; border: 1px solid var(--line); border-radius: 8px; margin-top: 6px; }
+    .chart-box canvas { width: 100%; height: 100%; display: block; }
+    .note { font-size: 12.5px; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 10px; }
+    .row2 label { margin: 2px 0; }
+    .row2 select { width: 100%; }
+    aside input[type="range"] { width: 100%; }
+    .warn { color: var(--accent); font-weight: 600; }
+    .seg { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+    .key { display: flex; gap: 10px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+    .key i { display: inline-block; width: 18px; height: 4px; border-radius: 2px; vertical-align: middle; margin-right: 4px; }
+  </style>
+</head>
+<body>
+  <header class="site"><div class="wrap">
+    <a class="brand" href="../../"><img src="../../assets/icon.svg" alt="" />Transformative Robotics Lab</a>
+    <nav class="site"><a href="../../">Projects</a><a href="https://transformativerobotlab.com/assets/pdf/HERDs_IEEE_Aero_01_12_24.pdf">Paper (PDF)</a></nav>
+  </div></header>
+  <main class="model">
+    <div class="stage" id="stage">
+      <div class="overlay">Drag: orbit · Right-drag: pan · Wheel: zoom</div>
+    </div>
+    <aside>
+      <h1>Deploy a HERDS truss</h1>
+      <p class="muted note">Illustrative model based on Fogelson, Thomas et al., "High-Expansion-Ratio Deployable Structures for Long Duration Space Missions" (IEEE Aerospace 2024), Sec. 4, Eqs. (1)–(32), and Table 6. The kinematics are simplified as described below.</p>
+
+      <h2>Deployment</h2>
+      <label>Deployment: <b id="sLbl"></b>
+        <input id="s" type="range" min="0" max="1" step="0.002" value="0" /></label>
+      <div class="seg"><button class="btn primary" id="play">Play deployment</button>
+        <button class="btn" id="preset">Reset to Table 6 large prototype</button></div>
+      <div class="key" style="margin-top:8px">
+        <span><i style="background:#ef4b5f"></i>PET bottom face (long scissor, width a)</span>
+        <span><i style="background:#f59e0b"></i>PET side faces (width b)</span>
+        <span><i style="background:#60a5fa"></i>Kresling inner members l<sub>AC</sub></span>
+      </div>
+
+      <h2>PET cell (Eqs. 1–7)</h2>
+      <label>l1, half side-scissor length: <b id="l1Lbl"></b>
+        <input id="l1" type="range" min="10" max="60" step="0.01" value="26.53" /></label>
+      <label>l2, offset length: <b id="l2Lbl"></b>
+        <input id="l2" type="range" min="0.5" max="30" step="0.01" value="3.21" /></label>
+      <label>l3, half long-scissor length: <b id="l3Lbl"></b>
+        <input id="l3" type="range" min="20" max="80" step="0.5" value="50" /></label>
+      <div class="row2">
+        <label>PET cells per member n
+          <select id="n"><option>6</option><option>8</option><option>10</option><option selected>13</option><option>16</option><option>20</option></select></label>
+        <label>Kresling cells m
+          <select id="m"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></label>
+      </div>
+      <label>Stowed height H<sub>0</sub>: <b id="h0Lbl"></b>
+        <input id="H0" type="range" min="20" max="150" step="1" value="50" /></label>
+      <label>Member half-thickness t: <b id="tLbl"></b>
+        <input id="t" type="range" min="1" max="6" step="0.25" value="3" /></label>
+
+      <h2>Readout</h2>
+      <div class="readout" id="out"></div>
+
+      <h2>Chart</h2>
+      <select id="chartQ" style="width:100%">
+        <option value="H">Height and expansion ratio vs deployment</option>
+        <option value="T">PET cross-section angle θ vs phase angle α</option>
+        <option value="P">Kresling twist ϕ vs deployment</option>
+      </select>
+      <div class="chart-box"><canvas id="chart" aria-label="HERDS chart"></canvas></div>
+
+      <h2>Mission scale (Sec. 3)</h2>
+      <select id="lv" style="width:100%"></select>
+      <div class="readout" id="mission" style="margin-top:6px"></div>
+
+      <h2>How this model works</h2>
+      <p class="note"><b>Hierarchy.</b> HERDS nests two one-degree-of-freedom mechanisms (Fig. 1). The beams of a hexagonal Kresling tower are pop-up extending trusses (PETs). Each PET is a scissor beam whose triangular cross-section lies flat when stowed and pops up when extended. Deployment runs in two phases: first the Kresling untwists with the PETs still stowed, then the PETs extend (Fig. 1b).</p>
+      <p class="note"><b>PET cell.</b> For phase angle α, the long scissor width is a = (l2 + l3)√(2(1 − cos α)) (Eq. 1). The side-scissor angle and width are β and b (Eqs. 3–4). The cross-section apex angle is θ = cos⁻¹((a² − 2b²)/(−2b²)) (Eq. 7). The pop-up conditions θ = π when stowed (Eq. 17) and θ = π/3 when deployed (Eq. 18) fix the stowed and deployed α. These are solved in closed form here.</p>
+      <p class="note"><b>Kresling.</b> lAB = 2r sin(π/6) (Eq. 19). The outer members are lBC = √(h² − 2r²cos ϕ + 2r²) (Eq. 20) and the inner members are lAC = √(h² − 2r²cos(2π/6 + ϕ) + 2r²) (Eq. 21). Stowed, n·c₁ = lBC = D/2 (Eq. 24) with D = 2lAB + 2a₁ (Eq. 22), which sets r. Deployed, n·c<sub>f</sub> = lBC = lAC (Eq. 25), which gives ϕ<sub>f</sub> = −π/6. Total height is m·h, and the expansion ratio is H<sub>f</sub>/H<sub>0</sub>.</p>
+      <p class="note"><b>Objective.</b> The member aspect ratio (l1 + l2 + l3)/t (Eq. 32) is what the paper's MINLP minimises (Eq. 31). Its Table 4 reports 4–11× better values for HERDS than for a pure PET or a pure Kresling.</p>
+      <p class="note"><b>Defaults.</b> n = 13, m = 2, H₀ = 0.050 m and member thickness 6 mm are from Table 6 (large prototype: D = 0.578 m, H<sub>f</sub> = 2.540 m, reported expansion ratio 50.8). The paper does not list link lengths. l1–l3 were chosen here so that D and H<sub>f</sub> come close to Table 6 (0.570 m and 2.546 m).</p>
+      <p class="note"><b>Simplified.</b> (1) The PET cell length is c = 2·l3·cos(α/2). This comes from the trapezoid-closure constraint, Eq. (11). Eq. (2) as printed did not give the π → π/3 pop-up in our implementation, so it is not used. (2) The PET is drawn as one scissor X per cell on each of its three faces. Joint offsets, member thickness and the thickness bounds (Eqs. 12–16) are not drawn. (3) The two phases are run one after the other, and phase 1 holds the PET length fixed. (4) This is kinematics only: no FEA, loads (Table 5) or deployment dynamics.</p>
+      <p class="note"><b>Microgravity validation.</b> A follow-up iSpaRo 2025 paper (Fogelson, Thomas et al.) flew a translational scissor, a polar scissor and a PET on a parabolic flight. It recorded their centripetal deployment and fitted the Dojo rigid-body simulator to the motion. Its abstract reports 1.3 cm, 1.2 cm and 4.4 cm RMSE respectively. That paper's dynamics are not reproduced here. This page shows only the PET's kinematics.</p>
+    </aside>
+  </main>
+  <script src="../../assets/three.min.js"></script>
+  <script src="../../assets/chart.js"></script>
+  <script>
+  (function () {
+    "use strict";
+    const $ = (id) => document.getElementById(id);
+    const PI = Math.PI;
+
+    // Table 1 (fairings) and Table 4 (MINLP objective values)
+    const LV = [
+      { name: "Falcon Heavy", H: 9.7, D: 3.4, M: 10, er: 103.6, obj: [41.4, 312.0, 481.0] },
+      { name: "Starship", H: 17.2, D: 4.4, M: 21, er: 58.8, obj: [28.6, 176.0, 271.0] },
+      { name: "Starship Ext.", H: 22, D: 4.4, M: 21, er: 45.45, obj: [28.6, 138.0, 212.0] },
+      { name: "SLS Block 1", H: 19.0, D: 8.4, M: 42, er: 52.6, obj: [20.3, 159.0, 246.0] },
+      { name: "SLS Block 2", H: 27.8, D: 8.4, M: 46, er: 35.9, obj: [19.4, 109.0, 168.0] },
+    ];
+    LV.forEach((v, i) => $("lv").insertAdjacentHTML("beforeend", `<option value="${i}">${v.name}</option>`));
+
+    // ---------- PET cell, Eqs. 1, 3, 4, 7, 11 ----------
+    function petDesign(l1, l2, l3) {
+      const L = l2 + l3, K = 4 * l1 * l1 - l3 * l3;
+      const sF = K / (L * L - l3 * l3), sD = K / (4 * L * L - l3 * l3); // sin^2(α/2) at θ=π and θ=π/3
+      const ok = l3 < 2 * l1 && 2 * l1 < L && sF > 0 && sF <= 1 && sD > 0;
+      return { ok, aF: ok ? 2 * Math.asin(Math.sqrt(Math.min(1, sF))) : NaN, aD: ok ? 2 * Math.asin(Math.sqrt(sD)) : NaN };
+    }
+    function petCell(l1, l2, l3, al) {
+      const a = (l2 + l3) * Math.sqrt(2 * (1 - Math.cos(al)));        // Eq. 1
+      const c = 2 * l3 * Math.cos(al / 2);                              // Eq. 11 (closure)
+      const x = Math.max(-1, Math.min(1, 1 - 0.5 * (c / (2 * l1)) ** 2));
+      const be = Math.acos(x) + PI;                                     // Eq. 3
+      const b = l1 * Math.sqrt(2 * (1 - Math.cos(be)));                 // Eq. 4
+      const th = Math.acos(Math.max(-1, Math.min(1, (a * a - 2 * b * b) / (-2 * b * b)))); // Eq. 7
+      const d1 = Math.sqrt(l3 * l3 + l2 * l2 - 2 * l3 * l2 * Math.cos(al)); // Eq. 5
+      return { a, b, c, be, th, d1 };
+    }
+    // ---------- full HERDS state ----------
+    function state(P, s) {
+      const des = petDesign(P.l1, P.l2, P.l3);
+      if (!des.ok) return { ok: false };
+      const stow = petCell(P.l1, P.l2, P.l3, des.aF), dep = petCell(P.l1, P.l2, P.l3, des.aD);
+      const lBC1 = P.n * stow.c, D = 2 * lBC1;                 // Eq. 24
+      const r = lBC1 - stow.a;                                  // Eq. 22 with lAB = r (Eq. 19)
+      const h0 = P.H0 / P.m;
+      const cphi0 = 1 - (lBC1 * lBC1 - h0 * h0) / (2 * r * r);
+      const okK = r > 0 && stow.a < r && Math.abs(cphi0) <= 1 && h0 < lBC1;
+      const phi0 = okK ? Math.acos(cphi0) : NaN, phiF = -PI / 6;
+      let phi, al, cell;
+      if (s <= 0.5) { // phase 1: Kresling twist with PETs stowed
+        const u = s / 0.5; phi = phi0 + (phiF - phi0) * u; al = des.aF; cell = stow;
+      } else {        // phase 2: PETs pop up and extend, twist held at ϕ_f
+        const u = (s - 0.5) / 0.5; phi = phiF; al = des.aF + (des.aD - des.aF) * u; cell = petCell(P.l1, P.l2, P.l3, al);
+      }
+      const lBC = P.n * cell.c;
+      const h = Math.sqrt(Math.max(0, lBC * lBC - 2 * r * r + 2 * r * r * Math.cos(phi)));      // Eq. 20 solved for h
+      const lAC = Math.sqrt(h * h - 2 * r * r * Math.cos((2 * PI) / 6 + phi) + 2 * r * r);    // Eq. 21
+      const hF = Math.sqrt(Math.max(0, (P.n * dep.c) ** 2 - 2 * r * r + 2 * r * r * Math.cos(phiF)));
+      return { ok: okK, des, stow, dep, cell, al, phi, phi0, r, D, h, H: P.m * h, HF: P.m * hF, lBC, lAC, ratio: (P.m * h) / P.H0, ratioF: (P.m * hF) / P.H0 };
+    }
+    function params() {
+      return { l1: +$("l1").value / 1000, l2: +$("l2").value / 1000, l3: +$("l3").value / 1000, n: +$("n").value, m: +$("m").value, H0: +$("H0").value / 1000, t: +$("t").value / 1000 };
+    }
+
+    // ---------- three.js ----------
+    const stage = $("stage");
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(40, 1, 0.01, 100);
+    camera.up.set(0, 0, 1);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+    stage.prepend(renderer.domElement);
+    const matBase = new THREE.LineBasicMaterial({ color: 0xef4b5f });
+    const matSide = new THREE.LineBasicMaterial({ color: 0xf59e0b });
+    const matInner = new THREE.LineBasicMaterial({ color: 0x60a5fa, transparent: true, opacity: 0.7 });
+    const matRing = new THREE.LineBasicMaterial({ color: 0x94a3b8 });
+    const groups = { base: null, side: null, inner: null, ring: null };
+    const plateMat = new THREE.MeshBasicMaterial({ color: 0x94a3b8, transparent: true, opacity: 0.18, side: THREE.DoubleSide });
+    let plates = [];
+    const grid = new THREE.GridHelper(4, 16, 0x888888, 0x888888);
+    grid.rotation.x = PI / 2; grid.material.transparent = true; grid.material.opacity = 0.18; scene.add(grid);
+
+    function setLines(key, pts, mat) {
+      if (groups[key]) { scene.remove(groups[key]); groups[key].geometry.dispose(); }
+      const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pts, 3));
+      groups[key] = new THREE.LineSegments(g, mat); scene.add(groups[key]);
+    }
+    const V3 = (x, y, z) => new THREE.Vector3(x, y, z);
+    function buildScene(P, S) {
+      const base = [], side = [], inner = [], ring = [];
+      plates.forEach((p) => { scene.remove(p); p.geometry.dispose(); }); plates = [];
+      const ringPts = (k) => Array.from({ length: 6 }, (_, j) => { const ang = (2 * PI * j) / 6 + k * S.phi; return V3(S.r * Math.cos(ang), S.r * Math.sin(ang), k * S.h); });
+      const rings = Array.from({ length: P.m + 1 }, (_, k) => ringPts(k));
+      rings.forEach((R) => {
+        for (let j = 0; j < 6; j += 1) { const A = R[j], B = R[(j + 1) % 6]; ring.push(A.x, A.y, A.z, B.x, B.y, B.z); }
+        const shape = new THREE.Shape(R.map((p) => new THREE.Vector2(p.x, p.y)));
+        const pm = new THREE.Mesh(new THREE.ShapeGeometry(shape), plateMat); pm.position.z = R[0].z; scene.add(pm); plates.push(pm);
+      });
+      const cell = S.cell, a = cell.a, b = cell.b, hT = Math.sqrt(Math.max(0, b * b - (a * a) / 4));
+      for (let k = 0; k < P.m; k += 1) {
+        for (let j = 0; j < 6; j += 1) {
+          const p0 = rings[k][j], p1 = rings[k + 1][j];           // outer member B -> C (PET)
+          const q1 = rings[k + 1][(j + 1) % 6];                    // inner member A -> C
+          inner.push(p0.x, p0.y, p0.z, q1.x, q1.y, q1.z);
+          const e1 = p1.clone().sub(p0).normalize();
+          const radial = V3(p0.x + p1.x, p0.y + p1.y, 0).normalize();
+          const e2 = radial.clone().sub(e1.clone().multiplyScalar(radial.dot(e1))).normalize(); // outward normal
+          const e3 = e1.clone().cross(e2).normalize();
+          // cross-section corners: base along e3 (width a) lying on the outer surface, apex pointing inward by hT
+          const C0 = e3.clone().multiplyScalar(-a / 2), C1 = e3.clone().multiplyScalar(a / 2), C2 = e2.clone().multiplyScalar(-hT);
+          const len = p1.distanceTo(p0), cl = len / P.n;
+          for (let i = 0; i < P.n; i += 1) {
+            const s0 = p0.clone().addScaledVector(e1, i * cl), s1 = p0.clone().addScaledVector(e1, (i + 1) * cl);
+            const X = (u, v, arr) => {
+              const A0 = s0.clone().add(u), A1 = s1.clone().add(v), B0 = s0.clone().add(v), B1 = s1.clone().add(u);
+              arr.push(A0.x, A0.y, A0.z, A1.x, A1.y, A1.z, B0.x, B0.y, B0.z, B1.x, B1.y, B1.z);
+            };
+            X(C0, C1, base); X(C1, C2, side); X(C2, C0, side);
+          }
+        }
+      }
+      setLines("base", base, matBase); setLines("side", side, matSide); setLines("inner", inner, matInner); setLines("ring", ring, matRing);
+    }
+
+    const cam = { r: 4.2, az: -0.8, el: 0.25, target: V3(0, 0, 1) };
+    function place() {
+      camera.position.set(cam.target.x + cam.r * Math.cos(cam.el) * Math.cos(cam.az), cam.target.y + cam.r * Math.cos(cam.el) * Math.sin(cam.az), cam.target.z + cam.r * Math.sin(cam.el));
+      camera.lookAt(cam.target);
+    }
+    function resize() { const w = stage.clientWidth, h = stage.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+    let drag = null, userCam = false;
+    const el = renderer.domElement;
+    el.style.touchAction = "none";
+    el.addEventListener("contextmenu", (e) => e.preventDefault());
+    el.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY, pan: e.button === 2 || e.shiftKey }; el.setPointerCapture(e.pointerId); });
+    el.addEventListener("pointermove", (e) => {
+      if (!drag) return; userCam = true;
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
+      if (drag.pan) { const s = cam.r / 700; cam.target.add(V3(-Math.sin(cam.az), Math.cos(cam.az), 0).multiplyScalar(-dx * s)); cam.target.z += dy * s; }
+      else { cam.az -= dx * 0.008; cam.el = Math.max(-1.4, Math.min(1.5, cam.el + dy * 0.008)); }
+    });
+    el.addEventListener("pointerup", () => { drag = null; });
+    el.addEventListener("wheel", (e) => { e.preventDefault(); userCam = true; cam.r = Math.max(0.2, Math.min(40, cam.r * Math.exp(e.deltaY * 0.0012))); }, { passive: false });
+
+    // ---------- chart ----------
+    const chart = TRLChart.create($("chart"), {});
+    function drawChart(P, S, s) {
+      const q = $("chartQ").value, N = 121, xs = Array.from({ length: N }, (_, i) => i / (N - 1));
+      if (q === "H") {
+        const st = xs.map((u) => state(P, u));
+        chart.setSeries([
+          { name: "height H (m)", color: "#2f6fde", x: xs, y: st.map((z) => z.H) },
+          { name: "current", color: "#e0453a", x: [s, s], y: [0, S.H] },
+        ], { xlabel: "Deployment (0–0.5 twist, 0.5–1 PET extension)", ylabel: "Height H = m·h (m)" });
+      } else if (q === "T") {
+        const a0 = Math.min(S.des.aD, S.des.aF), a1 = Math.max(S.des.aD, S.des.aF);
+        const as = Array.from({ length: N }, (_, i) => a0 + ((a1 - a0) * i) / (N - 1));
+        chart.setSeries([
+          { name: "θ (deg)", color: "#d9822b", x: as.map((a) => (a * 180) / PI), y: as.map((a) => (petCell(P.l1, P.l2, P.l3, a).th * 180) / PI) },
+          { name: "current", color: "#e0453a", x: [(S.al * 180) / PI, (S.al * 180) / PI], y: [60, (S.cell.th * 180) / PI] },
+        ], { xlabel: "PET phase angle α (deg)", ylabel: "Cross-section angle θ (deg)" });
+      } else {
+        const st = xs.map((u) => state(P, u));
+        chart.setSeries([
+          { name: "ϕ", color: "#2e9d6b", x: xs, y: st.map((z) => (z.phi * 180) / PI) },
+          { name: "current", color: "#e0453a", x: [s, s], y: [-30, (S.phi * 180) / PI] },
+        ], { xlabel: "Deployment", ylabel: "Kresling twist ϕ (deg)" });
+      }
+    }
+
+    // ---------- UI ----------
+    let last = null;
+    function update(fromSlider) {
+      const P = params(), s = +$("s").value;
+      $("l1Lbl").textContent = `${(P.l1 * 1000).toFixed(2)} mm`;
+      $("l2Lbl").textContent = `${(P.l2 * 1000).toFixed(2)} mm`;
+      $("l3Lbl").textContent = `${(P.l3 * 1000).toFixed(1)} mm`;
+      $("h0Lbl").textContent = `${(P.H0 * 1000).toFixed(0)} mm`;
+      $("tLbl").textContent = `${(P.t * 1000).toFixed(2)} mm (thickness ${(2 * P.t * 1000).toFixed(1)} mm)`;
+      $("sLbl").textContent = s <= 0.5 ? `${(s * 100).toFixed(0)}%, phase 1: Kresling twist` : `${(s * 100).toFixed(0)}%, phase 2: PET pop-up and extension`;
+      const des = petDesign(P.l1, P.l2, P.l3);
+      if (!des.ok) {
+        $("out").innerHTML = `<span class="warn">No pop-up for these link lengths.</span>\nEqs. 17–18 need l3 < 2·l1 < l2 + l3 so that the cross-section can go from flat (θ = π) to equilateral (θ = π/3).`;
+        return;
+      }
+      const S = state(P, s);
+      if (!S.ok) {
+        $("out").innerHTML = `<span class="warn">Kresling constraints violated.</span>\nThe stowed PET width a₁ must be smaller than lAB = r (Eq. 23), and H₀/m must be shorter than the stowed member n·c₁. Try more PET cells or a smaller l2.`;
+        return;
+      }
+      last = S;
+      buildScene(P, S);
+      const deg = (x) => ((x * 180) / PI).toFixed(1);
+      const obj = (P.l1 + P.l2 + P.l3) / P.t;
+      $("out").innerHTML =
+        `PET  α = ${deg(S.al)}°  (stowed ${deg(S.des.aF)}°, deployed ${deg(S.des.aD)}°)\n` +
+        `     cross-section θ = ${deg(S.cell.th)}°  a = ${(S.cell.a * 1000).toFixed(1)} mm  b = ${(S.cell.b * 1000).toFixed(1)} mm\n` +
+        `     cell length c = ${(S.cell.c * 1000).toFixed(1)} mm  (c_f/c₁ = ${(S.dep.c / S.stow.c).toFixed(2)}×)\n` +
+        `Kresling  r = lAB = ${S.r.toFixed(3)} m,  D = ${S.D.toFixed(3)} m (Eq. 22)\n` +
+        `     twist ϕ = ${deg(S.phi)}°  (stowed ${deg(S.phi0)}°)\n` +
+        `     lBC = ${S.lBC.toFixed(3)} m   lAC = ${S.lAC.toFixed(3)} m\n` +
+        `height H = ${S.H.toFixed(3)} m   (H₀ = ${P.H0.toFixed(3)} m)\n` +
+        `expansion ratio H/H₀ = ${S.ratio.toFixed(1)}×   at full deployment ${S.ratioF.toFixed(1)}×\n` +
+        `aspect-ratio objective (l1+l2+l3)/t = ${obj.toFixed(1)} (Eq. 32)\n` +
+        `Table 6 large prototype: D 0.578 m, H_f 2.540 m, ratio 50.8×`;
+      drawChart(P, S, s);
+      if (!userCam) { cam.target.set(0, 0, S.H / 2); cam.r = Math.max(1.1, S.H * 1.35 + 0.5); }
+    }
+    function mission() {
+      const v = LV[+$("lv").value], g = 9.81;
+      const rpm = (L) => (Math.sqrt(g / (L / 2)) * 60) / (2 * PI);
+      $("mission").textContent =
+        `${v.name} fairing: ${v.H} m tall, Ø ${v.D} m, ${v.M} t (Table 1)\n` +
+        `expansion ratio needed for a 1 km structure: ${v.er}× (Table 1)\n` +
+        `MINLP aspect-ratio objective (Table 4):\n   HERDS ${v.obj[0]} · PET only ${v.obj[1]} · Kresling only ${v.obj[2]}\n` +
+        `1 g at the tips of a 1 km structure needs ${rpm(1000).toFixed(2)} RPM\n` +
+        `(Sec. 1: about 1.7 km for 1 RPM, 0.5 km for 2 RPM)`;
+    }
+    let playing = false, dir = 1, lastT = 0;
+    $("play").addEventListener("click", () => { playing = !playing; $("play").textContent = playing ? "Pause" : "Play deployment"; lastT = 0; });
+    $("preset").addEventListener("click", () => {
+      Object.entries({ l1: 26.53, l2: 3.21, l3: 50, H0: 50, t: 3 }).forEach(([k, v]) => { $(k).value = v; });
+      $("n").value = "13"; $("m").value = "2"; userCam = false; update();
+    });
+    ["s", "l1", "l2", "l3", "H0", "t", "n", "m", "chartQ"].forEach((id) => $(id).addEventListener("input", () => update()));
+    $("lv").addEventListener("input", mission);
+    window.addEventListener("resize", resize);
+    update(); mission(); resize();
+    (function loop(ts) {
+      requestAnimationFrame(loop);
+      if (playing) {
+        if (lastT) {
+          let s = +$("s").value + dir * ((ts - lastT) / 1000) * 0.12;
+          if (s >= 1) { s = 1; dir = -1; } else if (s <= 0) { s = 0; dir = 1; }
+          $("s").value = s; update();
+        }
+        lastT = ts;
+      }
+      place(); renderer.render(scene, camera);
+    })(0);
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,147 @@
+{
+ "10.1145/3526113.3545636": {
+  "summary": "Kinergy is a Rhino-based design tool that embeds 3D-printable 'kinetic units' (a helical or spiral spring, a compliant lock, and a transmission such as a gear train, Scotch yoke or Geneva drive) into a model so it prints in place and moves on its own. It supports seven motion types, lets users set stored energy and motion speed/distance through spring and gear parameters (Table 2), and previews the motion; example builds include pull-back cars, a self-opening umbrella and a self-lifting trash bin.",
+  "project": "Kinergy",
+  "demo": "models/kinergy/",
+  "demoLabel": "Load a kinetic unit",
+  "source": "full text",
+  "fulltext": "https://makeabilitylab.cs.washington.edu/media/publications/He_KinergyCreating3DPrintableMotionUsingEmbeddedKineticEnergy_UIST2022.pdf"
+ },
+ "10.1145/3355089.3356518": {
+  "summary": "The paper introduces HELM: a high-level, process-independent carpentry design language (HL-HELM) and a low-level fabrication language (LL-HELM) tied to specific tools, plus a compiler that verifies designs in real time and maps them to tool instructions. Its optimizer uses e-graphs, geometric packing and a vertex-collapsing schedule to generate many equivalent plans and extracts Pareto-optimal ones over material cost, fabrication time and precision with NSGA-II; several optimized plans Pareto-dominated an expert's plan, and the designs were built in wood.",
+  "project": "Carpentry Compiler",
+  "demo": "models/carpentry-compiler/",
+  "demoLabel": "Compile a cut plan",
+  "source": "full text",
+  "fulltext": "https://grail.cs.washington.edu/projects/carpentrycompiler/files/CarpentryCompiler.pdf"
+ },
+ "9636066": {
+  "summary": "The authors built an autonomous robot that drills holes, inserts a jigsaw and cuts plywood, together with a path-planning algorithm that splits input shapes into cuttable sections and chooses blade-entry drill holes. Choosing the holes is cast as a set-coverage problem trading off the number of holes against cutting distance; the algorithm found valid solutions on a series of shapes and one example was cut end to end on the robot (summary from the abstract only).",
+  "project": "Robotic Jigsaw",
+  "demo": "models/robotic-jigsaw/",
+  "demoLabel": "Plan a jigsaw cut",
+  "source": "abstract",
+  "fulltext": ""
+ },
+ "proform": {
+  "summary": "ProForm assembles SMD circuits without solder: components sit on z-tape and a 1 mm PETG sheet is pressure-thermoformed over the board (160 °C, above 58 psi, 210 s cycle), clamping them to their pads; the sheet can be cut away to reuse or replace parts. Zero-ohm test resistors measured about 1.3 Ω through ProFormed joints, SOIC/TSSOP/TQFP/QFN packages worked while BGA did not, and boards survived ~1 A loads, 152 days of operation, 24 h underwater, 2 m drops and ten reuse cycles; it also works on flexible, paper and curved substrates.",
+  "project": "ProForm",
+  "demo": "models/proform/",
+  "demoLabel": "ProForm a board",
+  "source": "full text",
+  "fulltext": "https://arxiv.org/pdf/2507.20933"
+ },
+ "vibration_handling": {
+  "summary": "The authors PolyJet-printed sander grips from TangoBlack+ with up to 25% trapped non-curing liquid, chose Loctite Shoe Glue as a protective coating after peel, abrasion, solvent and dust tests, and refined a 'mushroom' grip for a 5-inch Sioux sander through four shop trials at a Boeing factory, where grips survived a month of use. With five workers, the grips cut mean vibration into the palm by about 40% (45% with each worker's best pad) and into the fingers by about 23% (32.5%), and the liquid-filled pad reduced vibration above 1 kHz by roughly 20 dB.",
+  "project": "Vibration-reducing sander grips",
+  "demo": "models/sander-grip/",
+  "demoLabel": "Damp a sander",
+  "source": "full text",
+  "fulltext": "https://transformativerobotlab.com/assets/pdf/Vibration_reduction_for_sander_grips.pdf"
+ },
+ "ukrainetorniquet": {
+  "summary": "The paper argues that on-site additive manufacturing can help disaster response, then load-tests the four parts of the open-source Glia tourniquet (buckle, backing support, clip, windlass) printed in ABS and PETG against the injection-moulded Combat Application Tourniquet. PETG generally beat ABS (up to 68% higher loads, with more ductile failure), but the CAT was always stronger, by up to 770% for the clip, whose printed versions were weakened by layer anisotropy in the convenient print orientation.",
+  "project": "3D-printed tourniquets",
+  "demo": "models/tourniquet/",
+  "demoLabel": "Load a tourniquet",
+  "source": "full text",
+  "fulltext": "https://transformativerobotlab.com/assets/pdf/Tourniquets_for_Immediate_Aid.pdf"
+ },
+ "8003431": {
+  "summary": "The paper presents a teleoperation system for a Baxter robot built on consumer VR (Oculus, Unity), in which the operator sits in a virtual control room mapped inside the robot's head, sees a stereo camera feed and hand-camera displays, and moves each arm by grabbing a virtual gripper orb whose mapping to the hand (position and orientation, or position only) can be switched. In a block-assembly task it succeeded in 20 of 20 trials (52 ± 15 s), versus 66% for an automated method with in-hand object localization, and it also ran over Wi-Fi and over a hotel Internet link to MIT.",
+  "project": "Baxter's Homunculus",
+  "demo": "models/homunculus/",
+  "demoLabel": "Teleoperate Baxter",
+  "source": "full text",
+  "fulltext": "https://arxiv.org/pdf/1703.01270"
+ },
+ "_demos": [
+  {
+   "id": "kinergy",
+   "title": "Kinergy kinetic units",
+   "sub": "Spring energy to printed motion",
+   "text": "Pick one of Kinergy's kinetic units, size its helical or spiral spring and gear train, and release it. Stored energy, gear ratio, output revolutions or stroke follow the paper's Table 2 relations, with a stress check that flags springs likely to break.",
+   "tags": [
+    "fabrication",
+    "robots"
+   ],
+   "pubs": [
+    "10.1145/3526113.3545636"
+   ]
+  },
+  {
+   "id": "carpentry-compiler",
+   "title": "Carpentry compiler",
+   "sub": "One design, many cut plans",
+   "text": "Change a parametric 2×4 bench frame and watch it compile into hundreds of equivalent cut plans scored on material cost, fabrication time and tape-measure precision. Pareto-optimal plans are highlighted and listed as LL-HELM-style instructions.",
+   "tags": [
+    "fabrication"
+   ],
+   "pubs": [
+    "10.1145/3355089.3356518"
+   ]
+  },
+  {
+   "id": "robotic-jigsaw",
+   "title": "Robotic jigsaw planner",
+   "sub": "Non-holonomic cuts and drill holes",
+   "text": "A jigsaw blade can only cut along its heading, so corners tighter than its turning radius split a cut-out into sections. Choose a shape and blade radius and see where drill holes go when hole count is traded against travel distance; a simplified model built from the paper's abstract.",
+   "tags": [
+    "fabrication",
+    "robots"
+   ],
+   "pubs": [
+    "9636066"
+   ]
+  },
+  {
+   "id": "proform",
+   "title": "ProForm thermoforming",
+   "sub": "Solder-free assembly with a PETG sheet",
+   "text": "Run a pressure-forming cycle over SMD parts on a board and see how sheet thickness, pressure and spacing change how tightly the sheet wraps and how hard it presses each part onto its pads. The paper's measured results for sheet thickness and package types are shown alongside.",
+   "tags": [
+    "fabrication"
+   ],
+   "pubs": [
+    "proform"
+   ]
+  },
+  {
+   "id": "sander-grip",
+   "title": "Sander grip damping",
+   "sub": "Liquid-filled printed pads vs vibration",
+   "text": "A hand resting on a viscoelastic pad on a vibrating sander: change the pad's liquid fraction and thickness and compare transmissibility with the stock grip across frequency. The paper's measured palm and finger reductions are listed for comparison.",
+   "tags": [
+    "fabrication"
+   ],
+   "pubs": [
+    "vibration_handling"
+   ]
+  },
+  {
+   "id": "tourniquet",
+   "title": "Printed tourniquet loads",
+   "sub": "ABS vs PETG vs CAT components",
+   "text": "Twist the windlass and see the band tension each tourniquet part must carry against the peak loads the paper measured for ABS, PETG and the commercial CAT. The weakest link lights up first.",
+   "tags": [
+    "fabrication"
+   ],
+   "pubs": [
+    "ukrainetorniquet"
+   ]
+  },
+  {
+   "id": "homunculus",
+   "title": "Baxter's homunculus",
+   "sub": "VR control room inside the robot",
+   "text": "Sit in a virtual control room inside Baxter's head, grab a gripper orb and move it: the paper's mappings scale your hand motion into the robot's workspace, with position-only or full-pose coupling, and the orb turns red when the target is out of reach.",
+   "tags": [
+    "robots",
+    "fabrication"
+   ],
+   "pubs": [
+    "8003431"
+   ]
+  }
+ ]
+}

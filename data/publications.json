@@ -1,0 +1,640 @@
+{
+ "source": "https://transformativerobotlab.com/publications/",
+ "publications": [
+  {
+   "id": "RADs_patent",
+   "year": "2026",
+   "title": "Reconfigurable Lattice of Auxetic, Backlash Structures for Shape-changing Systems",
+   "authors": "Jacob N. Miske and Jeffrey I. Lipton",
+   "venue": "",
+   "links": {
+    "HTML": "https://patents.google.com/patent/US20260042530A1/en"
+   },
+   "img": "https://transformativerobotlab.com/assets/img/publication_preview/RADs.png",
+   "abstract": "",
+   "summary": "Patent application describing lattices of rotating auxetic cells joined by pins with deliberate clearance (backlash), so that a few actuated cells can reconfigure the lattice into different surface shapes.",
+   "project": "Reconfigurable auxetic devices (RADs)",
+   "demo": "https://transformativeroboticslab.github.io/Auxetic-Backlash-Model/web/index.html",
+   "demoLabel": "Open RADs simulator",
+   "source": "abstract",
+   "fulltext": "https://patents.google.com/patent/US20260042530A1/en"
+  },
+  {
+   "id": "FPM_arxiv",
+   "year": "2026",
+   "title": "Robots That Generate Planarity Through Geometry",
+   "authors": "Jakub F. Kowalewski, Abdulaziz Alrashed, Jacob Alpert, Rishi Ponnapalli, Lucas Meza, and Jeffrey I. Lipton",
+   "venue": "",
+   "links": {
+    "HTML": "https://arxiv.org/abs/2602.06294"
+   },
+   "img": "https://transformativerobotlab.com/assets/img/publication_preview/FPM_arxiv_fig1.png",
+   "abstract": "",
+   "summary": "The paper presents Flat-Plane Mechanisms: 13-link linkages that invert a sphere into a plane, so the endpoint's planarity comes from link lengths and connectivity rather than precision guide surfaces. The authors built FPMs from 100 µm to 2.12 m. A sensitivity analysis found designs that cut fabrication error by about an order of magnitude, and an FPM made of hand-cut wooden dowels moved with sub-25 µm flatness. A two-motor robotic FPM scanned surfaces in agreement with a lab CMM (mean difference 7.1 µm) and 3D printed inside a narrow container.",
+   "project": "Flat-Plane Mechanisms",
+   "demo": "models/planarity/",
+   "demoLabel": "Generate a plane from geometry",
+   "source": "full text",
+   "fulltext": "https://arxiv.org/pdf/2602.06294"
+  },
+  {
+   "id": "SCCRUB_2026",
+   "year": "2026",
+   "title": "SCCRUB: Surface Cleaning Compliant Robot Utilizing Bristles",
+   "authors": "Jakub F. Kowalewski, Keeyon Hajjafar, Alyssa Ugent, and Jeffrey Ian Lipton",
+   "venue": "2026 IEEE 9th International Conference on Soft Robotics (RoboSoft)",
+   "links": {
+    "HTML": "https://doi.org/10.1109/robosoft67810.2026.11522862"
+   },
+   "img": "https://transformativerobotlab.com/assets/img/publication_preview/sccrub.png",
+   "abstract": "",
+   "summary": "SCCRUB is a soft, tendon-driven arm, built on the torque-transmitting TRUNC arm, that scrubs surfaces with a spinning brush. A friction model of the brush led to a counter-rotating design (inner radius about 79% of outer) that cut the reaction moment on the arm by 85%. A neural network trained on 10,000 loaded poses gave open-loop position control (7.0 mm mean error) and contact forces from 1 to 8.5 N. The robot removed 99.7% of burnt ketchup from a plate and 99.8% of fruit preserve from a toilet seat.",
+   "project": "TRUNC soft torque-transmitting arm",
+   "demo": "models/sccrub/",
+   "demoLabel": "Balance a counter-rotating brush",
+   "source": "full text",
+   "fulltext": "https://arxiv.org/pdf/2507.06053"
+  },
+  {
+   "id": "bistable_networks_2026",
+   "year": "2026",
+   "title": "Bistable Networks Enable Complex Shape Changes",
+   "authors": "Sawyer Thomas and Jeffrey Lipton",
+   "venue": "Advanced Science",
+   "links": {
+    "HTML": "https://doi.org/10.1002/advs.76850"
+   },
+   "img": "https://transformativerobotlab.com/assets/img/publication_preview/bistable_networks.png",
+   "abstract": "",
+   "summary": "Introduces transition-controlled metamaterials: lattices in which every joint carries a bistable encoding unit that sets its buckling direction, so under compression each cell expresses positive, negative or zero Poisson's ratio or shear. Units are programmed at about 0.5 N while the sheet is in tension, and the expressed shape then holds against more than 20 N. Valid encodings are extremely sparse (about 5.6×10^12 of 1.3×10^30 for a 10×10 array), so the authors built an O(N) inverse shape-matching pipeline and an automatic encoding machine. With them they expressed 2D profiles (a face and a beaker) and a stacked 3D heart surface.",
+   "project": "Transition-controlled metamaterials",
+   "demo": "models/bistable/",
+   "demoLabel": "Flip bistable cells",
+   "source": "full text",
+   "fulltext": "https://pmc.ncbi.nlm.nih.gov/articles/PMC13427233/"
+  },
+  {
+   "id": "t_HSA",
+   "year": "2026",
+   "title": "Torsion Resistant Strain Limiting Layers Enable High Grip Strength of Electrically-Driven Handed Shearing Auxetic Grippers",
+   "authors": "Ian Good, Srivatsan Balaji, Jacob N. Miske, and Jeffrey I. Lipton",
+   "venue": "2026 IEEE 9th International Conference on Soft Robotics (RoboSoft)",
+   "links": {
+    "HTML": "https://doi.org/10.1109/robosoft67810.2026.11522819",
+    "PDF": "https://arxiv.org/pdf/2412.07976"
+   },
+   "img": "https://transformativerobotlab.com/assets/img/publication_preview/tr_HSA.png",
+   "abstract": "",
+   "summary": "The paper brings the torsion-resistant strain limiting layer (TR-SLL) to electrically driven HSA grippers. The layer acts as each finger's reaction body, so a finger needs only one HSA. An FEA sweep found a five-triangle, near-equilateral layer stiffest in torsion (964.76 N·mm/rad), and the HSAs' force and torque were mapped over extension and rotation. The gripper reached 5.8 N pinch and 14.6 N caging hold force, lifted 5 kg through the skeleton, and succeeded on 37 of 43 YCB objects.",
+   "project": "Torsion-resistant strain limiting layers",
+   "demo": "models/trsll/",
+   "demoLabel": "Twist a strain limiting layer",
+   "source": "full text",
+   "fulltext": "https://arxiv.org/pdf/2412.07976"
+  },
+  {
+   "id": "SensiPrint",
+   "year": "2025",
+   "title": "Demonstrating SensiPrint: 3D-Printed Soft Foams for Physical Augmentation and Sensing",
+   "authors": "Jerry Cao, Yuecheng Peng, Hongrui Wu, Yuxuan Miao, Sanjana Satagopan, Runxin Shi, Brier Hehmeyer, Brett Emery, Jeffrey Lipton, Jennifer Mankoff, and Shwetak Naran Patel",
+   "venue": "",
+   "links": {
+    "HTML": "https://dl.acm.org/doi/full/10.1145/3774746.3779262",
+    "PDF": "https://dl.acm.org/doi/pdf/10.1145/3774746.3779262"
+   },
+   "img": "https://transformativerobotlab.com/assets/img/publication_preview/sensiPrint.png",
+   "abstract": "",
+   "summary": "This demo uses liquid rope coiling, printed from a raised nozzle, to add soft foam padding, interfaces and organizers directly onto existing curved objects that a normal FDM nozzle would collide with. A design tool generates the toolpaths. Coiled conductive TPU (NinjaTek Eel) separated by an insulating TPU layer forms resistive pressure-sensor arrays. The arrays drove a dimmable lamp, a D-pad controller with 0.1–0.2 s latency, and recognition of ten touchpad-style gestures.",
+   "project": "Viscous thread printing (VTP) foams",
+   "demo": "models/vtp-coiling/",
+   "demoLabel": "Explore VTP coiling",
+   "source": "full text",
+   "fulltext": "https://jerrycao22.github.io/files/pdf/research/2025_SCF_SensiPrintDemo.pdf"
+  },
+  {
+   "id": "proform",
+   "year": "2025",
+   "title": "ProForm: Solder-Free Circuit Assembly Using Thermoforming",
+   "authors": "Narjes Pourjafarian, Zhenming Yang, Jeffrey Lipton, Benyamin Davaji, and Gregory Abowd",
+   "venue": "Proceedings of the 38th Annual ACM Symposium on User Interface Software and Technology (UIST)",
+   "links": {
+    "HTML": "https://doi.org/10.1145/3746059.3747628",
+    "PDF": "https://arxiv.org/pdf/2507.20933"
+   },
+   "img": "https://transformativerobotlab.com/assets/img/publication_preview/proformed.png",
+   "abstract": "",
+   "summary": "ProForm assembles SMD circuits without solder: components sit on z-tape and a 1 mm PETG sheet is pressure-thermoformed over the board (160 °C, above 58 psi, 210 s cycle), clamping them to their pads; the sheet can be cut away to reuse or replace parts. Zero-ohm test resistors measured about 1.3 Ω through ProFormed joints, SOIC/TSSOP/TQFP/QFN packages worked while BGA did not, and boards survived ~1 A loads, 152 days of operation, 24 h underwater, 2 m drops and ten reuse cycles; it also works on flexible, paper and curved substrates.",
+   "project": "ProForm",
+   "demo": "models/proform/",
+   "demoLabel": "ProForm a board",
+   "source": "full text",
+   "fulltext": "https://arxiv.org/pdf/2507.20933"
+  },
+  {
+   "id": "spring_brake_hsa_2025",
+   "year": "2025",
+   "title": "Spring-Brake! Handed Shearing Auxetics Improve Efficiency of Hopping and Standing",
+   "authors": "Joseph Sullivan, Ian Sullivan Good, Samuel A. Burden, and Jeffrey Ian Lipton",
+   "venue": "",
+   "links": {
+    "PDF": "https://arxiv.org/pdf/2505.22898"
+   },
+   "img": "https://transformativerobotlab.com/assets/img/publication_preview/spring-brake.png",
+   "abstract": "",
+   "summary": "The paper builds a monopod hopping robot in which a 3D-printed HSA serves as a parallel elastic spring for hopping. Twisted to about 135° against a rigid insert, the same HSA jams and acts as a brake for standing. The spring was sized with a spring-mass model to about 1 kN/m (912 N/m measured on average, over 16 kN/m when jammed). The HSA cut hopping electrical cost by 24–32%, mainly by reducing Joule heating, and the jammed HSA held static loads with far less power than the leg motor.",
+   "project": "Handed shearing auxetics",
+   "demo": "models/spring-brake/",
+   "demoLabel": "Hop and brake",
+   "source": "full text",
+   "fulltext": "https://arxiv.org/pdf/2505.22898"
+  },
+  {
+   "id": "TRUNC_carton_kowaleski",
+   "year": "2025",
+   "title": "Bridging hard and soft: Mechanical metamaterials enable rigid torque transmission in soft robots",
+   "authors": "Molly Carton, Jakub F. Kowalewski, Jiani Guo, Jacob F. Alpert, Aman Garg, Daniel Revier, and Jeffrey I. Lipton",
+   "venue": "Science Robotics",
+   "links": {
+    "HTML": "https://www.science.org/doi/10.1126/scirobotics.ads0548",
+    "PDF": "https://transformativerobotlab.com/assets/pdf/scirobotics_carton_kowalewski.pdf"
+   },
+   "img": "https://transformativerobotlab.com/assets/img/publication_preview/trunc-thumbnail.png",
+   "abstract": "",
+   "summary": "Introduces torsionally rigid universal couplings (TRUNCs): spherical metamaterials tiled with 2*N point-group auxetic cells that act as soft constant-velocity joints. They bend up to 45° yet are 11× (equatorial) to 52× (truss) stiffer in twist than in bending. Chained and nested TRUNCs form extendable flex shafts that carry independent concentric torques. A cable-driven TRUNC arm reached 0.4 mm / 0.1° trajectory repeatability and, guided by a learned inverse-kinematics network, installed a light bulb, fastened bolts alongside a person and turned a valve.",
+   "project": "Torque-transmitting metamaterials",
+   "demo": "models/torque-lattice/",
+   "demoLabel": "Bend and spin a TRUNC",
+   "source": "full text",
+   "fulltext": "https://transformativerobotlab.com/assets/pdf/scirobotics_carton_kowalewski.pdf"
+  },
+  {
+   "id": "fabrication_directed_entanglement_2025",
+   "year": "2025",
+   "title": "Fabrication-Directed Entanglement for Designing Chiral and Anisotropic Metamaterial Foams",
+   "authors": "Daniel Revier, Brett Emery, Jacob Miske, and Jeffrey Ian Lipton",
+   "venue": "Advanced Engineering Materials",
+   "links": {
+    "HTML": "https://doi.org/10.1002/adem.202501225",
+    "PDF": "https://arxiv.org/pdf/2505.03064"
+   },
+   "img": "https://transformativerobotlab.com/assets/img/publication_preview/FDE-VTP.png",
+   "abstract": "Entangled networks are fundamental in various systems, from biological structures to engineered materials. Current techniques for programming entanglement often rely on intricate chemistry or result in statistically homogeneous networks, limiting the ability to create spatially patterned structures with precisely engineered functions. Thus, a key challenge remains in developing approaches to program complex mechanical behaviors, such as anisotropy and chirality, within monolithic entangled structures. This work introduces Fabrication-Directed Entanglement (FDE), a methodology integrating viscous thread printing (VTP) and topology optimization (TO) to program the entanglement of a single homogeneous filament. By spatially adjusting VTP parameters (deposition height, speed), we control local coiling density, creating quasi-two-phase (dense/sparse) regions within a monolithic entangled foam.",
+   "summary": "Fabrication-directed entanglement combines viscous thread printing with inverse-homogenization topology optimization. It patterns dense (≈3.4 MPa) and sparse (≈0.11 MPa) coiling regions of a single TPU filament into metamaterial foams, targeting a desired eigenstructure of the effective elasticity matrix. Four fabricated 6 × 6 arrays showed targeted anisotropy and Poisson's ratios from about 0.06 to 0.56. A chiral design gave a normal–shear coupling of η₂₁₂ ≈ 0.72, and 247 simulations showed a property space well beyond simple mixing of the two phases.",
+   "project": "Viscous thread printing (VTP) foams",
+   "demo": "models/fde-cells/",
+   "demoLabel": "Homogenize an FDE cell",
+   "source": "full text",
+   "fulltext": "https://arxiv.org/pdf/2505.03064"
+  },
+  {
+   "id": "zero_modes_2025",
+   "year": "2025",
+   "title": "Design and Reprogrammability of Zero Modes in 2D Materials from a Single Element",
+   "authors": "Daniel Revier, Molly Carton, and Jeffrey I. Lipton",
+   "venue": "Advanced Science",
+   "links": {
+    "HTML": "https://doi.org/10.1002/advs.202511227"
+   },
+   "img": "https://transformativerobotlab.com/assets/img/publication_preview/zero_modes.png",
+   "abstract": "",
+   "summary": "Shows that one compliant straight-line mechanism (a double-sided Roberts linkage about 30× softer along its line than across it), placed on square or hexagonal lattices, lets planar symmetry coordinate the material's zero modes. Rotating each element in place by an angle θ reprogrammed the 2*22 and 442 square materials in experiments: from bimode to unimode, from negative to positive Poisson's ratio, and (for 442) chirality on or off. FEA shows that two hexagonal tilings reach all four isotropic extremal types: null-, uni-, bi- and trimode.",
+   "project": "Reprogrammable extremal metamaterials",
+   "demo": "models/zero-modes/",
+   "demoLabel": "Rotate the zero modes",
+   "source": "full text",
+   "fulltext": "https://arxiv.org/pdf/2407.04934"
+  },
+  {
+   "id": "torque_tubular_aisy_2025",
+   "year": "2025",
+   "title": "Torque-Transmitting Architected Metamaterials for Flexible and Extendable Tubular Robotics",
+   "authors": "Sawyer Thomas, Aman Garg, and Jeffrey Lipton",
+   "venue": "Advanced Intelligent Systems",
+   "links": {
+    "HTML": "https://doi.org/10.1002/aisy.202500110"
+   },
+   "img": "https://transformativerobotlab.com/assets/img/publication_preview/torque_tubular.png",
+   "abstract": "",
+   "summary": "Proposes BETRs (bendable, extendable, torsionally rigid tubes) built by tiling flexure-based straight-line mechanisms on a cylinder. After comparing Roberts, Watt's, Peaucellier–Lipkin, Chebyshev and four-bar cells, the authors chose Watt's mechanism for its extension ratio, then mapped its design space with kinematic and FE sweeps. Paired with handed shearing auxetics in 25.4 mm tubes that keep 76% of the cross-section open, BETRs drove extending, expanding and bending tips. A 3-DoF tubular robot then demonstrated navigation, anchoring (up to 64.8 N) and positioning (0.26 mm error) in 3D-printed mock anatomy.",
+   "project": "Torque-transmitting metamaterials",
+   "demo": "models/torque-lattice/",
+   "demoLabel": "Stretch a Watt's-cell tube",
+   "source": "full text",
+   "fulltext": "https://advanced.onlinelibrary.wiley.com/doi/full/10.1002/aisy.202500110"
+  },
+  {
+   "id": "microgravity_isparo_2025",
+   "year": "2025",
+   "title": "A Microgravity Experiment for Validating Rigid-Body Simulation of Deployable Mechanisms",
+   "authors": "Mitchell B. Fogelson, Sawyer Thomas, Joseph Kuhl, Jeffrey I. Lipton, and Zachary Manchester",
+   "venue": "2025 International Conference on Space Robotics (iSpaRo)",
+   "links": {
+    "HTML": "https://doi.org/10.1109/isparo66239.2025.11436581"
+   },
+   "img": "https://transformativerobotlab.com/assets/img/publication_preview/herds_deploy.png",
+   "abstract": "",
+   "summary": "The authors flew three deployable mechanisms on a parabolic flight: a translational scissor, a polar scissor and a pop-up extending truss. They recorded each one's centripetal deployment with synchronized high-speed video and motion capture, and reconstructed 3D trajectories of the rigid parts. The dataset was used to tune and validate the Dojo rigid-body physics engine, including contact, joint friction and clearance. Initial RMSEs were 1.3 cm, 1.2 cm and 4.4 cm for the three mechanisms.",
+   "project": "High-expansion-ratio deployable structures (HERDS)",
+   "demo": "models/herds/",
+   "demoLabel": "Deploy a PET-based HERDS truss",
+   "source": "abstract"
+  },
+  {
+   "id": "expansion_joint_trr_2025",
+   "year": "2025",
+   "title": "Design and Testing of Modular Expansion Joint Noise Mitigation Strategies",
+   "authors": "Sawyer Thomas, Waiel Elmadih, Jeffrey Lipton, and Per Reinhall",
+   "venue": "Transportation Research Record: Journal of the Transportation Research Board",
+   "links": {
+    "HTML": "https://doi.org/10.1177/03611981251370346"
+   },
+   "img": null,
+   "abstract": "",
+   "summary": "The study designed noise treatments for modular expansion joints on highway bridges. It targeted the three main noise sources: air resonance in the gaps, beam resonance and tire resonance. Chevron support structures fill the gaps. They flex to follow the joint as it opens and closes but resist vertical wheel loads. Installed on one westbound lane of the SR 520 floating bridge for two months, they cut noise by more than 10 dB in the 500–900 Hz band at 160 ft.",
+   "project": "Quiet bridge expansion joints",
+   "demo": "models/expansion-joint/",
+   "demoLabel": "Roll a tire over the joint",
+   "source": "abstract"
+  },
+  {
+   "id": "bilayer_auxetics_icra_2025",
+   "year": "2025",
+   "title": "Large-Expansion Bi-Layer Auxetics Create Compliant Cellular Motion",
+   "authors": "Lillian Chin, Gregory Xie, Jeffrey Lipton, and Daniela Rus",
+   "venue": "2025 IEEE International Conference on Robotics and Automation (ICRA)",
+   "links": {
+    "HTML": "https://doi.org/10.1109/icra55743.2025.11127822"
+   },
+   "img": null,
+   "abstract": "",
+   "summary": "The paper presents AuxSwarm, a compliant modular robot whose voxels are jitterbug-style auxetic shells made from two offset, counter-rotating spring-steel layers. Servos drive the layers like a scissor, and each voxel grows from 92 to 144 mm in diameter (1.57×) in 0.2 s. A tangency model (Eqs. 1–3) predicts the incline and bending radius that neighbouring expanded and contracted voxels can form. Voxel lattices showed bending radii of 55–63 cm and rocking, turning and flipping locomotion.",
+   "project": "Auxetic modular robots",
+   "demo": "models/bilayer-auxetic/",
+   "demoLabel": "Grow an auxetic voxel",
+   "source": "full text",
+   "fulltext": "https://merge-lab.github.io/Auxbot_ICRA25.pdf"
+  },
+  {
+   "id": "duolingo_icra_2025",
+   "year": "2025",
+   "title": "Duolingo: Dynamics Utilization for Online Translation of Actions",
+   "authors": "Karthikeya Vemuri, Alan Wu, Arnav Thareja, Zoey Chen, Ian Good, Jeffrey Lipton, and Abhishek Gupta",
+   "venue": "2025 IEEE International Conference on Robotics and Automation (ICRA)",
+   "links": {
+    "HTML": "https://doi.org/10.1109/icra55743.2025.11127601"
+   },
+   "img": null,
+   "abstract": "",
+   "summary": "According to the abstract, this paper addresses robots whose own actuator dynamics drift through wear, fatigue or hysteresis while the environment's dynamics stay the same. A short calibration procedure learns a non-linear action-translation model that maps the original controller's actions to ones that work on the shifted robot, allowing continued learning and transfer without retraining. The method was shown on simulated tasks and on a real 4-DoF electrically driven handed-shearing-auxetic (HSA) platform.",
+   "project": "Handed shearing auxetics",
+   "demo": "models/duolingo/",
+   "demoLabel": "Translate actions after drift",
+   "source": "abstract"
+  },
+  {
+   "id": "VTP_robosoft_2025",
+   "year": "2025",
+   "title": "Viscous Thread Printing (VTP) for Production of Soft Robotic Fingers",
+   "authors": "Jacob Miske, Brett Emery, and Jeffrey I. Lipton",
+   "venue": "2025 IEEE 8th International Conference on Soft Robotics (RoboSoft)",
+   "links": {
+    "HTML": "https://doi.org/10.1109/robosoft63089.2025.11020838",
+    "PDF": "https://transformativerobotlab.com/assets/pdf/VTP_robosoft_2025.pdf"
+   },
+   "img": "https://transformativerobotlab.com/assets/img/publication_preview/vtp_finger.png",
+   "abstract": "",
+   "summary": "Soft robotic fingers were printed from TPU with VTP, each with a dense, high-coil-density back and lower-density joint regions shaped as circles, triangles or trapezoids. The fingers were cable-actuated with a servo and modeled in COMSOL as homogeneous stiffness zones. Measured stiffness agreed with the model to within about 10%. All fingers showed three deformation regimes. Trapezoidal joints gave the most linear force–angle response, and the fingers held up under an hour of repeated 30° bending.",
+   "project": "Viscous thread printing (VTP) foams",
+   "demo": "models/vtp-coiling/",
+   "demoLabel": "Grade a VTP finger",
+   "source": "full text",
+   "fulltext": "https://transformativerobotlab.com/assets/pdf/VTP_robosoft_2025.pdf"
+  },
+  {
+   "id": "VTP_emery",
+   "year": "2024",
+   "title": "Foams with 3D Spatially Programmed Mechanics Enabled by Autonomous Active Learning on Viscous Thread Printing",
+   "authors": "Brett Emery, Kelsey L. Snapp, Daniel Revier, Vivek Sarkar, Masa Nakura, Keith Brown, and Jeffrey I. Lipton",
+   "venue": "",
+   "links": {
+    "PDF": "https://transformativerobotlab.com/assets/pdf/FoamsEmery.pdf"
+   },
+   "img": "https://transformativerobotlab.com/assets/img/publication_preview/vtp_emery_thumbnail.png",
+   "abstract": "",
+   "summary": "A self-driving lab (300 PLA and 155 TPU automated print-and-compress experiments, chosen by active learning) trained Gaussian process models. The models map the VTP parameters V*, H*, line spacing and layer step to layer height (LOOCV R² = 0.980) and effective modulus (R² = 0.946). The models revealed a homogeneous subspace and a self-stabilizing layer height, which enable continuous stiffness gradients, an orthotic insole, folding nets with compliant hinges and a cable-driven foam hand. Normalized modulus followed a power law in density with exponents of about 3.6–3.9.",
+   "project": "Viscous thread printing (VTP) foams",
+   "demo": "models/vtp-coiling/",
+   "demoLabel": "Design a VTP foam",
+   "source": "full text",
+   "fulltext": "https://transformativerobotlab.com/assets/pdf/FoamsEmery.pdf"
+  },
+  {
+   "id": "fractal_gripper_ral_2024",
+   "year": "2024",
+   "title": "A Fractal Suction-Based Robotic Gripper for Versatile Grasping",
+   "authors": "Patrick O’Brien, Jakub F. Kowalewski, Chad C. Kessens, and Jeffrey Ian Lipton",
+   "venue": "IEEE Robotics and Automation Letters",
+   "links": {
+    "HTML": "https://doi.org/10.1109/lra.2024.3401138"
+   },
+   "img": null,
+   "abstract": "",
+   "summary": "According to the abstract, this paper shows that a fractal arrangement of suction cups on passive joints lets a suction gripper conform to curved surfaces and corners. The authors model how design parameters set the range of curvatures and payloads, and build a prototype with a compact vacuum brake system. Experiments widened the usable approach angle from 5° to 45°, and adding joint brakes improved performance by over 30% at moderate contact angles.",
+   "project": "Fractal suction gripper",
+   "demo": "models/fractal-gripper/",
+   "demoLabel": "Conform a fractal suction tree",
+   "source": "abstract"
+  },
+  {
+   "id": "10611283",
+   "year": "2024",
+   "title": "Johnsen-Rahbek Capstan Clutch: A High Torque Electrostatic Clutch",
+   "authors": "Timothy E. Amish, Jeffrey T. Auletta, Chad C. Kessens, Joshua R. Smith, and Jeffrey I. Lipton",
+   "venue": "2024 IEEE International Conference on Robotics and Automation (ICRA)",
+   "links": {
+    "HTML": "https://ieeexplore.ieee.org/document/10611283",
+    "PDF": "https://transformativerobotlab.com/assets/pdf/JR_clutch.pdf"
+   },
+   "img": "https://transformativerobotlab.com/assets/img/publication_preview/JR_clutch.png",
+   "abstract": "",
+   "summary": "The authors wrapped a stainless-steel band several times around a shaft coated in polybenzimidazole (PBI). This combines Johnsen-Rahbek electroadhesion with the exponential capstan effect, and they derived a model (Eq. 4) for the resulting holding tension. The model fit measurements from 0.5 to 3 wraps (correlation 0.95–0.99) and predicts that a capstan clutch always beats a planar clutch of the same area. A polished 76.2 µm band held 7.1 N·m (31.3 N/cm²) at 500 V and 2.5 mW/cm², the highest specific shear stress reported for an electrostatic clutch. PBI is also reported as the first unfilled polymer to show the JR effect.",
+   "project": "Electrostatic capstan clutch",
+   "demo": "models/capstan-clutch/",
+   "demoLabel": "Tune a JR capstan clutch",
+   "source": "full text",
+   "fulltext": "https://transformativerobotlab.com/assets/pdf/JR_clutch.pdf"
+  },
+  {
+   "id": "herds",
+   "year": "2024",
+   "title": "High-Expansion-Ratio Deployable Structures for Long Duration Space Missions",
+   "authors": "Mitchell B. Fogelson, Sawyer Thomas, Giusy Falcone, Jeffrey I. Lipton, and Zachary Manchester",
+   "venue": "",
+   "links": {
+    "PDF": "https://transformativerobotlab.com/assets/pdf/HERDs_IEEE_Aero_01_12_24.pdf"
+   },
+   "img": "https://transformativerobotlab.com/assets/img/publication_preview/herds_figure1.png",
+   "abstract": "",
+   "summary": "The paper proposes HERDS, a hierarchical deployable structure built to deploy a kilometer-scale artificial-gravity structure from a single launch. Pop-up extending trusses, a new scissor variant whose cross-section pops from flat to triangular, form the members of a Kresling tower. A mixed-integer design optimization gives member aspect ratios 4–11× better than pure PET or pure Kresling designs. Homogenized FEA finds a factor of safety above 1.5 for Lunar Gateway-type loads, and a 3D-printed prototype expanded about 50× (5 cm to 254 cm) without jamming.",
+   "project": "High-expansion-ratio deployable structures (HERDS)",
+   "demo": "models/herds/",
+   "demoLabel": "Deploy a HERDS truss",
+   "source": "full text",
+   "fulltext": "https://transformativerobotlab.com/assets/pdf/HERDs_IEEE_Aero_01_12_24.pdf"
+  },
+  {
+   "id": "good2023enhancing",
+   "year": "2023",
+   "title": "Enhancing the Performance of Pneu-net Actuators Using a Torsion Resistant Strain Limiting Layer",
+   "authors": "Ian Sullivan Good, Srivatsan Balaji, and Jeffrey Ian Lipton",
+   "venue": "",
+   "links": {
+    "PDF": "https://arxiv.org/pdf/2311.02454.pdf"
+   },
+   "img": "https://transformativerobotlab.com/assets/img/publication_preview/enhancingpneunet.png",
+   "abstract": "",
+   "summary": "The paper replaces the flat strain limiting layer of a standard Pneu-net gripper with a 3D-printed triangulated, torsion-resistant layer (TRL). In FEA this raised torsional stiffness by about two orders of magnitude with little change in in-plane bending. In tests it reduced out-of-plane bending by up to 97.7%. At equal pressure it raised peak grip force from 1 N to 3 N and grip stiffness from 150 to 1200 N/m, and loading the skeleton directly lifted 5 kg.",
+   "project": "Torsion-resistant strain limiting layers",
+   "demo": "models/trsll/",
+   "demoLabel": "Twist a strain limiting layer",
+   "source": "full text",
+   "fulltext": "https://arxiv.org/pdf/2311.02454"
+  },
+  {
+   "id": "9812156",
+   "year": "2022",
+   "title": "Expanding the Design Space for Electrically-Driven Soft Robots Through Handed Shearing Auxetics",
+   "authors": "Ian Good, Tosh Brown-Moore, Aditya Patil, Daniel Revier, and Jeffrey Ian Lipton",
+   "venue": "",
+   "links": {
+    "PDF": "https://transformativerobotlab.com/assets/pdf/design_for_soft_robot_HSAs.pdf"
+   },
+   "img": "https://transformativerobotlab.com/assets/img/publication_preview/designHSAs.png",
+   "abstract": "",
+   "summary": "The paper models HSAs as programmable springs and studies two overlooked design parameters: the point on the auxetic trajectory used as the rest state, and the number of rows of cells. Closed, semi-open and open 3D-printed HSAs gave push-only, bidirectional and pull-only actuators, extending blocked force from 5 N to about 150 N and stiffness from 2 N/mm to 89 N/mm. Fewer rows gave more force and stiffness but needed more torque and gave less throw, and stress relaxation removed 45% of holding force over 20 minutes.",
+   "project": "Handed shearing auxetics",
+   "demo": "models/hsa/",
+   "demoLabel": "Twist an HSA",
+   "source": "full text",
+   "fulltext": "https://transformativerobotlab.com/assets/pdf/design_for_soft_robot_HSAs.pdf"
+  },
+  {
+   "id": "Kodnongbua_2022",
+   "year": "2022",
+   "title": "Computational Design of Passive Grippers",
+   "authors": "Milin Kodnongbua, Ian Good, Yu Lou, Jeffrey Lipton, and Adriana Schulz",
+   "venue": "ACM Transactions on Graphics",
+   "links": {
+    "PDF": "https://arxiv.org/pdf/2306.03174.pdf"
+   },
+   "img": "https://transformativerobotlab.com/assets/img/publication_preview/cdpg.png",
+   "abstract": "",
+   "summary": "The paper gives an algorithm that takes an object and its position and outputs a 3D-printable passive gripper (no actuators) plus the robot insert trajectory that grasps the object stably. It ranks three-point grasp configurations for stability under gravity and reachability, then co-optimises a gripper skeleton and the trajectory to avoid collisions, and finishes the shape with topology optimisation. Solutions were found for all 23 test cases, and 21 of the printed grippers picked up their object on a UR5 arm.",
+   "project": "Passive grippers",
+   "demo": "models/passive-gripper/",
+   "demoLabel": "Design a passive gripper",
+   "source": "full text",
+   "fulltext": "https://arxiv.org/pdf/2306.03174"
+  },
+  {
+   "id": "10.1145/3526113.3545636",
+   "year": "2022",
+   "title": "Kinergy: Creating 3D Printable Motion Using Embedded Kinetic Energy",
+   "authors": "Liang He, Xia Su, Huaishu Peng, Jeffrey Ian Lipton, and Jon E. Froehlich",
+   "venue": "",
+   "links": {
+    "HTML": "https://dl.acm.org/doi/abs/10.1145/3526113.3545636"
+   },
+   "img": "https://transformativerobotlab.com/assets/img/publication_preview/kinergy.png",
+   "abstract": "We present Kinergy—an interactive design tool for creating self-propelled motion by harnessing the energy stored in 3D printable springs. To produce controllable output motions, we introduce 3D printable kinetic units, a set of parameterizable designs that encapsulate 3D printable springs, compliant locks, and transmission mechanisms for three non-periodic motions—instant translation, instant rotation, continuous translation—and four periodic motions—continuous rotation, reciprocation, oscillation, intermittent rotation. Kinergy allows the user to create motion-enabled 3D models by embedding kinetic units, customize output motion characteristics by parameterizing embedded springs and kinematic elements, control energy by operating the specialized lock, and preview the resulting motion in an interactive environment. We demonstrate the potential of our techniques via example applications from spring-loaded cars to kinetic sculptures and close with a discussion of key challenges such as geometric constraints.",
+   "summary": "Kinergy is a Rhino-based design tool that embeds 3D-printable 'kinetic units' (a helical or spiral spring, a compliant lock, and a transmission such as a gear train, Scotch yoke or Geneva drive) into a model so it prints in place and moves on its own. It supports seven motion types, lets users set stored energy and motion speed/distance through spring and gear parameters (Table 2), and previews the motion; example builds include pull-back cars, a self-opening umbrella and a self-lifting trash bin.",
+   "project": "Kinergy",
+   "demo": "models/kinergy/",
+   "demoLabel": "Load a kinetic unit",
+   "source": "full text",
+   "fulltext": "https://makeabilitylab.cs.washington.edu/media/publications/He_KinergyCreating3DPrintableMotionUsingEmbeddedKineticEnergy_UIST2022.pdf"
+  },
+  {
+   "id": "vibration_handling",
+   "year": "2022",
+   "title": "Vibration Reduction Using Material Jetted Parts for Sander Grips",
+   "authors": "Shruthika Kandukuri, Atharva Kashyap, and Jeffrey Lipton",
+   "venue": "",
+   "links": {
+    "PDF": "https://transformativerobotlab.com/assets/pdf/Vibration_reduction_for_sander_grips.pdf"
+   },
+   "img": "https://transformativerobotlab.com/assets/img/publication_preview/sander_grip.png",
+   "abstract": "",
+   "summary": "The authors PolyJet-printed sander grips from TangoBlack+ with up to 25% trapped non-curing liquid, chose Loctite Shoe Glue as a protective coating after peel, abrasion, solvent and dust tests, and refined a 'mushroom' grip for a 5-inch Sioux sander through four shop trials at a Boeing factory, where grips survived a month of use. With five workers, the grips cut mean vibration into the palm by about 40% (45% with each worker's best pad) and into the fingers by about 23% (32.5%), and the liquid-filled pad reduced vibration above 1 kHz by roughly 20 dB.",
+   "project": "Vibration-reducing sander grips",
+   "demo": "models/sander-grip/",
+   "demoLabel": "Damp a sander",
+   "source": "full text",
+   "fulltext": "https://transformativerobotlab.com/assets/pdf/Vibration_reduction_for_sander_grips.pdf"
+  },
+  {
+   "id": "ukrainetorniquet",
+   "year": "2022",
+   "title": "Optimizing 3D Printed Tourniquets for Immediate Aid in Ukraine",
+   "authors": "Tosh Kāneala Brown-Moore, Srivatsan Balaji, and Jeffrey Ian Lipton",
+   "venue": "",
+   "links": {
+    "PDF": "https://transformativerobotlab.com/assets/pdf/Tourniquets_for_Immediate_Aid.pdf"
+   },
+   "img": "https://transformativerobotlab.com/assets/img/publication_preview/tourniquet.png",
+   "abstract": "",
+   "summary": "The paper argues that on-site additive manufacturing can help disaster response, then load-tests the four parts of the open-source Glia tourniquet (buckle, backing support, clip, windlass) printed in ABS and PETG against the injection-moulded Combat Application Tourniquet. PETG generally beat ABS (up to 68% higher loads, with more ductile failure), but the CAT was always stronger, by up to 770% for the clip, whose printed versions were weakened by layer anisotropy in the convenient print orientation.",
+   "project": "3D-printed tourniquets",
+   "demo": "models/tourniquet/",
+   "demoLabel": "Load a tourniquet",
+   "source": "full text",
+   "fulltext": "https://transformativerobotlab.com/assets/pdf/Tourniquets_for_Immediate_Aid.pdf"
+  },
+  {
+   "id": "10.1145/3559400.3565596",
+   "year": "2022",
+   "title": "Applied Viscous Thread Instability for Manufacturing 3D Printed Foams",
+   "authors": "Brett Emery and Daniel Revier",
+   "venue": "",
+   "links": {},
+   "img": "https://transformativerobotlab.com/assets/img/publication_preview/vtp_process.png",
+   "abstract": "Traditional foams are fabricated via stochastic chemical processes that yield homogeneous material properties. Foams can exhibit a wide range of material properties by varying process controls allowing them to be used in many industrial and commercial applications. Previously, additive manufacturing could only produce foam approximations in the form of traditional lattice infill. Our work employs viscous thread printing (VTP) on a fused filament fabrication (FFF) printer, exploiting the semi-viscous nature of extruded filament to coil producing a new type of printed foam. The use of 3D printing in this application allows for significant advantages: spatial control of extrusion allows for graded material properties and custom foam shapes on-the-fly.",
+   "summary": "This work applies viscous thread printing on a standard fused filament fabrication printer: the semi-viscous extruded filament is made to coil, producing a new type of printed foam. Because extrusion is controlled spatially, material properties can be graded and custom foam shapes made on the fly. These are things stochastic chemical foaming cannot do.",
+   "project": "Viscous thread printing (VTP) foams",
+   "demo": "models/vtp-coiling/",
+   "demoLabel": "Design a VTP foam",
+   "source": "abstract"
+  },
+  {
+   "id": "9636066",
+   "year": "2021",
+   "title": "Robotic Jigsaw: A Non-Holonomic Cutting Robot and Path Planning Algorithm",
+   "authors": "Haisen Zhao, Yash Talwekar, Wenqing Lan, Chetan Sharma, Daniela Rus, Adriana Schulz, and Jeffrey I Lipton",
+   "venue": "",
+   "links": {},
+   "img": null,
+   "abstract": "",
+   "summary": "The authors built an autonomous robot that drills holes, inserts a jigsaw and cuts plywood, together with a path-planning algorithm that splits input shapes into cuttable sections and chooses blade-entry drill holes. Choosing the holes is cast as a set-coverage problem trading off the number of holes against cutting distance; the algorithm found valid solutions on a series of shapes and one example was cut end to end on the robot (summary from the abstract only).",
+   "project": "Robotic Jigsaw",
+   "demo": "models/robotic-jigsaw/",
+   "demoLabel": "Plan a jigsaw cut",
+   "source": "abstract"
+  },
+  {
+   "id": "9196626",
+   "year": "2020",
+   "title": "Multiplexed Manipulation: Versatile Multimodal Grasping via a Hybrid Soft Gripper",
+   "authors": "Lillian Chin, Felipe Barscevicius, Jeffrey Lipton, and Daniela Rus",
+   "venue": "",
+   "links": {},
+   "img": "https://transformativerobotlab.com/assets/img/publication_preview/multiplexedmanipulation.png",
+   "abstract": "",
+   "summary": "The paper presents a gripper that combines suction, a parallel jaw and soft fingers built on handed shearing auxetic actuators, and mixes these modes into new grasping primitives. It grasped 88% of tested objects, and 14% of those could only be grasped with a combination of modes. It can also reorient flat objects in hand without pre-grasp manipulation.",
+   "project": "Handed shearing auxetics",
+   "demo": "models/hsa/",
+   "demoLabel": "Twist an HSA",
+   "source": "abstract",
+   "fulltext": "https://hdl.handle.net/1721.1/137301.2"
+  },
+  {
+   "id": "8722747",
+   "year": "2019",
+   "title": "Automated Recycling Separation Enabled by Soft Robotic Material Classification",
+   "authors": "Lillian Chin, Jeffrey Lipton, Michelle C. Yuen, Rebecca Kramer-Bottiglio, and Daniela Rus",
+   "venue": "",
+   "links": {},
+   "img": "https://transformativerobotlab.com/assets/img/publication_preview/recyclingthumbnail.png",
+   "abstract": "",
+   "summary": "The paper builds a puncture-resistant, electrically driven soft gripper for recycling. Each finger is a pair of constrained PTFE HSAs with high-deformation capacitive strain and pressure sensors. Strain readings estimate object size, and size-normalised pressure features feed a hand-derived linear classifier that sorts paper, metal and plastic. It was 85% accurate with a stationary gripper and 63% accurate on a mock conveyor-belt recycling line.",
+   "project": "Handed shearing auxetics",
+   "demo": "models/hsa/",
+   "demoLabel": "Twist an HSA",
+   "source": "full text",
+   "fulltext": "https://www.eng.yale.edu/Faboratory/publications/conference/2019/Chin%20et%20al.%20-%202019%20-%20Automated%20Recyling%20Separation%20Enabled%20by%20Soft%20Robotic%20Material%20Classification.pdf"
+  },
+  {
+   "id": "10.1145/3355089.3356518",
+   "year": "2019",
+   "title": "Carpentry Compiler",
+   "authors": "Chenming Wu, Haisen Zhao, Chandrakana Nandi, Jeffrey I. Lipton, Zachary Tatlock, and Adriana Schulz",
+   "venue": "ACM Trans. Graph.",
+   "links": {},
+   "img": "https://transformativerobotlab.com/assets/img/publication_preview/carpentrycompilerthumbnail.png",
+   "abstract": "Traditional manufacturing workflows strongly decouple design and fabrication phases. As a result, fabrication-related objectives such as manufacturing time and precision are difficult to optimize in the design space, and vice versa. This paper presents HL-HELM, a high-level, domain-specific language for expressing abstract, parametric fabrication plans; it also introduces LL-HELM, a low-level language for expressing concrete fabrication plans that take into account the physical constraints of available manufacturing processes. We present a new compiler that supports the real-time, unoptimized translation of high-level, geometric fabrication operations into concrete, tool-specific fabrication instructions; this gives users immediate feedback on the physical feasibility of plans as they design them. HELM offers novel optimizations to improve accuracy and reduce fabrication time as well as material costs. Finally, optimized low-level plans can be interpreted as step-by-step instructions for users to actually fabricate a physical product. We provide a variety of example fabrication plans in the carpentry domain that are designed using our high-level language, show how the compiler translates and optimizes these plans to generate concrete low-level instructions, and present the final physical products fabricated in wood.",
+   "summary": "The paper introduces HELM: a high-level, process-independent carpentry design language (HL-HELM) and a low-level fabrication language (LL-HELM) tied to specific tools, plus a compiler that verifies designs in real time and maps them to tool instructions. Its optimizer uses e-graphs, geometric packing and a vertex-collapsing schedule to generate many equivalent plans and extracts Pareto-optimal ones over material cost, fabrication time and precision with NSGA-II; several optimized plans Pareto-dominated an expert's plan, and the designs were built in wood.",
+   "project": "Carpentry Compiler",
+   "demo": "models/carpentry-compiler/",
+   "demoLabel": "Compile a cut plan",
+   "source": "full text",
+   "fulltext": "https://grail.cs.washington.edu/projects/carpentrycompiler/files/CarpentryCompiler.pdf"
+  },
+  {
+   "id": "8003431",
+   "year": "2018",
+   "title": "Baxter’s Homunculus: Virtual Reality Spaces for Teleoperation in Manufacturing",
+   "authors": "Jeffrey I. Lipton, Aidan J. Fay, and Daniela Rus",
+   "venue": "IEEE Robotics and Automation Letters",
+   "links": {},
+   "img": "https://transformativerobotlab.com/assets/img/publication_preview/baxterthumbnail.png",
+   "abstract": "",
+   "summary": "The paper presents a teleoperation system for a Baxter robot built on consumer VR (Oculus, Unity), in which the operator sits in a virtual control room mapped inside the robot's head, sees a stereo camera feed and hand-camera displays, and moves each arm by grabbing a virtual gripper orb whose mapping to the hand (position and orientation, or position only) can be switched. In a block-assembly task it succeeded in 20 of 20 trials (52 ± 15 s), versus 66% for an automated method with in-hand object localization, and it also ran over Wi-Fi and over a hotel Internet link to MIT.",
+   "project": "Baxter's Homunculus",
+   "demo": "models/homunculus/",
+   "demoLabel": "Teleoperate Baxter",
+   "source": "full text",
+   "fulltext": "https://arxiv.org/pdf/1703.01270"
+  },
+  {
+   "id": "8404904",
+   "year": "2018",
+   "title": "Compliant Electric Actuators based on Handed Shearing Auxetics",
+   "authors": "Lillian Chin, Jeffrey Lipton, Robert MacCurdy, John Romanishin, Chetan Sharma, and Daniela Rus",
+   "venue": "2018 IEEE International Conference on Soft Robotics (RoboSoft)",
+   "links": {
+    "PDF": "https://transformativerobotlab.com/assets/pdf/Compliant_electric_actuators_based_on_handed_shearing_auxetics.pdf"
+   },
+   "img": "https://transformativerobotlab.com/assets/img/publication_preview/hsathumbnail.png",
+   "abstract": "",
+   "summary": "The paper introduces electric motor-driven compliant actuators made by laser-cutting handed shearing auxetic (HSA) patterns into PTFE tubes, so that twisting a cylinder makes it extend. Pairing left- and right-handed cylinders gave a linear actuator (144–217 mm) and a 4-DOF platform, and adding internal constraints made pairs bend into gripper fingers. The HSA gripper grasped 72% of 32 objects, the same as a pneumatic soft gripper, while using about 20 times less energy to close (4.92 J vs 107.4 J).",
+   "project": "Handed shearing auxetics",
+   "demo": "models/hsa/",
+   "demoLabel": "Twist an HSA",
+   "source": "full text",
+   "fulltext": "https://transformativerobotlab.com/assets/pdf/Compliant_electric_actuators_based_on_handed_shearing_auxetics.pdf"
+  },
+  {
+   "id": "naturePrintingVariable",
+   "year": "2016",
+   "title": "3D Printing Variable Stiffness Foams Using Viscous Thread Instability",
+   "authors": "Jeffrey I. Lipton and Hod Lipson",
+   "venue": "Nature; Scientific Letters",
+   "links": {},
+   "img": "https://transformativerobotlab.com/assets/img/publication_preview/vtpthumbnail.png",
+   "abstract": "",
+   "summary": "Raising a direct-write nozzle and increasing flow induces viscous thread instability, so the extruded strand meanders, loops or coils instead of laying a straight line. Stacking layers of these patterns produces open-cell foams with pores near the nozzle scale. Printed silicone foams spanned about two orders of magnitude in compressive modulus (0.608 MPa bulk down to 0.0092 MPa) while density fell by only about half. Alternating layers of two patterns behaved as an isostress composite in compression.",
+   "project": "Viscous thread printing (VTP) foams",
+   "demo": "models/vtp-coiling/",
+   "demoLabel": "Design a VTP foam",
+   "source": "full text",
+   "fulltext": "https://www.nature.com/articles/srep29996.pdf"
+  },
+  {
+   "id": "7759409",
+   "year": "2016",
+   "title": "Printable Programmable Viscoelastic Materials for Robots",
+   "authors": "Robert MacCurdy, Jeffrey Lipton, Shuguang Li, and Daniela Rus",
+   "venue": "",
+   "links": {
+    "HTML": "https://ieeexplore.ieee.org/abstract/document/7759409"
+   },
+   "img": "https://transformativerobotlab.com/assets/img/publication_preview/pvforroboticsthumbnail.png",
+   "abstract": "",
+   "summary": "The authors modified a multi-material inkjet printer to deposit a rubbery solid and a non-curing liquid voxel by voxel. The liquid fraction sets the printed material's stiffness (storage modulus about 0.1–1 MPa) and damping (tan δ about 0.2–0.9 at 1 Hz). They fitted power-law models of the complex modulus against frequency and liquid fraction, plus a model for impact restitution, which is lowest near 4–10% liquid. On a jumping cube robot, printed skins with 18% liquid roughly halved peak landing acceleration compared with a cast foam skin, and also reduced bouncing.",
+   "project": "Printable viscoelastic materials",
+   "demo": "models/viscoelastic/",
+   "demoLabel": "Program a printed damper",
+   "source": "full text",
+   "fulltext": "https://matterassembly.org/assets/pdf/preprints/2016_MacCurdy-Printable_Programmable_Viscoelastic_Materials_for_Robots.pdf"
+  }
+ ]
+}

@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ProForm Thermoforming</title>
+  <link rel="icon" href="../../assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../../assets/site.css" />
+  <style>
+    [hidden] { display: none !important; }
+    aside select { max-width: 100%; }
+    .split { position: absolute; inset: 0; display: grid; grid-template-rows: minmax(0, 1.3fr) minmax(0, 1fr); }
+    .split > div { position: relative; min-height: 0; overflow: hidden; }
+    .split canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; }
+    .chartbox { border-top: 1px solid var(--line); }
+    .chartbox canvas { left: 8px !important; top: 8px !important; width: calc(100% - 16px) !important; height: calc(100% - 16px) !important; }
+    table.rep { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table.rep td, table.rep th { border-bottom: 1px solid var(--line); padding: 3px 4px; text-align: left; }
+    .row { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; }
+    @media (max-width: 860px) { .model { grid-template-rows: auto auto; } .model .stage { height: 580px; } .split { grid-template-rows: 330px 250px; } }
+  </style>
+</head>
+<body>
+  <header class="site"><div class="wrap">
+    <a class="brand" href="../../"><img src="../../assets/icon.svg" alt="" />Transformative Robotics Lab</a>
+    <nav class="site"><a href="../../">Projects</a><a href="https://arxiv.org/abs/2507.20933">ProForm on arXiv</a></nav>
+  </div></header>
+  <main class="model">
+    <div class="stage">
+      <div class="split">
+        <div><canvas id="view" aria-label="Cross-section of a thermoformed PETG sheet over SMD components"></canvas>
+          <div class="overlay">Cross-section, vertical scale ×2. Press “ProForm” to run heat → form → cool.</div></div>
+        <div class="chartbox"><canvas id="chart" aria-label="Membrane bend radius versus forming pressure"></canvas></div>
+      </div>
+    </div>
+    <aside>
+      <h1>ProForm: solder-free assembly</h1>
+      <p class="muted">Illustrative model based on Pourjafarian, Yang, Lipton, Davaji &amp; Abowd, <i>ProForm: Solder-Free Circuit Assembly Using Thermoforming</i> (UIST 2025), Sections 3.2–3.4 and 4.1. SMD parts sit on z-tape; a pressure-formed PETG sheet presses and holds them on their pads.</p>
+      <h2>Component (Section 4.1.4)</h2>
+      <select id="pkg" style="width:100%"></select>
+      <label>Gap to neighbouring parts <b id="vgap"></b> mm <input id="gap" type="range" min="0.5" max="10" step="0.25" value="3" /></label>
+      <h2>Thermoforming settings (Section 3.4)</h2>
+      <label>PETG sheet thickness t <select id="t"><option value="0.5">0.5 mm</option><option value="1" selected>1 mm (paper default)</option><option value="1.5">1.5 mm</option></select></label>
+      <label>Forming pressure p <b id="vp"></b> psi <input id="p" type="range" min="40" max="63" step="1" value="60" /></label>
+      <label>Board elevation e <b id="ve"></b> mm <input id="e" type="range" min="0" max="8" step="0.5" value="3" /></label>
+      <label>Hot-sheet flow stress σ<sub>f</sub> (assumed) <b id="vsf"></b> MPa <input id="sf" type="range" min="0.2" max="3" step="0.1" value="1" /></label>
+      <div class="row"><button class="btn primary" id="go" type="button">ProForm</button></div>
+      <h2>Model outputs</h2>
+      <div class="readout" id="out"></div>
+      <h2>Reported in the paper</h2>
+      <div id="rep"></div>
+      <h2>How this model works</h2>
+      <p class="muted" style="font-size:13px">The paper is experimental and gives no forming equations, so this page uses a simplified membrane picture of its process. While formed, the softened sheet carries a membrane tension N = σ<sub>f</sub>·t; air pressure p bends it to a radius R = N/p (Laplace's law), so higher pressure gives a tighter wrap — consistent with the paper's finding that pressures above 58 psi gave sharper details (Section 3.4). Between two parts a gap w is spanned by an arc of radius R that sags δ = R − √(R² − w²/4); if δ is less than the part height the sheet bridges instead of reaching the board. The force pressing a part onto its z-tape while forming is p × footprint (Section 3.1 notes z-tape needs uniform pressure). The sheet wraps the board edge only if the board is elevated (Fig. 2b–c).</p>
+      <p class="muted" style="font-size:13px">Assumed, not from the paper: σ<sub>f</sub> (hot PETG flow stress), package dimensions (typical datasheet sizes) and the membrane idealisation (no friction, no thinning, no cooling shrinkage). Process times (120 s form + 90 s cool at 160 °C) and all numbers in the “Reported” table are from the paper.</p>
+    </aside>
+  </main>
+  <script src="../../assets/chart.js"></script>
+  <script>
+  (function () {
+    const $ = (id) => document.getElementById(id);
+    const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+    // typical package sizes (length × width × height, mm) and pad/pin count; status = paper Section 4.1.4 / 4.1.1 result
+    const PKG = [
+      { id: "soic8", name: "SOIC-8 (ATtiny85)", L: 4.9, W: 3.9, h: 1.5, pins: 8, rep: "reliable (Sec. 4.1.4)" },
+      { id: "tssop", name: "TSSOP-8 (ATtiny45)", L: 3.0, W: 4.4, h: 1.1, pins: 8, rep: "reliable (Sec. 4.1.4)" },
+      { id: "tqfp", name: "TQFP-32 (ATtiny828)", L: 7.0, W: 7.0, h: 1.2, pins: 32, rep: "reliable (Sec. 4.1.4)" },
+      { id: "qfn", name: "QFN-20 (ATtiny85)", L: 4.0, W: 4.0, h: 0.9, pins: 20, rep: "reliable (Sec. 4.1.4)" },
+      { id: "bga", name: "BGA (ATtiny84A)", L: 3.0, W: 3.0, h: 0.6, pins: 15, rep: "failed: pads too small for z-tape (Sec. 4.1.4)" },
+      { id: "r1206", name: "1206 zero-ohm resistor", L: 3.2, W: 1.6, h: 0.55, pins: 2, rep: "1.13 Ω mean, 5 samples (Sec. 4.1.1)" },
+      { id: "r0603", name: "0603 zero-ohm resistor", L: 1.6, W: 0.8, h: 0.45, pins: 2, rep: "1.51 Ω mean, 5 samples (Sec. 4.1.1)" },
+      { id: "led5050", name: "5050 LED", L: 5.0, W: 5.0, h: 1.6, pins: 6, rep: "functional (Sec. 4.1.4)" },
+    ];
+    PKG.forEach((k, i) => $("pkg").insertAdjacentHTML("beforeend", `<option value="${i}">${k.name}</option>`));
+    $("rep").innerHTML = `<table class="rep"><tr><th>PETG t</th><th>R of 1206 0 Ω</th></tr><tr><td>0.5 mm</td><td>15.8 ± 7.39 Ω (inconsistent)</td></tr><tr><td>1 mm</td><td>1.13 ± 0.18 Ω</td></tr><tr><td>1.5 mm</td><td>0.85 ± 0.44 Ω</td></tr></table>
+      <p class="muted" style="font-size:12px;margin:4px 0">Section 3.4: 5 resistors per thickness; 1 mm chosen. Without thermoforming, z-tape alone gave 2.2 kΩ and later failed (Sec. 4.1.1). Also reported: 160 °C, 55–63 psi tested, &gt;58 psi best; 946 mA through a ProFormed MOSFET for 1 h (Sec. 4.1.3); functional after 152 days (4.1.5), 24 h under water (4.2.1), drops up to 200 cm (4.2.2) and 10 reuse cycles (4.1.7).</p>`;
+    const chart = TRLChart.create($("chart"), { xlabel: "forming pressure p (psi)", ylabel: "membrane bend radius R (mm)" });
+    const PSI = 0.00689476; // MPa per psi
+    let phase = 1, anim = null; // phase 0 = flat hot sheet above board, 1 = fully formed
+
+    function model() {
+      const k = PKG[+$("pkg").value], t = +$("t").value, p = +$("p").value, sf = +$("sf").value, gap = +$("gap").value, e = +$("e").value;
+      const pM = p * PSI, N = sf * t, R = N / pM; // mm
+      const sag = R >= gap / 2 ? R - Math.sqrt(R * R - (gap * gap) / 4) : Infinity;
+      const touches = sag >= k.h;
+      const F = pM * k.L * k.W; // N
+      return { k, t, p, sf, gap, e, pM, N, R, sag, touches, F, perPad: F / k.pins, wraps: e >= 2 * R * 0.5 + 0.5 };
+    }
+    function update() {
+      const m = model();
+      $("vgap").textContent = m.gap; $("vp").textContent = m.p; $("ve").textContent = m.e; $("vsf").textContent = m.sf.toFixed(1);
+      $("out").textContent = `p = ${m.p} psi = ${(m.pM * 1000).toFixed(0)} kPa\nmembrane tension N = σf·t = ${m.N.toFixed(2)} N/mm\nbend radius R = N/p = ${m.R.toFixed(2)} mm\ngap ${m.gap} mm: sag ${isFinite(m.sag) ? m.sag.toFixed(2) + " mm" : "> part height"} vs part height ${m.k.h} mm → ${m.touches ? "sheet reaches the board" : "sheet bridges the gap"}\nforce pressing part onto z-tape ≈ ${m.F.toFixed(1)} N (${m.perPad.toFixed(2)} N per pad)\nedge wrap: ${m.e === 0 ? "board flat on bed — no wrap (single-side seal, Fig. 4a)" : m.wraps ? "sheet wraps under the board edge" : "elevation small vs R — partial wrap"}\npaper result for this package: ${m.k.rep}`;
+      const xs = []; for (let p = 40; p <= 63; p += 1) xs.push(p);
+      chart.setSeries([0.5, 1, 1.5].map((t) => ({ name: `t = ${t} mm`, x: xs, y: xs.map((p) => (m.sf * t) / (p * PSI)) })), { xlabel: "forming pressure p (psi) — paper tested 55–63", ylabel: `bend radius R (mm), σf = ${m.sf.toFixed(1)} MPa` });
+      draw();
+    }
+    function fit(cv) { const dpr = Math.min(devicePixelRatio || 1, 2), W = cv.clientWidth, H = cv.clientHeight; if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); } const c = cv.getContext("2d"); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H); return [c, W, H]; }
+    // build the formed sheet's lower surface as a polyline over a row of three parts on a board
+    function sheetProfile(m, parts, boardX0, boardX1, boardTop, bed) {
+      const pts = [], R = m.R;
+      const arcPts = (cx, cy, r, a0, a1) => { const out = []; for (let i = 0; i <= 12; i++) { const a = a0 + ((a1 - a0) * i) / 12; out.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); } return out; };
+      const r = Math.min(R, 3);
+      // left board edge wrap (y up)
+      const wrapDepth = m.e > 0 ? Math.min(m.e, Math.max(0, m.e - r)) : 0;
+      pts.push([boardX0 - 4, bed]);
+      if (m.e > 0) { pts.push([boardX0 - r * 0.6, bed + 0.01]); pts.push([boardX0, boardTop - 1.6 - wrapDepth * 0.3]); }
+      pts.push(...arcPts(boardX0 + r * 0.2, boardTop - r * 0.2, r * 0.2, Math.PI, Math.PI / 2));
+      for (let i = 0; i < parts.length; i++) {
+        const a = parts[i], b = parts[i + 1];
+        // rise onto part i
+        if (i === 0) pts.push([a.x0 - Math.min(R, 2), boardTop]);
+        pts.push(...arcPts(a.x0 + Math.min(R, a.h) * 0.0, boardTop + a.h, 0.0001, Math.PI, Math.PI / 2));
+        pts.push([a.x1, boardTop + a.h]);
+        if (!b) break;
+        const w = b.x0 - a.x1;
+        if (m.touches) {
+          const rr = Math.min(R, w / 2, a.h);
+          pts.push(...arcPts(a.x1, boardTop + a.h - rr, rr, Math.PI / 2, 0).map(([x, y]) => [x, y]));
+          pts.push([a.x1 + rr, boardTop + rr]);
+          pts.push(...arcPts(a.x1 + 2 * rr, boardTop + rr, rr, Math.PI, 1.5 * Math.PI));
+          pts.push([b.x0 - 2 * rr, boardTop]);
+          pts.push(...arcPts(b.x0 - 2 * rr, boardTop + rr, rr, 1.5 * Math.PI, 2 * Math.PI));
+          pts.push([b.x0, boardTop + a.h - rr]);
+        } else {
+          const cx = (a.x1 + b.x0) / 2, cy = boardTop + a.h + Math.sqrt(R * R - (w * w) / 4), half = Math.asin(w / 2 / R);
+          for (let j = 0; j <= 16; j++) { const ang = -Math.PI / 2 - half + (2 * half * j) / 16; pts.push([cx + R * Math.cos(ang), cy + R * Math.sin(ang)]); }
+        }
+        pts.push([b.x0, boardTop + b.h]);
+      }
+      const last = parts[parts.length - 1];
+      pts.push([boardX1 - r * 0.2, boardTop]);
+      if (m.e > 0) { pts.push([boardX1, boardTop - 1.6 - wrapDepth * 0.3]); pts.push([boardX1 + r * 0.6, bed + 0.01]); }
+      pts.push([boardX1 + 4, bed]);
+      void last; return pts;
+    }
+    function draw() {
+      const [c, W, H] = fit($("view")); const m = model();
+      const k = m.k, g = m.gap, span = 3 * k.L + 2 * g + 12;
+      const sc = Math.min((W - 40) / span, (H - 60) / 14), vs = 2; // vertical exaggeration
+      const bed = 0, boardTop = m.e + 1.6;
+      const x0 = 6, parts = [0, 1, 2].map((i) => ({ x0: x0 + i * (k.L + g), x1: x0 + i * (k.L + g) + k.L, h: k.h }));
+      const boardX0 = 0, boardX1 = parts[2].x1 + 6;
+      const ox = (W - (boardX1 - boardX0) * sc) / 2, oy = H - 34;
+      const X = (x) => ox + x * sc, Y = (y) => oy - y * sc * vs;
+      // bed
+      c.fillStyle = css("--chip"); c.fillRect(0, oy, W, 30); c.fillStyle = css("--muted"); c.font = "11px system-ui, sans-serif"; c.fillText("forming bed", 8, oy + 18);
+      // spacers + board
+      if (m.e > 0) { c.fillStyle = css("--muted"); [boardX0 + 3, boardX1 - 5].forEach((x) => c.fillRect(X(x), Y(m.e), 2 * sc, m.e * sc * vs)); }
+      c.fillStyle = "#2e9d6b"; c.fillRect(X(boardX0), Y(boardTop), (boardX1 - boardX0) * sc, 1.6 * sc * vs);
+      // pads, z-tape, parts
+      parts.forEach((p, i) => {
+        c.fillStyle = "#b8860b"; c.fillRect(X(p.x0 - 0.2), Y(boardTop + 0.05), (p.x1 - p.x0 + 0.4) * sc, 0.05 * sc * vs + 1);
+        c.fillStyle = "rgba(127,127,127,0.6)"; c.fillRect(X(p.x0), Y(boardTop + 0.1), (p.x1 - p.x0) * sc, 0.1 * sc * vs + 1);
+        c.fillStyle = i === 1 ? css("--ink") : css("--muted"); c.fillRect(X(p.x0), Y(boardTop + p.h), (p.x1 - p.x0) * sc, (p.h - 0.1) * sc * vs);
+      });
+      c.fillStyle = css("--muted"); c.fillText(k.name, X(parts[1].x0), Y(boardTop + k.h) - 8 - (1 - phase) * 0);
+      // sheet: interpolate between flat (above everything) and formed profile
+      const formed = sheetProfile(m, parts, boardX0, boardX1, boardTop, bed), flatY = boardTop + k.h + 4.5;
+      const ease = phase < 0 ? 0 : phase;
+      c.strokeStyle = "#16a9c7"; c.lineWidth = Math.max(2, m.t * sc * vs * 0.6); c.globalAlpha = 0.75; c.lineJoin = "round"; c.beginPath();
+      formed.forEach(([x, y], i) => { const yy = flatY + (y + m.t / 2 - flatY) * ease; i ? c.lineTo(X(x), Y(yy)) : c.moveTo(X(x), Y(yy)); });
+      c.stroke(); c.globalAlpha = 1;
+      // force arrows on centre part
+      if (ease > 0.95) {
+        c.strokeStyle = css("--accent"); c.fillStyle = css("--accent"); c.lineWidth = 2;
+        const ax = X((parts[1].x0 + parts[1].x1) / 2), ay = Y(boardTop + k.h + 1.2);
+        c.beginPath(); c.moveTo(ax, ay - 26); c.lineTo(ax, ay); c.stroke(); c.beginPath(); c.moveTo(ax - 5, ay - 7); c.lineTo(ax + 5, ay - 7); c.lineTo(ax, ay); c.fill();
+        c.fillText(`${m.F.toFixed(1)} N`, ax + 8, ay - 14);
+      }
+      c.fillStyle = css("--muted"); c.fillText(phaseLabel, 8, 16);
+      // scale bar 2 mm
+      c.strokeStyle = css("--muted"); c.lineWidth = 1; c.beginPath(); c.moveTo(W - 20 - 2 * sc, 22); c.lineTo(W - 20, 22); c.stroke(); c.fillText("2 mm", W - 20 - 2 * sc, 16);
+    }
+    let phaseLabel = "formed (PETG sheet shown in cyan)";
+    $("go").addEventListener("click", () => {
+      cancelAnimationFrame(anim); const t0 = performance.now(), D = 4200; // 210 s compressed
+      (function step(now) {
+        const s = Math.min(1, (now - t0) / D), sec = s * 210;
+        if (sec < 40) { phase = 0; phaseLabel = `heating sheet to 160 °C · t = ${sec.toFixed(0)} s`; }
+        else if (sec < 120) { phase = Math.min(1, (sec - 40) / 30); phaseLabel = `pressure forming at ${$("p").value} psi · t = ${sec.toFixed(0)} s`; }
+        else { phase = 1; phaseLabel = `cooling (90 s) · t = ${sec.toFixed(0)} s of 210 s`; }
+        draw(); if (s < 1) anim = requestAnimationFrame(step); else { phaseLabel = "done: trim excess sheet (Fig. 2d)"; draw(); }
+      })(t0);
+    });
+    document.querySelectorAll("aside input, aside select").forEach((el) => el.addEventListener("input", () => { phase = 1; phaseLabel = "formed (PETG sheet shown in cyan)"; update(); }));
+    window.addEventListener("resize", draw);
+    update();
+  })();
+  </script>
+</body>
+</html>

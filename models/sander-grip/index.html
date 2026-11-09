@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sander Grip Damping</title>
+  <link rel="icon" href="../../assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../../assets/site.css" />
+  <style>
+    [hidden] { display: none !important; }
+    aside select { max-width: 100%; }
+    .split { position: absolute; inset: 0; display: grid; grid-template-rows: minmax(0, 1fr) minmax(0, 1.2fr); }
+    .split > div { position: relative; min-height: 0; overflow: hidden; }
+    .split canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; }
+    .chartbox { border-top: 1px solid var(--line); }
+    .chartbox canvas { left: 8px !important; top: 8px !important; width: calc(100% - 16px) !important; height: calc(100% - 16px) !important; }
+    table.rep { width: 100%; border-collapse: collapse; font-size: 13px; }
+    table.rep td, table.rep th { border-bottom: 1px solid var(--line); padding: 3px 4px; text-align: left; }
+    @media (max-width: 860px) { .model { grid-template-rows: auto auto; } .model .stage { height: 580px; } .split { grid-template-rows: 260px 320px; } }
+  </style>
+</head>
+<body>
+  <header class="site"><div class="wrap">
+    <a class="brand" href="../../"><img src="../../assets/icon.svg" alt="" />Transformative Robotics Lab</a>
+    <nav class="site"><a href="../../">Projects</a><a href="https://transformativerobotlab.com/assets/pdf/Vibration_reduction_for_sander_grips.pdf">Paper (SFF 2022, PDF)</a></nav>
+  </div></header>
+  <main class="model">
+    <div class="stage">
+      <div class="split">
+        <div><canvas id="view" aria-label="Hand on a viscoelastic pad on a vibrating sander"></canvas>
+          <div class="overlay">Motion exaggerated and slowed for viewing. Left: stock grip. Right: printed pad.</div></div>
+        <div class="chartbox"><canvas id="chart" aria-label="Vibration transmissibility versus frequency"></canvas></div>
+      </div>
+    </div>
+    <aside>
+      <h1>Vibration-reducing sander grip</h1>
+      <p class="muted">Illustrative model based on Kandukuri, Kashyap &amp; Lipton, <i>Vibration Reduction Using Material Jetted Parts for Sander Grips</i> (SFF 2022). Grips were PolyJet-printed from TangoBlack+ (TBP) with up to 25% trapped non-curing liquid, coated with Loctite Shoe Glue, and tested on a 5″ Sioux sander at a Boeing factory.</p>
+      <h2>Printed pad</h2>
+      <label>Liquid fraction φ <b id="vphi"></b> % <input id="phi" type="range" min="0" max="25" step="1" value="25" /></label>
+      <label>Pad thickness <b id="vth"></b> mm <input id="th" type="range" min="2" max="15" step="0.5" value="6" /></label>
+      <label>Palm contact area <b id="vA"></b> cm² <input id="A" type="range" min="5" max="40" step="1" value="20" /></label>
+      <h2>Hand and tool (assumed)</h2>
+      <label>Effective hand mass at the contact <b id="vm"></b> kg <input id="m" type="range" min="0.05" max="1" step="0.05" value="0.3" /></label>
+      <label>Sander speed <b id="vrpm"></b> rpm (<b id="vf0"></b> Hz) <input id="rpm" type="range" min="3000" max="12000" step="500" value="10000" /></label>
+      <h2>Model outputs</h2>
+      <div class="readout" id="out"></div>
+      <p class="muted" style="font-size:12px">Chart: blue = stock rubber grip, red = printed pad at the chosen φ, green = printed pad of solid TBP (φ = 0).</p>
+      <h2>Reported in the paper</h2>
+      <table class="rep">
+        <tr><th>Location</th><th>Hard (TBP)</th><th>Soft (25% liquid)</th><th>Best per worker</th></tr>
+        <tr><td>Palm</td><td>40%</td><td>41%</td><td>45%</td></tr>
+        <tr><td>Finger</td><td>23.6%</td><td>22.1%</td><td>32.5%</td></tr>
+      </table>
+      <p class="muted" style="font-size:12px;margin:4px 0">Mean reduction in average acceleration vs the base tool, 5 workers, 15 s recordings (Table 5 and text, pp. 1963–1966). Palm reductions ranged 7–60% per worker; wrist vibration was near noise. The soft pad cut power spectral density by ~20 dB above 1 kHz in all but two trials (Fig. 11). Liquid-filled TBP has tan δ between 0.3 and 1 at 1 Hz, rising with frequency as a power law (p. 1952, from MacCurdy et al. 2016).</p>
+      <h2>How this model works</h2>
+      <p class="muted" style="font-size:13px">The paper reports measurements, not a vibration model. This page uses the simplest model of its mechanism: the hand is a mass m resting on the pad, a viscoelastic spring with complex stiffness k* = k′(1 + i tan δ), driven by the sander. Transmissibility to the hand is T = |k*| / |k* − mω²|. The pad stiffness is k′ = E′A/h. Following the paper's description, tan δ at 1 Hz rises from 0.3 (solid TBP) to 1 (25% liquid) and grows with frequency as f<sup>0.1</sup>.</p>
+      <p class="muted" style="font-size:13px">Assumed, not from the paper: E′ of TBP ≈ 1 MPa at 1 Hz, falling linearly to 0.4 MPa at 25% liquid; storage-modulus exponent 0.05; stock rubber grip E′ = 3 MPa, tan δ = 0.1, 3 mm thick; the hand mass; the sander speed. A single-mass hand cannot capture the large worker-to-worker differences the paper saw, which it attributes to grip force.</p>
+      <p class="muted" style="font-size:13px">Coating selection (Tables 1–3): candidates were filtered by peel, compression/torsion and abrasion tests, then by IPA/MEK/acetone exposure and dust/scuff tests; Urecoat and Loctite Shoe Glue survived, and only Shoe Glue bonded to the liquid-filled TBP.</p>
+    </aside>
+  </main>
+  <script src="../../assets/chart.js"></script>
+  <script>
+  (function () {
+    const $ = (id) => document.getElementById(id);
+    const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+    const chart = TRLChart.create($("chart"), { xlabel: "frequency", ylabel: "transmissibility (dB)" });
+    function pad(phi, th, A) { // returns function f -> complex stiffness [re, im] (N/m)
+      const E1 = 1.0e6 * (1 - 2.4 * (phi / 100)), tan1 = 0.3 + 0.7 * (phi / 25);
+      return (f) => { const E = E1 * Math.pow(f, 0.05), tn = tan1 * Math.pow(f, 0.1), k = (E * A * 1e-4) / (th * 1e-3); return [k, k * tn]; };
+    }
+    function stock(A) { return (f) => { const k = (3e6 * A * 1e-4) / 3e-3; return [k, k * 0.1]; }; }
+    function T(kf, m, f) { const [kr, ki] = kf(f), w = 2 * Math.PI * f, dr = kr - m * w * w; return Math.hypot(kr, ki) / Math.hypot(dr, ki); }
+    const dB = (x) => 20 * Math.log10(x);
+    let t0 = performance.now();
+    function vals() { return { phi: +$("phi").value, th: +$("th").value, A: +$("A").value, m: +$("m").value, rpm: +$("rpm").value }; }
+    function update() {
+      const v = vals(), f0 = v.rpm / 60;
+      $("vphi").textContent = v.phi; $("vth").textContent = v.th; $("vA").textContent = v.A; $("vm").textContent = v.m.toFixed(2); $("vrpm").textContent = v.rpm; $("vf0").textContent = f0.toFixed(0);
+      const kp = pad(v.phi, v.th, v.A), ks = stock(v.A), kh = pad(0, v.th, v.A);
+      const fs = [], xs = []; for (let e = 1; e <= 3.7; e += 0.01) { fs.push(10 ** e); xs.push(e); }
+      const series = [
+        { name: "stock grip", x: xs, y: fs.map((f) => dB(T(ks, v.m, f))) },
+        { name: `printed pad, φ = ${v.phi}%`, x: xs, y: fs.map((f) => dB(T(kp, v.m, f))) },
+      ];
+      if (v.phi > 0) series.push({ name: "printed pad, solid TBP", x: xs, y: fs.map((f) => dB(T(kh, v.m, f))) });
+      chart.setSeries(series, { xlabel: "log₁₀ frequency (1 = 10 Hz, 2 = 100 Hz, 3 = 1 kHz)", ylabel: "transmissibility to hand (dB)" });
+      const fn = Math.sqrt(kp(100)[0] / v.m) / (2 * Math.PI), fns = Math.sqrt(ks(100)[0] / v.m) / (2 * Math.PI);
+      const Tp = T(kp, v.m, f0), Ts = T(ks, v.m, f0);
+      let hi = 0, hs = 0, n = 0; for (let f = 1000; f <= 5000; f += 50) { hi += dB(T(kp, v.m, f)); hs += dB(T(ks, v.m, f)); n++; }
+      const [kr, ki] = kp(1);
+      $("out").textContent = `pad stiffness k′ ≈ ${(kp(100)[0] / 1000).toFixed(0)} kN/m at 100 Hz\npad tan δ = ${(ki / kr).toFixed(2)} at 1 Hz, ${(kp(f0)[1] / kp(f0)[0]).toFixed(2)} at ${f0.toFixed(0)} Hz\nresonance ≈ ${fn.toFixed(0)} Hz (stock grip ≈ ${fns.toFixed(0)} Hz)\nat ${f0.toFixed(0)} Hz: T = ${Tp.toFixed(2)} vs ${Ts.toFixed(2)} → ${((1 - Tp / Ts) * 100).toFixed(0)}% ${Tp < Ts ? "less" : "more"} hand vibration\nmean change 1–5 kHz: ${(hi / n - hs / n).toFixed(1)} dB vs stock grip`;
+    }
+    function fit(cv) { const dpr = Math.min(devicePixelRatio || 1, 2), W = cv.clientWidth, H = cv.clientHeight; if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); } const c = cv.getContext("2d"); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H); return [c, W, H]; }
+    function spring(c, x, y0, y1, w, col) { c.strokeStyle = col; c.lineWidth = 1.5; c.beginPath(); c.moveTo(x, y0); const n = 8; for (let i = 1; i < n; i++) c.lineTo(x + (i % 2 ? w : -w), y0 + ((y1 - y0) * i) / n); c.lineTo(x, y1); c.stroke(); }
+    function damper(c, x, y0, y1, col) { const ym = (y0 + y1) / 2; c.strokeStyle = col; c.lineWidth = 1.5; c.beginPath(); c.moveTo(x, y0); c.lineTo(x, ym - 4); c.moveTo(x - 8, ym - 4); c.lineTo(x + 8, ym - 4); c.moveTo(x - 10, ym - 10); c.lineTo(x - 10, ym + 8); c.lineTo(x + 10, ym + 8); c.lineTo(x + 10, ym - 10); c.moveTo(x, ym + 8); c.lineTo(x, y1); c.stroke(); }
+    function loop(now) {
+      requestAnimationFrame(loop);
+      const [c, W, H] = fit($("view")); const v = vals(), f0 = v.rpm / 60;
+      const kp = pad(v.phi, v.th, v.A), ks = stock(v.A);
+      const ph = ((now - t0) / 1000) * 2 * Math.PI * 1.2; // shown at 1.2 Hz
+      const amp = Math.min(18, H * 0.06);
+      const cols = [["stock grip", ks, 3], [`printed pad (φ ${v.phi}%)`, kp, v.th]];
+      cols.forEach(([label, kf, th], i) => {
+        const cx = W * (0.27 + 0.46 * i), base = H * 0.78, Tm = T(kf, v.m, f0);
+        const [kr, ki] = kf(f0), w = 2 * Math.PI * f0, lag = Math.atan2(ki, kr) - Math.atan2(ki, kr - v.m * w * w);
+        const ys = amp * Math.sin(ph), yh = amp * Tm * Math.sin(ph + lag);
+        // sander body
+        c.fillStyle = css("--muted"); c.fillRect(cx - 70, base + ys, 140, 22); c.fillStyle = css("--line"); c.fillRect(cx - 80, base + 22 + ys, 160, 8);
+        // pad: spring + damper, height ∝ thickness
+        const ph_ = 18 + th * 4, top = base + ys - ph_ + (yh - ys) * 0;
+        const handY = base - ph_ + yh;
+        spring(c, cx - 25, base + ys, handY + 0, 10, "#2f6fde"); damper(c, cx + 25, handY, base + ys, "#e0453a");
+        // hand
+        c.fillStyle = css("--accent"); c.globalAlpha = 0.85; c.beginPath(); c.roundRect ? c.roundRect(cx - 60, handY - 34, 120, 34, 14) : c.rect(cx - 60, handY - 34, 120, 34); c.fill(); c.globalAlpha = 1;
+        c.fillStyle = css("--ink"); c.font = "12px system-ui, sans-serif"; c.textAlign = "center";
+        c.fillText(label, cx, 18); c.fillStyle = css("--muted"); c.fillText(`|T| = ${Tm.toFixed(2)} at ${f0.toFixed(0)} Hz`, cx, 34); void top;
+      });
+      c.textAlign = "left";
+    }
+    document.querySelectorAll("aside input").forEach((el) => el.addEventListener("input", update));
+    update(); requestAnimationFrame(loop);
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bi-Layer Auxetic Voxels</title>
+  <link rel="icon" href="../../assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../../assets/site.css" />
+  <style>
+    .chart-box { height: 220px; border: 1px solid var(--line); border-radius: 8px; margin-top: 6px; }
+    .chart-box canvas, #view { width: 100%; height: 100%; display: block; }
+    .note { font-size: 12.5px; }
+    aside select, aside input[type="range"] { width: 100%; }
+    .seg { display: flex; gap: 4px; flex-wrap: wrap; }
+    .seg .btn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  </style>
+</head>
+<body>
+  <header class="site"><div class="wrap">
+    <a class="brand" href="../../"><img src="../../assets/icon.svg" alt="" />Transformative Robotics Lab</a>
+    <nav class="site"><a href="../../">Projects</a></nav>
+  </div></header>
+  <main class="model">
+    <div class="stage" id="stage">
+      <canvas id="view" aria-label="Voxel geometry"></canvas>
+      <div class="overlay" id="ov">Side view, to scale (mm)</div>
+    </div>
+    <aside>
+      <h1>Grow an auxetic voxel</h1>
+      <p class="muted note">Illustrative model based on Chin, Xie, Lipton &amp; Rus, "Large-Expansion Bi-Layer Auxetics Create Compliant Cellular Motion" (ICRA 2025), Sec. III and IV, Eqs. 1–3, Fig. 2–3.</p>
+
+      <h2>View</h2>
+      <div class="seg" id="viewSeg">
+        <button class="btn" data-view="pair" aria-pressed="true">Two voxels (Fig. 3A)</button>
+        <button class="btn" data-view="fan" aria-pressed="false">Bending layer (Eq. 3)</button>
+      </div>
+
+      <h2>Expansion</h2>
+      <label>Servo rotation from closed: <b id="aLbl"></b><input id="ang" type="range" min="0" max="45" step="0.5" value="45" /></label>
+      <label>Voxels in the bending layer: <b id="nLbl"></b><input id="nv" type="range" min="2" max="8" step="1" value="4" /></label>
+      <div class="seg"><button class="btn" id="go">Snap open in 0.2 s</button><button class="btn" id="slow">Slow motion ×10</button></div>
+
+      <h2>Readout</h2>
+      <div class="readout" id="out"></div>
+      <label>Chart <select id="chartQ">
+        <option value="t">Max incline 2θ vs expansion ratio k (Eq. 2)</option>
+        <option value="R">Radius of curvature R vs k (Eq. 3)</option>
+      </select></label>
+      <div class="chart-box"><canvas id="chart" aria-label="Chart"></canvas></div>
+      <p class="muted note" id="chartNote"></p>
+
+      <h2>How this model works</h2>
+      <p class="note"><b>Voxel.</b> Each AuxSwarm voxel is a jitterbug-style auxetic shell made of 0.254 mm spring steel. Two mirror-image layers are offset by 6 mm standoffs and pinned at the midpoints of their rotating links, which forms a scissor between faces (Sec. II-A, Fig. 1). Two servos counter-rotate the layers, a single degree of freedom. The diameter grows from 92 ± 1.2 mm closed to 144 ± 1.6 mm open over 45° of servo rotation. That is k = 1.57, against a theoretical 1.77, and it takes 0.2 s (Sec. III, Fig. 2). Diameter is <i>linearly interpolated</i> between those two reported endpoints, which approximates the Fig. 2 curve.</p>
+      <p class="note"><b>Two voxels (Fig. 3A).</b> A contracted voxel of radius r and an expanded voxel of radius kr stay tangent at their joint. The line through their centres meets the ground at θ with sin θ = (k − 1)/(k + 1) (Eq. 1), and the common tangent rises at 2θ = 2 arcsin((k − 1)/(k + 1)) (Eq. 2). That is the steepest incline one pair can make.</p>
+      <p class="note"><b>Bending layer (Eq. 3).</b> When the pair is tiled by symmetry, each expanded voxel spans 2θ about a common centre, so sin θ = kr/(R − kr) and R = 2k²r/(k − 1). The paper uses r = 45.9 mm.</p>
+      <p class="note"><b>Simplified:</b> the drawn shell is a 2D schematic of two counter-rotating polygon layers, not the real 3D expandohedron. The gimbal joints are treated as points of tangency, as in the paper. Gravity and contact friction are ignored. The paper notes friction limited real expansion to about 115 mm in the bending test (Sec. V).</p>
+      <p class="note muted">Reported: stiffness 388 ± 41 N/m from the top and 280 ± 20 N/m laterally. Blocked force 8.92 ± 0.17 N along the servo axis and 3.02 ± 0.46 N laterally. Bending radius 63 cm with a constraint layer and 55 cm without (body length 51 cm), vs a predicted 39 cm at k = 1.57 or 57 cm at k = 1.25 (Sec. III, V).</p>
+    </aside>
+  </main>
+  <script src="../../assets/chart.js"></script>
+  <script>
+  (function () {
+    "use strict";
+    const $ = (id) => document.getElementById(id);
+    const D_CLOSED = 92, D_OPEN = 144, A_OPEN = 45, R_PAPER = 45.9;
+    const st = { view: "pair", ang: 45, anim: null };
+    const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+    const Dof = (a) => D_CLOSED + ((D_OPEN - D_CLOSED) * a) / A_OPEN;
+    const twoTheta = (k) => 2 * Math.asin((k - 1) / (k + 1));
+    const Rcurv = (k, r) => (2 * k * k * r) / (k - 1);
+
+    const cv = $("view"), ctx = cv.getContext("2d");
+    function voxel(cx, cy, rad, ang, colA, colB) {
+      // two counter-rotating polygon layers (schematic of the bi-layer jitterbug shell)
+      ctx.lineWidth = 1.6;
+      ctx.strokeStyle = css("--muted"); ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.stroke(); ctx.globalAlpha = 1;
+      const rot = (ang / A_OPEN) * (Math.PI / 6);
+      for (const [sgn, col] of [[1, colA], [-1, colB]]) {
+        ctx.strokeStyle = col;
+        for (let i = 0; i < 6; i += 1) {
+          const c = (i / 6) * Math.PI * 2, px = cx + Math.cos(c) * rad * 0.62, py = cy + Math.sin(c) * rad * 0.62, s = rad * 0.3;
+          ctx.beginPath();
+          for (let j = 0; j <= 4; j += 1) { const t = c + sgn * rot + (j / 4) * Math.PI * 2 + Math.PI / 4; const x = px + Math.cos(t) * s, y = py + Math.sin(t) * s; if (j) ctx.lineTo(x, y); else ctx.moveTo(x, y); }
+          ctx.stroke();
+        }
+      }
+      ctx.fillStyle = css("--muted"); ctx.beginPath(); ctx.arc(cx, cy, Math.max(2, rad * 0.06), 0, Math.PI * 2); ctx.fill();
+    }
+
+    function draw() {
+      const dpr = Math.min(devicePixelRatio || 1, 2), W = cv.clientWidth, H = cv.clientHeight;
+      if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+      const ink = css("--ink"), muted = css("--muted"), acc = css("--accent");
+      const r = R_PAPER, D = Dof(st.ang), k = D / D_CLOSED, kr = k * r;
+      ctx.font = "12px system-ui, sans-serif";
+      if (st.view === "pair") {
+        const span = 2 * r + 2 * r * Math.sqrt(Math.max(k, 1)) + 2 * kr;
+        const s = Math.min((W - 60) / (span + 60), (H - 120) / (2 * 1.57 * R_PAPER + 20));
+        const gy = H - 75, x0 = 40 + (r + 10) * s;
+        ctx.strokeStyle = muted; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(10, gy); ctx.lineTo(W - 10, gy); ctx.stroke();
+        const c1 = { x: x0, y: gy - r * s }, c2 = { x: x0 + 2 * r * Math.sqrt(k) * s, y: gy - kr * s };
+        voxel(c1.x, c1.y, r * s, 0, "#2f6fde", "#e0453a");
+        voxel(c2.x, c2.y, kr * s, st.ang, "#2f6fde", "#e0453a");
+        // centre line, extended to ground
+        const th = Math.asin((k - 1) / (k + 1));
+        if (k > 1.001) {
+          const xg = c1.x - (r * s) / Math.tan(th);
+          ctx.setLineDash([5, 4]); ctx.strokeStyle = muted; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(xg, gy); ctx.lineTo(c2.x, c2.y); ctx.stroke(); ctx.setLineDash([]);
+          // common tangent at 2θ from the same ground point
+          const a2 = 2 * th, Lt = (c2.x - xg) / Math.cos(a2) * 1.05;
+          ctx.strokeStyle = acc; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.moveTo(xg, gy); ctx.lineTo(xg + Lt * Math.cos(a2), gy - Lt * Math.sin(a2)); ctx.stroke();
+          ctx.beginPath(); ctx.arc(xg, gy, 40, -a2, 0); ctx.stroke();
+          ctx.fillStyle = acc; ctx.fillText(`2θ = ${((a2 * 180) / Math.PI).toFixed(1)}°`, xg + 46, gy - 8);
+        }
+        ctx.fillStyle = ink; ctx.textAlign = "center";
+        ctx.fillText(`r = ${r.toFixed(1)} mm`, c1.x, gy + 18); ctx.fillText(`kr = ${kr.toFixed(1)} mm`, c2.x, gy + 18); ctx.textAlign = "left";
+        $("ov").textContent = "Side view to scale. Dashed: line of centres. Red: steepest tangent incline.";
+      } else {
+        const n = Number($("nv").value), th = Math.asin((k - 1) / (k + 1));
+        if (k < 1.005) { ctx.fillStyle = muted; ctx.fillText("Voxels closed (k = 1): the layer is flat, R → ∞.", 24, 30); voxelRowFlat(n, r, W, H); $("ov").textContent = "Bending layer"; return; }
+        const R = Rcurv(k, r), rc = R - kr; // centre distance from curvature centre
+        const halfSpan = n * th; // each voxel spans 2θ
+        const ext = Math.max(R * (1 - Math.cos(Math.min(halfSpan, Math.PI))) + 2 * kr, 2 * kr);
+        const wid = 2 * R * Math.sin(Math.min(halfSpan, Math.PI / 2)) + 2 * kr;
+        const s = Math.min((W - 60) / wid, (H - 80) / (ext + 20));
+        const Ox = W / 2, Oy = 40 + R * s; // curvature centre below the top arc
+        ctx.setLineDash([5, 4]); ctx.strokeStyle = muted; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.arc(Ox, Oy, R * s, -Math.PI / 2 - halfSpan - 0.1, -Math.PI / 2 + halfSpan + 0.1); ctx.stroke(); ctx.setLineDash([]);
+        for (let i = 0; i < n; i += 1) {
+          const phi = -Math.PI / 2 - halfSpan + th * (2 * i + 1);
+          voxel(Ox + Math.cos(phi) * rc * s, Oy + Math.sin(phi) * rc * s, kr * s, st.ang, "#2f6fde", "#e0453a");
+          ctx.strokeStyle = acc; ctx.globalAlpha = 0.35; ctx.lineWidth = 1;
+          const pb = -Math.PI / 2 - halfSpan + th * 2 * i; ctx.beginPath(); ctx.moveTo(Ox, Oy); ctx.lineTo(Ox + Math.cos(pb) * R * s, Oy + Math.sin(pb) * R * s); ctx.stroke(); ctx.globalAlpha = 1;
+        }
+        ctx.fillStyle = ink; ctx.fillText(`R = ${(R / 10).toFixed(1)} cm, each voxel spans 2θ = ${((2 * th * 180) / Math.PI).toFixed(1)}°`, 20, 24);
+        $("ov").textContent = "Expanded voxels tiled by symmetry about the curvature centre (Eq. 3), to scale";
+      }
+    }
+    function voxelRowFlat(n, r, W, H) {
+      const s = Math.min((W - 60) / (2 * r * n), (H - 80) / (2 * r)), y = H / 2;
+      for (let i = 0; i < n; i += 1) voxel(30 + (2 * i + 1) * r * s, y, r * s, 0, "#2f6fde", "#e0453a");
+    }
+
+    const chart = TRLChart.create($("chart"), {});
+    function update() {
+      const D = Dof(st.ang), k = D / D_CLOSED, r = R_PAPER;
+      $("aLbl").textContent = `${st.ang.toFixed(1)}°`; $("nLbl").textContent = $("nv").value;
+      const tt = (twoTheta(k) * 180) / Math.PI, R = k > 1.0001 ? Rcurv(k, r) : Infinity;
+      $("out").textContent = `servo angle     ${st.ang.toFixed(1)}° of 45°\n` +
+        `diameter D      ${D.toFixed(1)} mm   (92 → 144 mm, Fig. 2)\n` +
+        `expansion k     ${k.toFixed(3)}\n` +
+        `sin θ=(k−1)/(k+1)  θ = ${(tt / 2).toFixed(2)}°\n` +
+        `max incline 2θ  ${tt.toFixed(1)}°  (Eq. 2)\n` +
+        `curvature R     ${Number.isFinite(R) ? (R / 10).toFixed(1) + " cm" : "∞"}  (Eq. 3, r = 45.9 mm)\n` +
+        `                ${Number.isFinite(R) ? (R / 510).toFixed(2) + " body lengths (51 cm)" : ""}\n` +
+        `full stroke     0.2 s, ${((D_OPEN - D_CLOSED) / 0.2).toFixed(0)} mm/s in diameter`;
+      const ks = []; for (let v = 1.01; v <= 1.8; v += 0.01) ks.push(+v.toFixed(3));
+      const q = $("chartQ").value;
+      const ref = [[1.2, "k = 1.2 (prior work)"], [1.25, "k = 1.25 (bending test)"], [1.57, "k = 1.57 (measured max)"], [1.77, "k = 1.77 (theoretical)"]];
+      const fn = q === "t" ? (v) => (twoTheta(v) * 180) / Math.PI : (v) => Rcurv(v, r) / 10;
+      const ser = [{ name: q === "t" ? "2θ (deg)" : "R (cm)", x: ks, y: ks.map(fn) }];
+      ser.push({ name: "current k", x: [k, k], y: [0, k > 1.0001 ? Math.min(fn(k), q === "t" ? 90 : 300) : 0], color: css("--accent") || "#c8102e" });
+      for (const [kv, nm] of ref) ser.push({ name: nm, x: [kv], y: [fn(kv)] });
+      chart.setSeries(ser, { xlabel: "Expansion ratio k", ylabel: q === "t" ? "Max tangent incline 2θ (deg)" : "Radius of curvature R (cm)" });
+      $("chartNote").textContent = q === "t"
+        ? "The paper's check (Sec. IV): k = 1.2 gives about 10° and k = 1.5 gives about 23°. Hover the curve for values."
+        : "R falls steeply with k. The paper predicts 39 cm at k = 1.57 and 57 cm at k = 1.25, against 55–63 cm measured.";
+      draw();
+    }
+    document.querySelectorAll("#viewSeg [data-view]").forEach((b) => b.addEventListener("click", () => {
+      st.view = b.dataset.view; document.querySelectorAll("#viewSeg [data-view]").forEach((x) => x.setAttribute("aria-pressed", String(x === b))); update();
+    }));
+    $("ang").addEventListener("input", () => { st.ang = Number($("ang").value); update(); });
+    ["nv", "chartQ"].forEach((id) => $(id).addEventListener("input", update));
+    let slow = 1;
+    $("slow").addEventListener("click", () => { slow = slow === 1 ? 10 : 1; $("slow").setAttribute("aria-pressed", String(slow > 1)); $("slow").textContent = slow > 1 ? "Real time" : "Slow motion ×10"; });
+    $("go").addEventListener("click", () => { st.anim = { t0: performance.now(), from: 0 }; });
+    window.addEventListener("resize", draw);
+    update();
+    (function loop(now) {
+      requestAnimationFrame(loop);
+      if (st.anim) {
+        const u = Math.min(1, (now - st.anim.t0) / (200 * slow));
+        st.ang = A_OPEN * u; $("ang").value = st.ang; update();
+        if (u >= 1) st.anim = null;
+      }
+    })(performance.now());
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Passive Gripper Designer</title>
+  <link rel="icon" href="../../assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../../assets/site.css" />
+  <style>
+    .model aside input[type="range"] { width: 100%; }
+    .stage.split { display: grid; grid-template-rows: minmax(0, 3fr) minmax(0, 1.3fr); height: calc(100vh - 61px); }
+    .stage.split > div { position: relative; min-height: 0; overflow: hidden; }
+    .model .stage canvas#view, .model .stage canvas#chart { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    .chart-wrap { border-top: 1px solid var(--line); display: flex; flex-direction: column; padding: 6px 12px 4px; }
+    .chart-box { position: relative; flex: 1; min-height: 0; }
+    .legend { font-size: 12px; color: var(--muted); }
+    .label-ill { font-size: 12px; border-left: 3px solid var(--accent); padding: 4px 8px; background: var(--chip); border-radius: 4px; }
+    .btns { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+    details.how li { font-size: 13px; }
+    @media (max-width: 860px) { .model { grid-template-rows: auto auto; } .stage.split { height: 88vh; } }
+  </style>
+</head>
+<body>
+  <header class="site"><div class="wrap">
+    <a class="brand" href="../../"><img src="../../assets/icon.svg" alt="" />Transformative Robotics Lab</a>
+    <nav class="site"><a href="../../">Projects</a><a href="https://arxiv.org/abs/2306.03174">Paper (arXiv)</a><a href="https://homes.cs.washington.edu/~milink/passive-gripper/">Authors' code and data</a></nav>
+  </div></header>
+  <main class="model">
+    <div class="stage split" id="stage">
+      <div><canvas id="view"></canvas><div class="overlay" style="top:8px;bottom:auto" id="hint">Grey: object (2D section) · dots: sampled contact points · cones: chosen grasp configuration · red: skeleton · dark: gripper</div></div>
+      <div class="chart-wrap"><div class="legend" id="legend">Collision energy E<sub>g</sub> + E<sub>t</sub> of the best design during the search</div><div class="chart-box"><canvas id="chart"></canvas></div></div>
+    </div>
+    <aside>
+      <h1>Computational design of passive grippers</h1>
+      <p class="label-ill">Illustrative model based on Kodnongbua, Good, Lou, Lipton &amp; Schulz, <i>Computational Design of Passive Grippers</i> (ACM TOG 41(4), 2022; arXiv 2306.03174), Secs. 4–5 and 7.2. A 2D re-implementation that keeps the paper's pipeline but simplifies the robot and the final shape step.</p>
+      <p class="muted">A passive gripper has no motors. The robot arm's motion does the grasping. Given an object, the algorithm picks three contact points that hold it against gravity. It then designs a gripper skeleton together with an insert trajectory that slides the gripper onto those points without hitting the object.</p>
+      <h2>Object and setup</h2>
+      <label>Object <select id="obj"></select></label>
+      <label>Approach (first keyframe) <select id="appr"><option value="side">From the side</option><option value="above">From above</option><option value="diagonal">Diagonal</option></select></label>
+      <label>Friction coefficient μ <output id="muOut"></output><input id="mu" type="range" min="0.1" max="1.0" step="0.05" value="0.5" /></label>
+      <label>Reachability limit θ<sub>max</sub> <output id="thOut"></output><input id="th" type="range" min="40" max="89" step="1" value="80" /></label>
+      <label>Random seed <output id="seedOut"></output><input id="seed" type="range" min="1" max="50" step="1" value="1" /></label>
+      <div class="btns">
+        <button class="btn primary" id="run" type="button">Run the pipeline</button>
+        <button class="btn" id="play" type="button">Replay insert and lift</button>
+      </div>
+      <label>Grasp configuration <select id="cand"><option>(run the pipeline)</option></select></label>
+      <button class="btn" id="opt" type="button">Optimise this GC</button>
+      <h2>Step 1: grasp configurations (Sec. 4)</h2>
+      <div class="readout" id="gcRead">Not run yet.</div>
+      <h2>Step 2: trajectory and skeleton (Sec. 5)</h2>
+      <div class="readout" id="optRead">Not run yet.</div>
+      <h2>How this model works</h2>
+      <details class="how" open>
+        <summary>What follows the paper and what is simplified</summary>
+        <ul>
+          <li><b>GC sampling (Sec. 4, 7.2):</b> 1,000 random surface points, excluding floor contacts, are combined into 3,000 random three-point grasp configurations (GCs). Each point is offset 0.5 mm outward, as the paper offsets by half the printer resolution.</li>
+          <li><b>Stability (Sec. 4.1):</b> each contact has a Coulomb friction cone with μ<sub>i</sub> = max(0, n<sub>i</sub>·g)·μ, so top-facing contacts get no friction. A GC is kept if non-negative cone wrenches can balance gravity (partial force closure). In 2D a wrench is (f<sub>x</sub>, f<sub>z</sub>, τ/size), and the cone test is exact.</li>
+          <li><b>Reachability (Sec. 4.2):</b> keep a GC only if some instantaneous rigid motion (v, ω, c) breaks every contact within θ<sub>max</sub> = 80°. The search descends the barrier loss Σ[cos θ<sub>max</sub> − v<sub>i</sub>·n<sub>i</sub>]<sub>+</sub> + [‖v<sub>i</sub>‖ − 1]<sub>+</sub>.</li>
+          <li><b>Ranking (Sec. 4.3):</b> rank by partial minimum wrench (here, the distance from the gravity wrench to the cone boundary) and by estimated finger length (the longest shortest collision-free path from the flange). Non-dominated sorting forms Pareto fronts, and each front is sorted by finger length.</li>
+          <li><b>Co-optimisation (Sec. 5):</b> the skeleton has three fingers with m = 4 joints, and the trajectory has n = 4 keyframes. The objective is E<sub>g</sub> + E<sub>t</sub> + λ<sub>1</sub>E<sub>r</sub> + λ<sub>2</sub>L. Path collision is the inside distance plus the wrap-around distance, here the shorter way round the 2D outline, standing in for the mesh geodesic. The search is controlled random search with local mutation, finger joints may move ±10 mm (as in the paper), and λ<sub>1</sub> = 1000. The demo stops at the first collision-free design.</li>
+          <li><b>Simplified:</b> 2D sections instead of meshes. A planar flange (x, z, rotation) stands in for the UR5's six joints. The population is 160 instead of 10,000, keyframes may move ±60 mm and ±60°, and the floor clearance is h = 20 mm to suit the smaller 2D objects. The time and skeleton sampling are coarser. The final step, topology optimisation of the gripper in the collision-free volume (Sec. 6), is replaced by thickening the skeleton.</li>
+          <li><b>Reported results (paper, not computed here):</b> solutions were found for all 23 experiments, and 21 of the printed grippers picked up their object in the real tests (Sec. 7, Table 2).</li>
+        </ul>
+      </details>
+    </aside>
+  </main>
+  <script src="../../assets/chart.js"></script>
+  <script>
+// ===== Passive gripper core (2D) — after Kodnongbua et al. 2022, Secs. 4–5 =====
+const PG = (function () {
+  const OBJECTS = {
+    key: { name: "Front key (A1-f)", poly: [[0,0],[120,0],[120,90],[0,90],[0,48],[57,48],[57,72],[75,72],[75,30],[0,30]], grasp: [-55, 40], approach: "side" },
+    ledge: { name: "Block with a lip (wrench-style grasp)", poly: [[0,0],[100,0],[100,80],[-25,80],[-25,65],[0,65]], grasp: [-75, 70], approach: "side" },
+    slot: { name: "Top slot (cf. Top Key A3)", poly: [[0,0],[100,0],[100,70],[56,70],[56,50],[72,50],[72,30],[28,30],[28,50],[44,50],[44,70],[0,70]], grasp: [50, 125], approach: "above" },
+  };
+  const P = {
+    mu: 0.5, thetaMax: (80 * Math.PI) / 180, clear: 20, lambda1: 1000, lambda2: 1e-4, dsub: 3, offset: 0.5,
+    fingerRange: 10, keyRange: [60, 60, Math.PI / 3], startBack: 130, pop: 160, maxIter: 3000,
+  };
+  const add = (a, b) => [a[0] + b[0], a[1] + b[1]], sub = (a, b) => [a[0] - b[0], a[1] - b[1]], mul = (a, s) => [a[0] * s, a[1] * s];
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1], crs = (a, b) => a[0] * b[1] - a[1] * b[0], len = (a) => Math.hypot(a[0], a[1]);
+  const rot = (q, t) => [q[0] * Math.cos(t) - q[1] * Math.sin(t), q[0] * Math.sin(t) + q[1] * Math.cos(t)];
+
+  function prep(obj) {
+    const poly = obj.poly, n = poly.length; let A = 0, cx = 0, cz = 0;
+    for (let i = 0; i < n; i++) { const a = poly[i], b = poly[(i + 1) % n], c = crs(a, b); A += c; cx += (a[0] + b[0]) * c; cz += (a[1] + b[1]) * c; }
+    A /= 2; const com = [cx / (6 * A), cz / (6 * A)], ccw = A > 0;
+    const edges = [], cum = [0];
+    for (let i = 0; i < n; i++) { const a = poly[i], b = poly[(i + 1) % n], d = sub(b, a), L = len(d); const nrm = ccw ? [d[1] / L, -d[0] / L] : [-d[1] / L, d[0] / L]; edges.push({ a, b, L, n: nrm }); cum.push(cum[i] + L); }
+    const per = cum[n]; let size = 0; for (const p of poly) size = Math.max(size, len(sub(p, com)));
+    return { ...obj, com, edges, cum, per, size };
+  }
+  function inside(o, p) { let c = false; const q = o.poly; for (let i = 0, j = q.length - 1; i < q.length; j = i++) { if ((q[i][1] > p[1]) !== (q[j][1] > p[1]) && p[0] < ((q[j][0] - q[i][0]) * (p[1] - q[i][1])) / (q[j][1] - q[i][1]) + q[i][0]) c = !c; } return c; }
+  // ---- collision of a path: inside distance + wrap-around (perimeter geodesic) ----
+  function pathCollision(o, path) {
+    let inDist = 0, wrap = 0, floorPen = 0;
+    const hits = []; // {s (arc length along path), u (perimeter coord)}
+    let s0 = 0;
+    for (let k = 0; k + 1 < path.length; k++) {
+      const p = path[k], q = path[k + 1], d = sub(q, p), L = len(d); if (L < 1e-12) continue;
+      for (let e = 0; e < o.edges.length; e++) {
+        const E = o.edges[e], r = sub(E.b, E.a), den = crs(d, r); if (Math.abs(den) < 1e-12) continue;
+        const w = sub(E.a, p), t = crs(w, r) / den, u = crs(w, d) / den;
+        if (t >= 0 && t < 1 && u >= 0 && u < 1) hits.push({ s: s0 + t * L, u: o.cum[e] + u * E.L });
+      }
+      // floor: penetration below z = 0 counts as inside distance
+      if (p[1] < 0 || q[1] < 0) { const a = Math.min(p[1], 0), b = Math.min(q[1], 0); floorPen += (L * (Math.abs(a) + Math.abs(b))) / (Math.abs(p[1] - q[1]) + Math.abs(a) + Math.abs(b) + 1e-9); }
+      s0 += L;
+    }
+    hits.sort((a, b) => a.s - b.s);
+    const startIn = inside(o, path[0]);
+    let st = startIn, lastS = 0;
+    const events = [];
+    for (const h of hits) { if (st) inDist += h.s - lastS; events.push({ ...h, enter: !st }); st = !st; lastS = h.s; }
+    if (st) inDist += s0 - lastS;
+    for (let i = 0; i + 1 < events.length; i++) if (events[i].enter && !events[i + 1].enter) { const du = Math.abs(events[i].u - events[i + 1].u); wrap += Math.min(du, o.per - du); i++; }
+    return inDist + wrap + floorPen;
+  }
+  // ---- GC sampling, stability (partial force closure), reachability, ranking (Sec. 4) ----
+  function samplePoints(o, n, rng) {
+    const pts = [];
+    for (let i = 0; i < n; i++) {
+      const u = rng() * o.per; let e = 0; while (o.cum[e + 1] < u) e++;
+      const E = o.edges[e], t = (u - o.cum[e]) / E.L, p = add(E.a, mul(sub(E.b, E.a), t));
+      if (p[1] < 1.0) continue; // touches the floor
+      pts.push({ p, n: E.n, u });
+    }
+    return pts;
+  }
+  function wrenches(o, gc, mu) {
+    const W = [], g = [0, -1];
+    for (const c of gc) {
+      const mui = Math.max(0, dot(c.n, g)) * mu, f0 = mul(c.n, -1), t = [-f0[1], f0[0]];
+      const r = sub(c.p, o.com);
+      for (const sgn of mui > 0 ? [1, -1] : [0]) {
+        const f = add(f0, mul(t, sgn * mui)), m = Math.hypot(f[0], f[1]);
+        const fn = mul(f, 1 / m); W.push([fn[0], fn[1], crs(r, fn) / o.size]);
+      }
+    }
+    return W;
+  }
+  const c3 = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], d3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  function inCone(W, t) {
+    // Carathéodory: t is in cone(W) iff it is a non-negative combination of at most 3 generators
+    const n = W.length;
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) for (let k = j + 1; k < n; k++) {
+      const a = W[i], b = W[j], c = W[k], det = d3(a, c3(b, c)); if (Math.abs(det) < 1e-9) continue;
+      const x = d3(t, c3(b, c)) / det, y = d3(a, c3(t, c)) / det, z = d3(a, c3(b, t)) / det;
+      if (x >= -1e-9 && y >= -1e-9 && z >= -1e-9) return true;
+    }
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) { // planar pairs
+      const nn = c3(W[i], W[j]), m = Math.hypot(...nn); if (m < 1e-9) continue; if (Math.abs(d3(nn, t)) / m > 1e-7) continue;
+      const a = W[i], b = W[j], aa = d3(a, a), bb = d3(b, b), ab = d3(a, b), at = d3(a, t), bt = d3(b, t), den = aa * bb - ab * ab;
+      const x = (at * bb - bt * ab) / den, y = (bt * aa - at * ab) / den; if (x >= -1e-9 && y >= -1e-9) return true;
+    }
+    return false;
+  }
+  function partialMinWrench(W, t) {
+    // distance from the gravity-balancing wrench t to the boundary of cone(W)
+    let best = Infinity, facets = 0;
+    for (let i = 0; i < W.length; i++) for (let j = i + 1; j < W.length; j++) {
+      const nn = c3(W[i], W[j]), m = Math.hypot(...nn); if (m < 1e-9) continue; const u = nn.map((v) => v / m);
+      let pos = 0, neg = 0; for (const w of W) { const s = d3(u, w); if (s > 1e-9) pos++; else if (s < -1e-9) neg++; }
+      if (pos && neg) continue; facets++; best = Math.min(best, Math.abs(d3(u, t)));
+    }
+    return facets ? best : 2; // no facet: cone spans all wrenches (force closure)
+  }
+  function reachable(gc, rng) {
+    // Sec. 4.2: search an instantaneous rigid motion (v, ω, c) that breaks all contacts
+    const cmean = mul(gc.reduce((s, c) => add(s, c.p), [0, 0]), 1 / gc.length), cosT = Math.cos(P.thetaMax);
+    let bestL = Infinity;
+    for (let rep = 0; rep < 6; rep++) {
+      let v = [rng() * 2 - 1, rng() * 2 - 1], w = (rng() * 2 - 1) * 0.05, c = [...cmean];
+      const loss = (v, w, c) => { let L = 0; for (const k of gc) { const r = sub(k.p, c), vi = add(v, [-w * r[1], w * r[0]]); L += Math.max(0, cosT - dot(vi, k.n)) + Math.max(0, len(vi) - 1); } return L; };
+      let L = loss(v, w, c), step = 0.05;
+      for (let it = 0; it < 400 && L > 1e-6; it++) {
+        const h = 1e-5, x = [v[0], v[1], w, c[0], c[1]], gr = [];
+        for (let q = 0; q < 5; q++) { const y = [...x]; y[q] += h; gr.push((loss([y[0], y[1]], y[2], [y[3], y[4]]) - L) / h); }
+        const sc = [1, 1, 0.01, 50, 50];
+        const y = x.map((xi, q) => xi - step * sc[q] * gr[q]); const L2 = loss([y[0], y[1]], y[2], [y[3], y[4]]);
+        if (L2 < L) { v = [y[0], y[1]]; w = y[2]; c = [y[3], y[4]]; L = L2; step *= 1.2; } else step *= 0.5;
+      }
+      bestL = Math.min(bestL, L); if (bestL < 1e-4) return true;
+    }
+    return false;
+  }
+  // shortest non-colliding path FFO -> contact (visibility graph on slightly inflated polygon vertices)
+  function shortestPath(o, from, to) {
+    const verts = o.poly.map((p, i) => { const n0 = o.edges[(i - 1 + o.edges.length) % o.edges.length].n, n1 = o.edges[i].n; const b = add(n0, n1), m = len(b) || 1; return add(p, mul(b, 3 / m)); }).filter((p) => p[1] > 0.5 && !inside(o, p));
+    const nodes = [from, to, ...verts], N = nodes.length;
+    const free = (a, b) => pathCollision(o, [a, b]) < 1e-6;
+    const dist = Array(N).fill(Infinity), prev = Array(N).fill(-1), done = Array(N).fill(false); dist[0] = 0;
+    for (let it = 0; it < N; it++) {
+      let u = -1; for (let i = 0; i < N; i++) if (!done[i] && (u < 0 || dist[i] < dist[u])) u = i;
+      if (u < 0 || dist[u] === Infinity) break; done[u] = true; if (u === 1) break;
+      for (let v = 0; v < N; v++) if (!done[v] && free(nodes[u], nodes[v])) { const d = dist[u] + len(sub(nodes[u], nodes[v])); if (d < dist[v]) { dist[v] = d; prev[v] = u; } }
+    }
+    if (dist[1] === Infinity) return null;
+    const path = []; for (let v = 1; v >= 0; v = prev[v]) path.unshift(nodes[v]);
+    return { path, length: dist[1] };
+  }
+  function generateGCs(o, rng, { nPts = 1000, nGC = 3000 } = {}) {
+    const pts = samplePoints(o, nPts, rng).map((c) => ({ ...c, p: add(c.p, mul(c.n, P.offset)) }));
+    const ffo = o.grasp, stats = { sampled: 0, unstable: 0, unreachable: 0, kept: 0 };
+    const vis = pts.filter((c) => pathCollision(o, [ffo, c.p]) < 1e-6 || true);
+    const out = [], target = [0, 1, 0];
+    for (let i = 0; i < nGC; i++) {
+      const gc = [0, 1, 2].map(() => vis[Math.floor(rng() * vis.length)]);
+      if (new Set(gc).size < 3) continue;
+      stats.sampled++;
+      const W = wrenches(o, gc, P.mu);
+      if (!inCone(W, target)) { stats.unstable++; continue; }
+      if (!reachable(gc, rng)) { stats.unreachable++; continue; }
+      const pmw = partialMinWrench(W, target);
+      let fl = 0, paths = [];
+      for (const c of gc) { const sp = shortestPath(o, ffo, c.p); if (!sp) { fl = Infinity; break; } fl = Math.max(fl, sp.length); paths.push(sp.path); }
+      if (!Number.isFinite(fl)) { stats.unreachable++; continue; }
+      out.push({ gc, pmw, fl, paths }); stats.kept++;
+    }
+    // non-dominated sorting (maximise pmw, minimise finger length), then by finger length within a front
+    let rest = out.slice(), ranked = [], front = 0;
+    while (rest.length) {
+      const nd = rest.filter((a) => !rest.some((b) => b !== a && b.pmw >= a.pmw && b.fl <= a.fl && (b.pmw > a.pmw || b.fl < a.fl)));
+      nd.sort((a, b) => a.fl - b.fl).forEach((c) => { c.front = front; ranked.push(c); });
+      rest = rest.filter((a) => !nd.includes(a)); front++;
+    }
+    return { ranked, stats };
+  }
+  // ---- Sec. 5: skeleton + trajectory co-optimisation with controlled random search ----
+  function resample(path, m) { // polyline -> m points evenly spaced by arc length
+    const L = [0]; for (let i = 1; i < path.length; i++) L.push(L[i - 1] + len(sub(path[i], path[i - 1])));
+    const T = L[L.length - 1], out = [];
+    for (let k = 0; k < m; k++) { const s = (k / (m - 1)) * T; let i = 1; while (i < path.length - 1 && L[i] < s) i++; const t = (s - L[i - 1]) / (L[i] - L[i - 1] || 1); out.push(add(path[i - 1], mul(sub(path[i], path[i - 1]), t))); }
+    return out;
+  }
+  const APPROACH = { side: [-1, 0], above: [0, 1], diagonal: [-Math.SQRT1_2, Math.SQRT1_2] };
+  // reduce a shortest path to m = 4 joints: keep the pair of interior points that collides least
+  function simplify(o, pth) {
+    if (pth.length <= 4) { let q = pth.slice(); while (q.length < 4) { let bi = 0, bl = -1; for (let i = 0; i + 1 < q.length; i++) { const l = len(sub(q[i + 1], q[i])); if (l > bl) { bl = l; bi = i; } } q.splice(bi + 1, 0, mul(add(q[bi], q[bi + 1]), 0.5)); } return q; }
+    const dense = resample(pth, 24).concat(pth.slice(1, -1)); let best = null, bc = Infinity;
+    for (let i = 0; i < dense.length; i++) for (let j = 0; j < dense.length; j++) { if (i === j) continue; const q = [pth[0], dense[i], dense[j], pth[pth.length - 1]]; const c = pathCollision(o, q) + 1e-4 * (len(sub(q[1], q[0])) + len(sub(q[2], q[1])) + len(sub(q[3], q[2]))); if (c < bc) { bc = c; best = q; } }
+    return best;
+  }
+  function setup(o, cand, approach) {
+    const ffo = o.grasp;
+    // skeleton in the flange frame (flange at grasp pose has θ = 0, origin at FFO)
+    const fingers0 = cand.paths.map((pth) => simplify(o, pth).map((p) => sub(p, ffo)));
+    const kEnd = [ffo[0], ffo[1], 0], dir = APPROACH[approach || o.approach || "side"], kStart = [ffo[0] + dir[0] * P.startBack, ffo[1] + dir[1] * P.startBack, 0];
+    const kf0 = [1 / 3, 2 / 3].map((t) => kStart.map((v, i) => v + (kEnd[i] - v) * t));
+    const x0 = []; fingers0.forEach((f) => { x0.push(f[1][0], f[1][1], f[2][0], f[2][1]); }); kf0.forEach((k) => x0.push(...k));
+    const sig = []; for (let i = 0; i < 12; i++) sig.push(P.fingerRange); for (let i = 0; i < 2; i++) sig.push(...P.keyRange);
+    return { o, ffo, fingers0, kStart, kEnd, x0, sig };
+  }
+  function decode(S, x) {
+    const fingers = S.fingers0.map((f, i) => [f[0], [x[4 * i], x[4 * i + 1]], [x[4 * i + 2], x[4 * i + 3]], f[3]]);
+    const keys = [S.kStart, x.slice(12, 15), x.slice(15, 18), S.kEnd];
+    return { fingers, keys };
+  }
+  function poseAt(keys, s) { // s in [0, 3]
+    const i = Math.min(2, Math.floor(s)), t = s - i, a = keys[i], b = keys[i + 1];
+    return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+  }
+  const xform = (pose, q) => add([pose[0], pose[1]], rot(q, pose[2]));
+  function energy(S, x, detail) {
+    const { fingers, keys } = decode(S, x), o = S.o;
+    // time samples: subdivide so the far end of the skeleton moves at most ~d_sub per step (coarsened for speed)
+    let reach = 0; fingers.forEach((f) => f.forEach((p) => (reach = Math.max(reach, len(p)))));
+    const ts = [];
+    for (let i = 0; i < 3; i++) { const a = keys[i], b = keys[i + 1], mv = Math.hypot(b[0] - a[0], b[1] - a[1]) + Math.abs(b[2] - a[2]) * reach, n = Math.max(2, Math.min(40, Math.ceil(mv / (P.dsub * 4)))); for (let k = 0; k < n; k++) ts.push(i + k / n); }
+    ts.push(3);
+    let Eg = 0;
+    for (const s of ts) { const pose = poseAt(keys, s); let c = 0; for (const f of fingers) c += pathCollision(o, f.map((p) => xform(pose, p))); Eg = Math.max(Eg, c); }
+    // skeleton sample points (subdivided by d_sub, coarsened)
+    let Et = 0;
+    for (const f of fingers) for (let k = 0; k < 3; k++) {
+      const a = f[k], b = f[k + 1], n = Math.max(1, Math.ceil(len(sub(b, a)) / (P.dsub * 4)));
+      for (let j = (k === 0 ? 1 : 0); j <= n; j++) { if (k < 2 && j === n) continue; const q = add(a, mul(sub(b, a), j / n)); const tr = ts.map((s) => xform(poseAt(keys, s), q)); Et = Math.max(Et, pathCollision(o, tr)); }
+    }
+    let Er = 0; for (const s of ts) Er = Math.max(Er, P.clear - poseAt(keys, s)[1]);
+    Er = Math.max(0, Er);
+    let L = 0; for (let i = 12; i < 18; i++) L += (x[i] - S.x0[i]) ** 2;
+    const E = Eg + Et + P.lambda1 * Er + P.lambda2 * L;
+    return detail ? { E, Eg, Et, Er, L } : E;
+  }
+  // Controlled random search with local mutation (after Kaelo & Ali 2006), run in slices
+  function crsInit(S, rng) {
+    const N = S.x0.length, pop = [];
+    pop.push({ x: S.x0.slice(), f: energy(S, S.x0) });
+    for (let i = 1; i < P.pop; i++) { const x = S.x0.map((v, k) => v + (rng() * 2 - 1) * S.sig[k]); pop.push({ x, f: energy(S, x) }); }
+    return { S, pop, it: 0, N, rng };
+  }
+  function crsStep(st, iters) {
+    const { S, pop, N, rng } = st, lo = S.x0.map((v, k) => v - S.sig[k]), hi = S.x0.map((v, k) => v + S.sig[k]);
+    for (let n = 0; n < iters; n++, st.it++) {
+      let bi = 0, wi = 0; for (let i = 1; i < pop.length; i++) { if (pop[i].f < pop[bi].f) bi = i; if (pop[i].f > pop[wi].f) wi = i; }
+      if (pop[bi].f < 1e-9 || (n % 25 === 0 && energy(S, pop[bi].x, true).E - P.lambda2 * energy(S, pop[bi].x, true).L < 1e-9)) return true;
+      const idx = [bi]; while (idx.length < N + 1) { const r = Math.floor(rng() * pop.length); if (!idx.includes(r)) idx.push(r); }
+      const G = Array(N).fill(0); for (let j = 0; j < N; j++) G.forEach((_, k) => (G[k] += pop[idx[j]].x[k] / N));
+      let y = G.map((g, k) => 2 * g - pop[idx[N]].x[k]);
+      const inB = (y) => y.every((v, k) => v >= lo[k] && v <= hi[k]);
+      let fy = inB(y) ? energy(S, y) : Infinity;
+      if (!(fy < pop[wi].f)) { // local mutation around the best point
+        const b = pop[bi].x, r = pop[idx[1 + Math.floor(rng() * N)]].x;
+        y = b.map((v, k) => { const w = rng(); return Math.min(hi[k], Math.max(lo[k], (1 + w) * v - w * r[k])); });
+        fy = energy(S, y);
+      }
+      if (fy < pop[wi].f) pop[wi] = { x: y, f: fy };
+    }
+    return false;
+  }
+  function best(st) { return st.pop.reduce((a, b) => (b.f < a.f ? b : a)); }
+  function mulberry(a) { return function () { a |= 0; a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  return { OBJECTS, APPROACH, P, prep, generateGCs, setup, energy, decode, poseAt, xform, crsInit, crsStep, best, mulberry, pathCollision, inside, wrenches };
+})();
+  (function () {
+    "use strict";
+    const $ = (id) => document.getElementById(id), D2R = Math.PI / 180;
+    Object.entries(PG.OBJECTS).forEach(([k, o]) => $("obj").insertAdjacentHTML("beforeend", `<option value="${k}">${o.name}</option>`));
+    let obj = null, gcs = null, cand = null, S = null, st = null, bestX = null, hist = { x: [], y: [] }, samplePts = [], anim = null, busy = false, solved = false;
+    const chart = TRLChart.create($("chart"), { xlabel: "CRS iteration", ylabel: "collision energy (mm)" });
+    function labels() { $("muOut").textContent = (+$("mu").value).toFixed(2); $("thOut").textContent = `${$("th").value}°`; $("seedOut").textContent = $("seed").value; }
+    function reset() {
+      labels(); obj = PG.prep(PG.OBJECTS[$("obj").value]); gcs = cand = S = st = bestX = null; solved = false; samplePts = []; hist = { x: [], y: [] };
+      $("cand").innerHTML = "<option>(run the pipeline)</option>"; $("gcRead").textContent = "Not run yet."; $("optRead").textContent = "Not run yet."; chart.setSeries([]); anim = null;
+    }
+    $("obj").addEventListener("input", () => { $("appr").value = PG.OBJECTS[$("obj").value].approach; reset(); });
+    ["mu", "th", "seed"].forEach((id) => $(id).addEventListener("input", reset));
+    $("appr").addEventListener("input", () => { if (cand) { solved = false; startOpt(); } });
+
+    function runGC() {
+      PG.P.mu = +$("mu").value; PG.P.thetaMax = +$("th").value * D2R;
+      const rng = PG.mulberry(+$("seed").value), t0 = performance.now();
+      gcs = PG.generateGCs(obj, rng);
+      samplePts = []; const r2 = PG.mulberry(99); for (let i = 0; i < 250; i++) { const u = r2() * obj.per; let e = 0; while (obj.cum[e + 1] < u) e++; const E = obj.edges[e], t = (u - obj.cum[e]) / E.L; samplePts.push([E.a[0] + (E.b[0] - E.a[0]) * t, E.a[1] + (E.b[1] - E.a[1]) * t]); }
+      const s = gcs.stats;
+      $("gcRead").textContent = `${s.sampled} GCs sampled (from 1,000 surface points)\n  ${s.unstable} not stable under gravity (partial force closure)\n  ${s.unreachable} unreachable (no motion breaks all contacts, or no free path)\n  ${s.kept} kept and ranked into ${gcs.ranked.length ? gcs.ranked[gcs.ranked.length - 1].front + 1 : 0} Pareto fronts\n(${(performance.now() - t0).toFixed(0)} ms)`;
+      $("cand").innerHTML = gcs.ranked.slice(0, 12).map((c, i) => `<option value="${i}">#${i + 1} front ${c.front + 1} · min wrench ${c.pmw.toFixed(2)} · finger ${c.fl.toFixed(0)} mm</option>`).join("") || "<option>(no stable, reachable GC)</option>";
+      return gcs.ranked.length > 0;
+    }
+    function startOpt(onDone) {
+      const i = +$("cand").value || 0; cand = gcs.ranked[i]; if (!cand) return;
+      PG.P.mu = +$("mu").value;
+      S = PG.setup(obj, cand, $("appr").value); st = PG.crsInit(S, PG.mulberry(+$("seed").value * 7 + i)); hist = { x: [], y: [] }; solved = false; busy = true; anim = null;
+      { const b0 = PG.best(st), e0 = PG.energy(S, b0.x, true); hist.x.push(0); hist.y.push(e0.Eg + e0.Et); }
+      const budget = 3000;
+      (function slice() {
+        const ok = PG.crsStep(st, 60), b = PG.best(st), e = PG.energy(S, b.x, true); bestX = b.x;
+        hist.x.push(st.it); hist.y.push(e.Eg + e.Et);
+        chart.setSeries([{ name: "E_g + E_t", x: hist.x, y: hist.y, color: "#2f6fde" }], { xlabel: "CRS iteration", ylabel: "collision energy of best (mm)" });
+        $("optRead").textContent = `GC #${i + 1}: contacts at ${cand.gc.map((c) => `(${c.p[0].toFixed(0)}, ${c.p[1].toFixed(0)})`).join(" ")} mm\niteration ${st.it} of ${budget}\nE_g (skeleton over time) = ${e.Eg.toFixed(2)} mm\nE_t (trajectory of skeleton points) = ${e.Et.toFixed(2)} mm\nE_r (flange below clearance) = ${e.Er.toFixed(2)} mm\nL (trajectory change) = ${e.L.toFixed(0)} mm²` + (ok ? "\n→ collision-free gripper and insert trajectory found" : st.it >= budget ? "\n→ no collision-free design within budget; the paper moves on to the next GC" : "");
+        if (ok) { solved = true; busy = false; play(); onDone && onDone(true); return; }
+        if (st.it >= budget) { busy = false; onDone && onDone(false); return; }
+        setTimeout(slice, 0);
+      })();
+    }
+    function runAll() {
+      if (busy) return; reset(); if (!runGC()) return;
+      let i = 0; const n = Math.min(6, gcs.ranked.length);
+      const next = () => { $("cand").value = i; startOpt((ok) => { if (!ok && ++i < n) next(); }); };
+      next();
+    }
+    $("run").addEventListener("click", runAll);
+    $("opt").addEventListener("click", () => { if (!busy && gcs) startOpt(); });
+    $("cand").addEventListener("input", () => { if (gcs && !busy) { cand = gcs.ranked[+$("cand").value]; S = PG.setup(obj, cand, $("appr").value); bestX = S.x0; solved = false; anim = null; } });
+    function play() { anim = { t0: performance.now() }; }
+    $("play").addEventListener("click", () => { if (S && bestX) play(); });
+
+    // ---------- drawing ----------
+    const cv = $("view"), g = cv.getContext("2d");
+    const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+    function size(c) { const dpr = Math.min(devicePixelRatio || 1, 2), w = c.clientWidth, h = c.clientHeight; if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) { c.width = Math.round(w * dpr); c.height = Math.round(h * dpr); } c.getContext("2d").setTransform(dpr, 0, 0, dpr, 0, 0); return { w, h }; }
+    function draw() {
+      requestAnimationFrame(draw);
+      if (!obj) return;
+      const { w, h } = size(cv); g.clearRect(0, 0, w, h);
+      const ink = css("--ink"), muted = css("--muted"), chip = css("--chip");
+      // view box
+      const xs = obj.poly.map((p) => p[0]).concat([obj.grasp[0] - 40]), zs = obj.poly.map((p) => p[1]).concat([obj.grasp[1] + 40]);
+      if (S) { xs.push(S.kStart[0] - 20, S.kStart[0] + 20); zs.push(S.kStart[1] + 20); }
+      const x0 = Math.min(...xs) - 20, x1 = Math.max(...xs) + 20, z0 = -15, z1 = Math.max(...zs) + 80;
+      const sc = Math.min((w - 20) / (x1 - x0), (h - 50) / (z1 - z0)), ox = (w - (x1 - x0) * sc) / 2 - x0 * sc, oz = h - 14 + z0 * sc;
+      const X = (p) => [ox + p[0] * sc, oz - p[1] * sc];
+      // phase: insert along trajectory (0..3), then lift
+      let s = 3, lift = 0;
+      if (anim && S && bestX) { const t = (performance.now() - anim.t0) / 1000; s = Math.min(3, t * 1.1); lift = t > 3 / 1.1 + 0.3 ? Math.min(60, (t - 3 / 1.1 - 0.3) * 40) : 0; if (t > 3 / 1.1 + 3.5) anim.t0 = performance.now(); }
+      // floor
+      g.strokeStyle = muted; g.lineWidth = 2; g.beginPath(); g.moveTo(...X([x0 - 50, 0])); g.lineTo(...X([x1 + 50, 0])); g.stroke();
+      g.fillStyle = muted; for (let x = x0; x < x1 + 40; x += 8) { const a = X([x, 0]); g.fillRect(a[0], a[1] + 2, 1, 5); }
+      // object (lifted with the gripper once grasped)
+      const lp = (p) => [p[0], p[1] + lift];
+      g.fillStyle = chip; g.strokeStyle = ink; g.lineWidth = 1.5; g.beginPath(); obj.poly.forEach((p, i) => (i ? g.lineTo(...X(lp(p))) : g.moveTo(...X(lp(p))))); g.closePath(); g.fill(); g.stroke();
+      const cm = X(lp(obj.com)); g.fillStyle = ink; g.beginPath(); g.arc(cm[0], cm[1], 4, 0, 2 * Math.PI); g.fill(); g.font = "11px system-ui"; g.fillText("CoM", cm[0] + 6, cm[1] - 4);
+      if (!S) { g.fillStyle = muted; for (const p of samplePts) { const a = X(p); g.fillRect(a[0] - 1, a[1] - 1, 2, 2); } }
+      // flange start and grasp marks
+      if (S && bestX) {
+        const { fingers, keys } = PG.decode(S, bestX);
+        // trajectory of the flange origin
+        g.strokeStyle = "#d9822b"; g.setLineDash([5, 4]); g.lineWidth = 1.5; g.beginPath();
+        for (let k = 0; k <= 60; k++) { const q = PG.poseAt(keys, (k / 60) * 3); const a = X([q[0], q[1]]); k ? g.lineTo(...a) : g.moveTo(...a); } g.stroke(); g.setLineDash([]);
+        keys.forEach((q) => { const a = X([q[0], q[1]]); g.fillStyle = "#d9822b"; g.beginPath(); g.arc(a[0], a[1], 3.5, 0, 2 * Math.PI); g.fill(); });
+        const pose = PG.poseAt(keys, s); pose[1] += lift;
+        const world = fingers.map((f) => f.map((p) => PG.xform(pose, p)));
+        // thick gripper (stand-in for the topology-optimised shape)
+        g.strokeStyle = ink; g.globalAlpha = 0.85; g.lineCap = "round"; g.lineJoin = "round"; g.lineWidth = Math.max(3, 5 * sc);
+        for (const f of world) { g.beginPath(); f.forEach((p, i) => (i ? g.lineTo(...X(p)) : g.moveTo(...X(p)))); g.stroke(); }
+        g.globalAlpha = 1; g.strokeStyle = "#e0453a"; g.lineWidth = 1.5;
+        for (const f of world) { g.beginPath(); f.forEach((p, i) => (i ? g.lineTo(...X(p)) : g.moveTo(...X(p)))); g.stroke(); f.forEach((p) => { const a = X(p); g.fillStyle = "#e0453a"; g.beginPath(); g.arc(a[0], a[1], 2.5, 0, 2 * Math.PI); g.fill(); }); }
+        // flange / wrist
+        const F = X([pose[0], pose[1]]), back = PG.xform(pose, [S.kStart[0] - S.kEnd[0], S.kStart[1] - S.kEnd[1]].map((v, i, a) => (v / Math.hypot(a[0], a[1])) * 30));
+        g.strokeStyle = muted; g.lineWidth = 10 * Math.max(0.6, sc); g.beginPath(); g.moveTo(...F); g.lineTo(...X(back)); g.stroke();
+        g.fillStyle = "#d9822b"; g.beginPath(); g.arc(F[0], F[1], 6, 0, 2 * Math.PI); g.fill();
+      }
+      if (cand) for (const c of cand.gc) { // contact cones
+        const p = lp(c.p), a = X(p), mui = Math.max(0, -c.n[1]) * PG.P.mu, ang = Math.atan(mui), L = 22;
+        const dir = [-c.n[0], -c.n[1]];
+        g.fillStyle = "rgba(47,111,222,0.35)"; g.strokeStyle = "#2f6fde"; g.lineWidth = 1.5; g.beginPath(); g.moveTo(...a);
+        for (const sgn of [-1, 1]) { const r = [dir[0] * Math.cos(sgn * ang) - dir[1] * Math.sin(sgn * ang), dir[0] * Math.sin(sgn * ang) + dir[1] * Math.cos(sgn * ang)]; g.lineTo(a[0] - r[0] * L, a[1] + r[1] * L); }
+        g.closePath(); g.fill(); g.stroke(); g.fillStyle = "#2f6fde"; g.beginPath(); g.arc(a[0], a[1], 3.5, 0, 2 * Math.PI); g.fill();
+      }
+      g.fillStyle = muted; g.font = "12px system-ui"; g.textAlign = "left";
+      g.fillText(busy ? "searching…" : solved ? (lift > 0 ? "lifting: the object rests on the passive contacts" : "inserting along the optimised trajectory") : S ? "best design so far (not collision-free)" : "press “Run the pipeline”", 12, h - 22);
+    }
+    $("appr").value = PG.OBJECTS[$("obj").value].approach; reset(); draw();
+    window.addEventListener("load", () => setTimeout(runAll, 50));
+  })();
+  </script>
+</body>
+</html>

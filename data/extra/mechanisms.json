@@ -1,0 +1,95 @@
+{
+  "10611283": {
+    "summary": "The authors wrapped a stainless-steel band several times around a shaft coated in polybenzimidazole (PBI). This combines Johnsen-Rahbek electroadhesion with the exponential capstan effect, and they derived a model (Eq. 4) for the resulting holding tension. The model fit measurements from 0.5 to 3 wraps (correlation 0.95–0.99) and predicts that a capstan clutch always beats a planar clutch of the same area. A polished 76.2 µm band held 7.1 N·m (31.3 N/cm²) at 500 V and 2.5 mW/cm², the highest specific shear stress reported for an electrostatic clutch. PBI is also reported as the first unfilled polymer to show the JR effect.",
+    "project": "Electrostatic capstan clutch",
+    "demo": "models/capstan-clutch/",
+    "demoLabel": "Tune a JR capstan clutch",
+    "source": "full text",
+    "fulltext": "https://transformativerobotlab.com/assets/pdf/JR_clutch.pdf"
+  },
+  "herds": {
+    "authors": "Mitchell B. Fogelson, Sawyer Thomas, Giusy Falcone, Jeffrey I. Lipton, and Zachary Manchester",
+    "summary": "The paper proposes HERDS, a hierarchical deployable structure built to deploy a kilometer-scale artificial-gravity structure from a single launch. Pop-up extending trusses, a new scissor variant whose cross-section pops from flat to triangular, form the members of a Kresling tower. A mixed-integer design optimization gives member aspect ratios 4–11× better than pure PET or pure Kresling designs. Homogenized FEA finds a factor of safety above 1.5 for Lunar Gateway-type loads, and a 3D-printed prototype expanded about 50× (5 cm to 254 cm) without jamming.",
+    "project": "High-expansion-ratio deployable structures (HERDS)",
+    "demo": "models/herds/",
+    "demoLabel": "Deploy a HERDS truss",
+    "source": "full text",
+    "fulltext": "https://transformativerobotlab.com/assets/pdf/HERDs_IEEE_Aero_01_12_24.pdf"
+  },
+  "microgravity_isparo_2025": {
+    "summary": "The authors flew three deployable mechanisms on a parabolic flight: a translational scissor, a polar scissor and a pop-up extending truss. They recorded each one's centripetal deployment with synchronized high-speed video and motion capture, and reconstructed 3D trajectories of the rigid parts. The dataset was used to tune and validate the Dojo rigid-body physics engine, including contact, joint friction and clearance. Initial RMSEs were 1.3 cm, 1.2 cm and 4.4 cm for the three mechanisms.",
+    "project": "High-expansion-ratio deployable structures (HERDS)",
+    "demo": "models/herds/",
+    "demoLabel": "Deploy a PET-based HERDS truss",
+    "source": "abstract",
+    "fulltext": null
+  },
+  "expansion_joint_trr_2025": {
+    "summary": "The study designed noise treatments for modular expansion joints on highway bridges. It targeted the three main noise sources: air resonance in the gaps, beam resonance and tire resonance. Chevron support structures fill the gaps. They flex to follow the joint as it opens and closes but resist vertical wheel loads. Installed on one westbound lane of the SR 520 floating bridge for two months, they cut noise by more than 10 dB in the 500–900 Hz band at 160 ft.",
+    "project": "Quiet bridge expansion joints",
+    "demo": "models/expansion-joint/",
+    "demoLabel": "Roll a tire over the joint",
+    "source": "abstract",
+    "fulltext": null
+  },
+  "7759409": {
+    "summary": "The authors modified a multi-material inkjet printer to deposit a rubbery solid and a non-curing liquid voxel by voxel. The liquid fraction sets the printed material's stiffness (storage modulus about 0.1–1 MPa) and damping (tan δ about 0.2–0.9 at 1 Hz). They fitted power-law models of the complex modulus against frequency and liquid fraction, plus a model for impact restitution, which is lowest near 4–10% liquid. On a jumping cube robot, printed skins with 18% liquid roughly halved peak landing acceleration compared with a cast foam skin, and also reduced bouncing.",
+    "project": "Printable viscoelastic materials",
+    "demo": "models/viscoelastic/",
+    "demoLabel": "Program a printed damper",
+    "source": "full text",
+    "fulltext": "https://matterassembly.org/assets/pdf/preprints/2016_MacCurdy-Printable_Programmable_Viscoelastic_Materials_for_Robots.pdf"
+  },
+  "_demos": [
+    {
+      "id": "capstan-clutch",
+      "title": "Johnsen-Rahbek capstan clutch",
+      "sub": "Voltage, wrap angle and friction → holding torque",
+      "text": "Wrap an electroadhesive band around a PBI-coated shaft and see how much torque it holds. The page uses the ICRA 2024 model, which combines Johnsen-Rahbek and Coulomb pressure with the capstan equation. You can compare it with a planar clutch of the same area and with a plain capstan.",
+      "tags": [
+        "robots"
+      ],
+      "pubs": [
+        "10611283"
+      ]
+    },
+    {
+      "id": "herds",
+      "title": "HERDS deployable truss",
+      "sub": "Kresling tower of pop-up extending trusses, stowed to deployed",
+      "text": "Deploy a hierarchical Kresling tower whose members are pop-up extending trusses. First the tower untwists, then the trusses pop from flat to triangular and extend. Readouts give the PET cell angles, twist and expansion ratio, and the default reaches about 51×, matching the 1/10-scale prototype.",
+      "tags": [
+        "metamaterials"
+      ],
+      "pubs": [
+        "herds",
+        "microgravity_isparo_2025"
+      ]
+    },
+    {
+      "id": "expansion-joint",
+      "title": "Quiet bridge expansion joint",
+      "sub": "Tire impacts on open gaps vs chevron gap fillers",
+      "text": "Roll a tire across a modular bridge expansion joint and fill its gaps with zero-Poisson chevron supports that track the opening. A simple rigid-wheel sketch shows why open gaps cause edge strikes. Reported FEA pressure reductions and field noise results are quoted alongside.",
+      "tags": [
+        "metamaterials"
+      ],
+      "pubs": [
+        "expansion_joint_trr_2025"
+      ]
+    },
+    {
+      "id": "viscoelastic",
+      "title": "Printed viscoelastic dampers",
+      "sub": "Liquid fraction → stiffness, damping and bounce",
+      "text": "Choose how much liquid the printer mixes into a rubbery solid. The paper's fitted models then give storage and loss moduli, impact restitution and vibration transmissibility. A drop test shows the bounce, and a voxel slice shows the printed material.",
+      "tags": [
+        "fabrication",
+        "robots"
+      ],
+      "pubs": [
+        "7759409"
+      ]
+    }
+  ]
+}

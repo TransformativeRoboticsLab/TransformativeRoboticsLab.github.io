@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Carpentry Compiler Plans</title>
+  <link rel="icon" href="../../assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../../assets/site.css" />
+  <style>
+    [hidden] { display: none !important; }
+    aside select { max-width: 100%; }
+    .split { position: absolute; inset: 0; display: grid; grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); }
+    .split > div { position: relative; min-height: 0; overflow: hidden; }
+    .split canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; }
+    .split > div + div { border-top: 1px solid var(--line); }
+    pre.code { font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--chip); border-radius: 8px; padding: 8px 10px; white-space: pre-wrap; max-height: 260px; overflow: auto; margin: 6px 0; }
+    .row { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; }
+    @media (max-width: 860px) { .model { grid-template-rows: auto auto; } .model .stage { height: 600px; } .split { grid-template-rows: 300px 300px; } }
+  </style>
+</head>
+<body>
+  <header class="site"><div class="wrap">
+    <a class="brand" href="../../"><img src="../../assets/icon.svg" alt="" />Transformative Robotics Lab</a>
+    <nav class="site"><a href="../../">Projects</a><a href="https://grail.cs.washington.edu/projects/carpentrycompiler/">Carpentry Compiler project page</a></nav>
+  </div></header>
+  <main class="model">
+    <div class="stage">
+      <div class="split">
+        <div><canvas id="pareto" aria-label="Candidate fabrication plans: cost versus time"></canvas>
+          <div class="overlay" style="left:auto;right:12px;bottom:auto;top:30px">Each dot is one compiled plan. Ringed dots are Pareto-optimal. Click a dot to inspect it.</div></div>
+        <div><canvas id="boards" aria-label="Cut layout on stock lumber"></canvas></div>
+      </div>
+    </div>
+    <aside>
+      <h1>Carpentry compiler</h1>
+      <p class="muted">Illustrative model based on Wu, Zhao, Nandi, Lipton, Tatlock &amp; Schulz, <i>Carpentry Compiler</i> (ACM TOG 38(6), SIGGRAPH Asia 2019), Sections 4–5. A parametric design (HL-HELM) is compiled into many equivalent low-level cut plans (LL-HELM), which are scored on material cost, fabrication time and precision.</p>
+      <h2>HL-HELM design: a 2×4 bench frame</h2>
+      <label>Leg length (×4) <b id="vleg"></b> in <input id="leg" type="range" min="12" max="24" step="0.03125" value="16.5" /></label>
+      <label>Long rail length (×2) <b id="vrail"></b> in <input id="rail" type="range" min="24" max="60" step="0.03125" value="44" /></label>
+      <label>Short rail length (×2) <b id="vshort"></b> in <input id="short" type="range" min="10" max="20" step="0.03125" value="14.28125" /></label>
+      <label>Centre brace length (×1) <b id="vbrace"></b> in <input id="brace" type="range" min="12" max="23.5" step="0.03125" value="21.40625" /></label>
+      <pre class="code" id="hl"></pre>
+      <h2>Stock and tools library</h2>
+      <label><input type="checkbox" id="s96" checked /> 2×4 × 96″ — $<input id="p96" type="number" value="4.00" step="0.25" min="0" style="width:64px" /></label>
+      <label><input type="checkbox" id="s24" checked /> 2×4 × 24″ — $<input id="p24" type="number" value="1.50" step="0.25" min="0" style="width:64px" /></label>
+      <label><input type="checkbox" id="bandsaw" checked /> Bandsaw available</label>
+      <label>Kerf <select id="kerf"><option value="0.125" selected>1/8″</option><option value="0.0625">1/16″</option><option value="0.1875">3/16″</option></select></label>
+      <h2>Selected plan</h2>
+      <div class="readout" id="sel">Click a plan in the scatter.</div>
+      <div class="row"><button class="btn" id="bestCost" type="button">Cheapest</button><button class="btn" id="bestTime" type="button">Fastest</button><button class="btn" id="bestPrec" type="button">Most precise</button></div>
+      <pre class="code" id="ll"></pre>
+      <h2>How this model works</h2>
+      <p class="muted" style="font-size:13px">The design is a sequence of <code>Make_Stock</code>/<code>Make_Cut</code> features (Fig. 4, left). The compiler maps each <code>Make_Cut</code> to <code>Setup_Chopsaw</code>+<code>Chopsaw</code> or to <code>Bandsaw</code> (Section 4), packs parts on stock with the kerf between them (Section 5.2, Fig. 7 uses the same 96″/24″ 2×4 library), and keeps only full cuts. Each plan gets the paper's three objectives (Section 5.3): cost f<sub>c</sub> = sum of stock prices; precision f<sub>p</sub> = mean over cuts of (distance of the length to the nearest 1/16″ tape mark) × tool precision weight (chopsaw 1, bandsaw 2); time f<sub>t</sub> = setups + cuts after <em>setup elimination</em> and <em>stacking</em> (Fig. 8): cuts with the same chopsaw setup share one setup, and equal cuts on independent boards are stacked two-high (a 2×4 stack is 3″, under the chopsaw's 4″ limit quoted in Section 5.2).</p>
+      <p class="muted" style="font-size:13px">Simplified: the paper builds an e-graph and extracts plans with NSGA-II; this small design is enumerated directly (random part orders × stock policies × tool choices) and the Pareto front is computed exactly. Time constants (chopsaw setup 60 s, chopsaw cut 15 s, bandsaw cut 40 s, fetch board 10 s) and prices are assumptions, not the paper's process characterisation (which is in its supplement).</p>
+    </aside>
+  </main>
+  <script>
+  (function () {
+    const $ = (id) => document.getElementById(id);
+    const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+    const T = { setup: 60, chop: 15, band: 40, fetch: 10 };
+    const fr = (v) => { // inches as mixed fraction to 1/32
+      const w = Math.floor(v + 1e-9), r = Math.round((v - w) * 32);
+      if (!r) return `${w}`; let n = r, d = 32; while (n % 2 === 0) { n /= 2; d /= 2; } return `${w} ${n}/${d}`;
+    };
+    function rng(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
+    let plans = [], selected = null, view = null;
+
+    function design() {
+      const leg = +$("leg").value, rail = +$("rail").value, short = +$("short").value;
+      const parts = [];
+      for (let i = 0; i < 4; i++) parts.push({ id: `leg${i + 1}`, L: leg });
+      for (let i = 0; i < 2; i++) parts.push({ id: `rail${i + 1}`, L: rail });
+      for (let i = 0; i < 2; i++) parts.push({ id: `short${i + 1}`, L: short });
+      const brace = +$("brace").value; parts.push({ id: "brace1", L: brace }); $("vbrace").textContent = fr(brace);
+      $("vleg").textContent = fr(leg); $("vrail").textContent = fr(rail); $("vshort").textContent = fr(short);
+      $("hl").textContent = parts.filter((_, i) => [0, 4, 6, 8].includes(i)).map((p) => `${p.id} = Make_Stock 3.5 1.5 ${fr(p.L)}`).join("\n") + "\n… 9 parts in all: 4 legs, 2 long rails, 2 short rails, 1 brace\n(the compiler adds the Make_Cut ends that separate each part from lumber)";
+      return parts;
+    }
+    function stockLib() {
+      const s = [];
+      if ($("s96").checked) s.push({ L: 96, price: +$("p96").value });
+      if ($("s24").checked) s.push({ L: 24, price: +$("p24").value });
+      return s;
+    }
+    // ----- compile: enumerate packings × tool choices -----
+    function pack(order, lib, policy, kerf) {
+      const boards = [];
+      for (const p of order) {
+        let b = boards.find((b) => b.used + (b.parts.length ? kerf : 0) + p.L <= b.L + 1e-9);
+        if (!b) {
+          const fits = lib.filter((s) => s.L >= p.L);
+          if (!fits.length) return null;
+          const s = policy === "small" ? fits.reduce((a, c) => (c.L < a.L ? c : a)) : fits.reduce((a, c) => (c.L > a.L ? c : a));
+          b = { L: s.L, price: s.price, parts: [], used: 0 }; boards.push(b);
+        }
+        b.used += (b.parts.length ? kerf : 0) + p.L; b.parts.push(p);
+      }
+      return boards;
+    }
+    function tapeErr(L) { return Math.abs(L * 16 - Math.round(L * 16)) / 16; }
+    function score(boards, tool, kerf) {
+      // cuts: one per part unless the part ends exactly at the board end (then that end is factory-cut)
+      const cuts = [];
+      boards.forEach((b, bi) => {
+        let pos = 0;
+        b.parts.forEach((p, k) => {
+          pos += (k ? kerf : 0) + p.L;
+          const last = k === b.parts.length - 1, flush = Math.abs(pos - b.L) < 1e-6;
+          if (!(last && flush)) cuts.push({ board: bi, L: p.L, tool: tool[p.L] || "chop", step: k });
+        });
+      });
+      const fc = boards.reduce((s, b) => s + b.price, 0);
+      const fp = cuts.length ? cuts.reduce((s, c) => s + tapeErr(c.L) * (c.tool === "band" ? 2 : 1), 0) / cuts.length : 0;
+      // time: fetch boards, chopsaw setups grouped by length (setup elimination), stacking pairs of equal cuts on different boards at same step
+      const chop = cuts.filter((c) => c.tool === "chop"), band = cuts.filter((c) => c.tool === "band");
+      const setups = new Set(chop.map((c) => c.L)).size;
+      let chopOps = 0, stacked = 0;
+      const byL = {}; chop.forEach((c) => (byL[c.L] = byL[c.L] || []).push(c));
+      for (const L in byL) { const n = byL[L].length, boardsN = new Set(byL[L].map((c) => c.board)).size; const pairs = Math.min(Math.floor(n / 2), Math.floor(boardsN / 2)); chopOps += n - pairs; stacked += pairs; }
+      const ft = boards.length * T.fetch + setups * T.setup + chopOps * T.chop + band.length * T.band;
+      const waste = boards.reduce((s, b) => s + (b.L - b.used), 0);
+      return { boards, cuts, fc, fp, ft, setups, chopOps, stacked, band: band.length, waste };
+    }
+    function compile() {
+      const parts = design(), lib = stockLib(), kerf = +$("kerf").value;
+      const lengths = [...new Set(parts.map((p) => p.L))];
+      const toolSets = [];
+      const bandOK = $("bandsaw").checked;
+      const nT = bandOK ? 1 << lengths.length : 1;
+      for (let m = 0; m < nT; m++) { const t = {}; lengths.forEach((L, i) => (t[L] = m & (1 << i) ? "band" : "chop")); toolSets.push(t); }
+      const r = rng(7), seen = new Set(), packs = [];
+      const orders = [[...parts].sort((a, b) => b.L - a.L), [...parts]];
+      for (let i = 0; i < 300; i++) { const o = [...parts]; for (let j = o.length - 1; j > 0; j--) { const k = Math.floor(r() * (j + 1)); [o[j], o[k]] = [o[k], o[j]]; } orders.push(o); }
+      for (const o of orders) for (const pol of ["large", "small", "mixed"]) {
+        let bs;
+        if (pol === "mixed") { const big = o.filter((p) => p.L > 24), sm = o.filter((p) => p.L <= 24); bs = pack(big, lib, "large", kerf); const b2 = pack(sm, lib, "small", kerf); bs = bs && b2 ? bs.concat(b2) : null; }
+        else bs = pack(o, lib, pol, kerf);
+        if (!bs) continue;
+        const key = bs.map((b) => b.L + ":" + b.parts.map((p) => p.L).sort().join(",")).sort().join("|");
+        if (seen.has(key)) continue; seen.add(key); packs.push(bs);
+      }
+      plans = [];
+      for (const bs of packs) for (const t of toolSets) plans.push(score(bs, t, kerf));
+      // Pareto over (fc, ft, fp)
+      plans.forEach((a) => (a.pareto = !plans.some((b) => b !== a && b.fc <= a.fc && b.ft <= a.ft && b.fp <= a.fp + 1e-12 && (b.fc < a.fc || b.ft < a.ft || b.fp < a.fp - 1e-12))));
+      // naive (unoptimised) plan: parts in design order, one 96 per long part, no setup sharing
+      const front = plans.filter((p) => p.pareto).sort((a, b) => a.fc - b.fc || a.ft - b.ft);
+      selected = front[0] || plans[0] || null;
+      drawPareto(); showSel();
+    }
+    // ----- drawing -----
+    function fit(cv) { const dpr = Math.min(devicePixelRatio || 1, 2), W = cv.clientWidth, H = cv.clientHeight; if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); } const c = cv.getContext("2d"); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H); return [c, W, H]; }
+    const errCol = (e) => { const t = Math.min(1, e / 0.03); return `hsl(${140 - 140 * t},65%,48%)`; };
+    function drawPareto() {
+      const [c, W, H] = fit($("pareto")); const L = 58, R = 16, Tp = 14, B = 40;
+      if (!plans.length) { c.fillStyle = css("--muted"); c.fillText("No feasible plan with this stock library.", 20, 30); view = null; return; }
+      const x0 = Math.min(...plans.map((p) => p.fc)), x1 = Math.max(...plans.map((p) => p.fc)), y0 = Math.min(...plans.map((p) => p.ft)), y1 = Math.max(...plans.map((p) => p.ft));
+      const px = (x1 - x0) * 0.08 || 1, py = (y1 - y0) * 0.08 || 10;
+      const v = { x0: x0 - px, x1: x1 + px, y0: y0 - py, y1: y1 + py };
+      const sx = (x) => L + ((x - v.x0) / (v.x1 - v.x0)) * (W - L - R), sy = (y) => H - B - ((y - v.y0) / (v.y1 - v.y0)) * (H - Tp - B);
+      view = { sx, sy };
+      c.font = "11px system-ui, sans-serif"; c.strokeStyle = css("--line"); c.fillStyle = css("--muted");
+      for (let i = 0; i <= 5; i++) { const y = v.y0 + ((v.y1 - v.y0) * i) / 5; c.beginPath(); c.moveTo(L, sy(y)); c.lineTo(W - R, sy(y)); c.stroke(); c.textAlign = "right"; c.fillText((y / 60).toFixed(1), L - 6, sy(y) + 4); }
+      for (let i = 0; i <= 6; i++) { const x = v.x0 + ((v.x1 - v.x0) * i) / 6; c.textAlign = "center"; c.fillText("$" + x.toFixed(2), sx(x), H - B + 16); }
+      c.fillStyle = css("--ink"); c.fillText("material cost fc", (L + W) / 2, H - 8);
+      c.save(); c.translate(14, (Tp + H - B) / 2); c.rotate(-Math.PI / 2); c.fillText("fabrication time ft (min)", 0, 0); c.restore();
+      for (const p of plans) { c.globalAlpha = p.pareto ? 1 : 0.45; c.fillStyle = errCol(p.fp); c.beginPath(); c.arc(sx(p.fc), sy(p.ft), p.pareto ? 5 : 3.5, 0, 7); c.fill(); if (p.pareto) { c.strokeStyle = css("--ink"); c.lineWidth = 1.2; c.stroke(); } }
+      c.globalAlpha = 1;
+      if (selected) { c.strokeStyle = css("--accent"); c.lineWidth = 2.5; c.beginPath(); c.arc(sx(selected.fc), sy(selected.ft), 10, 0, 7); c.stroke(); }
+      c.textAlign = "left"; c.fillStyle = css("--muted"); c.fillText(`${plans.length} plans, ${plans.filter((p) => p.pareto).length} Pareto-optimal · colour = precision error (green 0 → red ≥ 0.03″)`, L + 4, Tp + 8);
+    }
+    function drawBoards() {
+      const [c, W, H] = fit($("boards"));
+      if (!selected) return;
+      const bs = selected.boards, kerf = +$("kerf").value, n = bs.length;
+      const rowH = Math.min(34, (H - 30) / Math.max(n, 1)), sc = (W - 90) / 96;
+      c.font = "11px system-ui, sans-serif";
+      const pal = { leg: "#2f6fde", rail: "#d9822b", short: "#2e9d6b", brace: "#8a4fd6" };
+      bs.forEach((b, i) => {
+        const y = 20 + i * rowH, h = rowH * 0.62;
+        c.fillStyle = css("--chip"); c.fillRect(70, y, b.L * sc, h); c.strokeStyle = css("--line"); c.strokeRect(70, y, b.L * sc, h);
+        c.fillStyle = css("--muted"); c.textAlign = "right"; c.fillText(`${b.L}″ $${b.price.toFixed(2)}`, 64, y + h * 0.7);
+        let pos = 0;
+        b.parts.forEach((p, k) => {
+          if (k) { c.fillStyle = css("--accent"); c.fillRect(70 + pos * sc, y - 2, Math.max(1, kerf * sc), h + 4); pos += kerf; }
+          c.fillStyle = pal[p.id.replace(/\d/g, "")]; c.globalAlpha = 0.8; c.fillRect(70 + pos * sc + 1, y + 1, p.L * sc - 2, h - 2); c.globalAlpha = 1;
+          c.fillStyle = "#fff"; c.textAlign = "center"; if (p.L * sc > 40) c.fillText(`${p.id} ${fr(p.L)}″`, 70 + (pos + p.L / 2) * sc, y + h * 0.68);
+          pos += p.L;
+        });
+      });
+      c.textAlign = "left"; c.fillStyle = css("--muted"); c.fillText("Stock layout of the selected plan: blue legs, orange long rails, green short rails, purple brace, red kerf; grey is offcut.", 10, 12);
+    }
+    function showSel() {
+      drawBoards();
+      if (!selected) { $("sel").textContent = "—"; $("ll").textContent = ""; return; }
+      const s = selected;
+      $("sel").textContent = `material cost fc = $${s.fc.toFixed(2)} (${s.boards.length} boards, ${s.waste.toFixed(1)}″ offcut)\ntime ft = ${(s.ft / 60).toFixed(1)} min: ${s.setups} chopsaw setups, ${s.chopOps} chopsaw cuts (${s.stacked} stacked pairs), ${s.band} bandsaw cuts\nprecision fp = ${s.fp.toFixed(4)}″ mean weighted tape error\n${s.pareto ? "Pareto-optimal" : "dominated by another plan"}`;
+      // LL-HELM listing (Fig. 4 right syntax)
+      const lines = []; s.boards.forEach((b, i) => lines.push(`b${i} = Lumber 2x4x${b.L}`));
+      const chop = s.cuts.filter((c) => c.tool === "chop"), band = s.cuts.filter((c) => c.tool === "band");
+      const byL = {}; chop.forEach((c) => (byL[c.L] = byL[c.L] || []).push(c));
+      for (const L in byL) {
+        lines.push(`Setup_Chopsaw 90 0 ${fr(+L)}`);
+        const list = byL[L], used = new Set();
+        for (let i = 0; i < list.length; i++) {
+          if (used.has(i)) continue; const j = list.findIndex((c, k) => k > i && !used.has(k) && c.board !== list[i].board);
+          if (j > 0) { used.add(i); used.add(j); lines.push(`s = Stack b${list[i].board} b${list[j].board}`, `Chopsaw s face0 edge0   # ${fr(+L)}″ ×2`, `Unstack s`); }
+          else { used.add(i); lines.push(`Chopsaw b${list[i].board} face0 edge0   # ${fr(+L)}″`); }
+        }
+      }
+      band.forEach((c) => lines.push(`Bandsaw b${c.board} face0 (edge0 ${fr(c.L)}, edge1 0)`));
+      lines.push(`Return ${design().map((p) => p.id).join(" ")}`);
+      $("ll").textContent = lines.join("\n");
+      drawPareto();
+    }
+    $("pareto").addEventListener("click", (e) => {
+      if (!view) return; const r = $("pareto").getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+      let best = null, bd = 400; for (const p of plans) { const d = (view.sx(p.fc) - x) ** 2 + (view.sy(p.ft) - y) ** 2; if (d < bd) { bd = d; best = p; } }
+      if (best) { selected = best; showSel(); }
+    });
+    const pick = (key) => { if (!plans.length) return; selected = plans.filter((p) => p.pareto).reduce((a, b) => (b[key] < a[key] || (b[key] === a[key] && b.fc + b.ft / 60 < a.fc + a.ft / 60) ? b : a)); showSel(); };
+    $("bestCost").onclick = () => pick("fc"); $("bestTime").onclick = () => pick("ft"); $("bestPrec").onclick = () => pick("fp");
+    document.querySelectorAll("aside input, aside select").forEach((el) => el.addEventListener("input", compile));
+    window.addEventListener("resize", () => { drawPareto(); drawBoards(); });
+    compile();
+  })();
+  </script>
+</body>
+</html>

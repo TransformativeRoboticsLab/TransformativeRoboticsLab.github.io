@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Reprogrammable Zero Modes</title>
+  <link rel="icon" href="../../assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../../assets/site.css" />
+  <style>
+    .stage { overflow: hidden; }
+    #gamut { position: absolute; right: 12px; top: 12px; width: 190px; height: 190px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+    #chart { width: 100%; height: 220px; display: block; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .legend { font-size: 12px; display: flex; flex-wrap: wrap; gap: 10px; margin: 4px 0; }
+    .legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: -1px; background: var(--c); }
+    details { font-size: 13px; }
+    details p, details li { font-size: 13px; }
+    @media (max-width: 860px) { #gamut { width: 130px; height: 130px; } }
+  </style>
+</head>
+<body>
+  <header class="site"><div class="wrap">
+    <a class="brand" href="../../"><img src="../../assets/icon.svg" alt="" />Transformative Robotics Lab</a>
+    <nav class="site"><a href="../../">Projects</a><a href="https://doi.org/10.1002/advs.202511227">Paper (Adv. Sci. 2025)</a></nav>
+  </div></header>
+  <main class="model">
+    <div class="stage" id="stage">
+      <canvas id="view"></canvas>
+      <canvas id="gamut" title="Extremal material gamut (normalized eigenvalues of C)"></canvas>
+      <div class="overlay">Drag: pan · Wheel: zoom · Each glyph is one straight-line mechanism (SLM); its arrow is the compliant direction</div>
+    </div>
+    <aside>
+      <h1>Zero modes from a single element</h1>
+      <p class="muted">Illustrative model based on Revier, Carton &amp; Lipton, <i>Adv. Sci.</i> 2025, Eq. 1–2 and SI §1–2 (Eq. S3–S9). Rotate every SLM by θ and the lattice's zero (floppy) modes are recomputed from its compatibility matrix and animated.</p>
+
+      <h2>Lattice</h2>
+      <label>Symmetry (orbifold)
+        <select id="sym">
+          <option value="2*22">2*22 square, mirror (cmm)</option>
+          <option value="442">442 square, rotational (p4)</option>
+          <option value="632-I">632 hexagonal Type I (φ = π/3)</option>
+          <option value="632-II">632 hexagonal Type II (φ = 2π/3)</option>
+        </select>
+      </label>
+      <label>SLM orientation θ: <b id="thv"></b>
+        <input id="th" type="range" min="0" max="180" step="1" value="0" /></label>
+      <div class="row2">
+        <button class="btn" data-th="0">θ = 0°</button>
+        <button class="btn" data-th="45">θ = 45°</button>
+        <button class="btn" data-th="90">θ = 90°</button>
+        <button class="btn" data-th="135">θ = 135°</button>
+      </div>
+      <label>Stiff / compliant ratio k<sub>h</sub>/k<sub>s</sub>: <b id="krv"></b>
+        <input id="kr" type="range" min="2" max="300" step="1" value="30" /></label>
+      <p class="muted" style="font-size:12px">Default 30: the single SLM in Fig. 1c is about 30× stiffer across its straight line than along it.</p>
+
+      <h2>Animate a zero mode</h2>
+      <label>Mode <select id="mode"></select></label>
+      <label>Amplitude <input id="amp" type="range" min="0" max="1" step="0.01" value="0.6" /></label>
+      <label><input id="anim" type="checkbox" checked /> Animate</label>
+
+      <h2>Result</h2>
+      <div class="readout" id="out"></div>
+
+      <h2>Across θ</h2>
+      <label>Plot <select id="plot">
+        <option value="eig">Normalized eigenvalues λ̂₁, λ̂₂ (Fig. 3b,c)</option>
+        <option value="nu">Poisson's ratios ν₁₂, ν₂₁</option>
+        <option value="mod">Moduli E₁, E₂, G₁₂ (log₁₀, ÷ k<sub>h</sub>)</option>
+        <option value="eta">Normal–shear coupling η₁₂₁, η₁₂₂</option>
+      </select></label>
+      <label><input id="fit" type="checkbox" checked /> Overlay the paper's fitted model (Eq. S10/S11, Table S2, measured)</label>
+      <canvas id="chart"></canvas>
+      <p class="muted" style="font-size:12px" id="chartnote"></p>
+
+      <h2>How this model works</h2>
+      <details open>
+        <summary>Compatibility matrix → zero modes</summary>
+        <p>Each SLM sits on a lattice bond <b>l</b><sub>i</sub> and only allows relative motion along <b>u</b><sub>i</sub> = R(θ<sub>i</sub>)<b>l</b><sub>i</sub> (paper's d<sub>i</sub> = I + ξR(θ<sub>i</sub>)l̂<sub>i</sub>, Eq. S3). Symmetry fixes the other angles (Table S1): 2*22 mirrors (θ₂ = −θ₁), 442 and 632 rotate (θ<sub>i</sub> = θ₁).</p>
+        <p>With a uniform displacement gradient H = ε + ω and, for the two-node Type II cell, a sublattice shift δ, the bond's relative motion is Δ<sub>i</sub> = H<b>l</b><sub>i</sub> + δ. Requiring <b>n</b><sub>i</sub>·Δ<sub>i</sub> = 0 (no motion across any SLM) gives a small compatibility matrix; its null space holds every floppy motion. The number of independent <i>strains</i> in that null space is the extremal mode (null-, uni-, bi-, trimode; SI Eq. S5).</p>
+        <p>For the readouts, each SLM is a spring pair (k<sub>s</sub> along <b>u</b>, k<sub>h</sub> across it). Minimizing energy over ω and δ gives the homogenized 3×3 C; its normalized eigenvalues λ̂ = λ/λ₃ place the material in the gamut (Sec. 3.3, Fig. 3). In the rigid limit this reproduces the paper's analytical compliance S(θ) = B K⁻¹ Bᵀ (Eq. S7–S9) exactly.</p>
+        <p>The square lattices are drawn in the paper's test frame (lattice lines at ±45°, x₁ horizontal) so the axes match Fig. 2.</p>
+      </details>
+      <details>
+        <summary>What is simplified</summary>
+        <ul>
+          <li>The SLM is idealized as a perfect slider plus a spring; no flexure geometry, FEA or large deformation. Absolute moduli are in units of k<sub>h</sub>, not MPa.</li>
+          <li>The gamut and curves come from this spring model, not from the paper's FEA, so magnitudes differ (the paper's FEA gives ν ≈ −0.88 for the Type I unimode and +0.97 for the Type II bimode).</li>
+          <li>The dashed "paper fit" curves are the paper's analytical model fitted to its measured data (Table S2). They are not raw measurements.</li>
+        </ul>
+      </details>
+      <h2>Source</h2>
+      <p class="muted" style="font-size:13px">D. Revier, M. Carton, J. I. Lipton, “Design and Reprogrammability of Zero Modes in 2D Materials from a Single Element,” <i>Advanced Science</i> (2025), <a href="https://doi.org/10.1002/advs.202511227">doi:10.1002/advs.202511227</a> (open access; preprint <a href="https://arxiv.org/abs/2407.04934">arXiv:2407.04934</a>).</p>
+    </aside>
+  </main>
+  <script src="../../assets/chart.js"></script>
+  <script>
+  (function () {
+    "use strict";
+    const $ = (id) => document.getElementById(id);
+    const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+    const D2R = Math.PI / 180;
+    const rot = (a, v) => [Math.cos(a) * v[0] - Math.sin(a) * v[1], Math.sin(a) * v[0] + Math.cos(a) * v[1]];
+    const COLORS = ["#2f6fde", "#e0453a", "#2e9d6b"];
+
+    // ---------- small linear algebra ----------
+    function nullspace(M, ncol, tol = 1e-9) {
+      const A = M.map((r) => r.slice()); const piv = []; let row = 0;
+      for (let c = 0; c < ncol && row < A.length; c += 1) {
+        let p = row; for (let r = row + 1; r < A.length; r += 1) if (Math.abs(A[r][c]) > Math.abs(A[p][c])) p = r;
+        if (Math.abs(A[p][c]) < tol) continue;
+        [A[row], A[p]] = [A[p], A[row]];
+        const d = A[row][c]; for (let k = 0; k < ncol; k += 1) A[row][k] /= d;
+        for (let r = 0; r < A.length; r += 1) if (r !== row) { const f = A[r][c]; if (f) for (let k = 0; k < ncol; k += 1) A[r][k] -= f * A[row][k]; }
+        piv.push(c); row += 1;
+      }
+      const free = []; for (let c = 0; c < ncol; c += 1) if (!piv.includes(c)) free.push(c);
+      const basis = free.map((f) => { const v = new Array(ncol).fill(0); v[f] = 1; piv.forEach((c, r) => { v[c] = -A[r][f]; }); return v; });
+      return gramSchmidt(basis);
+    }
+    function gramSchmidt(vs) {
+      const out = [];
+      for (const v0 of vs) {
+        const v = v0.slice();
+        for (const u of out) { const d = v.reduce((s, x, i) => s + x * u[i], 0); for (let i = 0; i < v.length; i += 1) v[i] -= d * u[i]; }
+        const n = Math.hypot(...v); if (n > 1e-9) out.push(v.map((x) => x / n));
+      }
+      return out;
+    }
+    const rank = (M) => (M.length ? M[0].length - nullspace(M, M[0].length, 1e-7).length : 0);
+    function solve(A, B) { // A n×n, B n×m  -> A^{-1}B (Gauss-Jordan)
+      const n = A.length, m = B[0].length, M = A.map((r, i) => r.concat(B[i]));
+      for (let c = 0; c < n; c += 1) {
+        let p = c; for (let r = c + 1; r < n; r += 1) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+        [M[c], M[p]] = [M[p], M[c]]; const d = M[c][c] || 1e-300;
+        for (let k = 0; k < n + m; k += 1) M[c][k] /= d;
+        for (let r = 0; r < n; r += 1) if (r !== c) { const f = M[r][c]; for (let k = 0; k < n + m; k += 1) M[r][k] -= f * M[c][k]; }
+      }
+      return M.map((r) => r.slice(n));
+    }
+    const inv3 = (A) => solve(A, [[1, 0, 0], [0, 1, 0], [0, 0, 1]]);
+    function eigSym3(A0) { // Jacobi
+      const A = A0.map((r) => r.slice());
+      for (let sweep = 0; sweep < 50; sweep += 1) {
+        let off = 0; for (let i = 0; i < 3; i += 1) for (let j = i + 1; j < 3; j += 1) off += A[i][j] ** 2;
+        if (off < 1e-24) break;
+        for (let p = 0; p < 3; p += 1) for (let q = p + 1; q < 3; q += 1) {
+          if (Math.abs(A[p][q]) < 1e-30) continue;
+          const th = (A[q][q] - A[p][p]) / (2 * A[p][q]), t = Math.sign(th || 1) / (Math.abs(th) + Math.sqrt(th * th + 1)), c = 1 / Math.sqrt(t * t + 1), s = t * c;
+          for (let k = 0; k < 3; k += 1) { const akp = A[k][p], akq = A[k][q]; A[k][p] = c * akp - s * akq; A[k][q] = s * akp + c * akq; }
+          for (let k = 0; k < 3; k += 1) { const apk = A[p][k], aqk = A[q][k]; A[p][k] = c * apk - s * aqk; A[q][k] = s * apk + c * aqk; }
+        }
+      }
+      return [A[0][0], A[1][1], A[2][2]].sort((a, b) => a - b);
+    }
+
+    // ---------- lattice definitions (SI Fig. S1, Table S1) ----------
+    function lattice(sym, th) {
+      if (sym === "2*22" || sym === "442") {
+        const r0 = Math.PI / 4, l1 = rot(r0, [1, 0]), l2 = rot(r0, [0, 1]);
+        const t1 = sym === "2*22" ? -th : th, t2 = th;
+        return { bonds: [{ b: l1, u: rot(t1, l1), f: 0 }, { b: l2, u: rot(t2, l2), f: 0 }], area: 1, basis: false, a1: l1, a2: l2 };
+      }
+      if (sym === "632-I") {
+        const l1 = [1, 0], l2 = rot(Math.PI / 3, l1), l3 = [l2[0] - l1[0], l2[1] - l1[1]];
+        return { bonds: [l1, l2, l3].map((b) => ({ b, u: rot(th, b), f: 0 })), area: Math.sqrt(3) / 2, basis: false, a1: l1, a2: l2 };
+      }
+      const bs = [0, 1, 2].map((k) => rot((k * 2 * Math.PI) / 3 + Math.PI / 2, [1, 0]));
+      return { bonds: bs.map((b) => ({ b, u: rot(th, b), f: 1 })), area: (3 * Math.sqrt(3)) / 4, basis: true,
+        a1: [bs[0][0] - bs[1][0], bs[0][1] - bs[1][1]], a2: [bs[0][0] - bs[2][0], bs[0][1] - bs[2][1]], bvec: bs };
+    }
+    // unknown vector z = [exx, eyy, gxy, w, dx, dy]; H = [[exx, g/2 - w],[g/2 + w, eyy]]
+    function dRow(d, b, f, basis) {
+      const r = [d[0] * b[0], d[1] * b[1], 0.5 * (d[0] * b[1] + d[1] * b[0]), -d[0] * b[1] + d[1] * b[0]];
+      if (basis) r.push(d[0] * f, d[1] * f);
+      return r;
+    }
+    function analyse(sym, th, ks, kh) {
+      const L = lattice(sym, th), n = L.basis ? 6 : 4;
+      const K = Array.from({ length: n }, () => new Array(n).fill(0)), comp = [];
+      for (const { b, u: u0, f } of L.bonds) {
+        const lu = Math.hypot(...u0), u = [u0[0] / lu, u0[1] / lu], nn = [-u[1], u[0]];
+        const ru = dRow(u, b, f, L.basis), rn = dRow(nn, b, f, L.basis);
+        comp.push(rn);
+        for (let i = 0; i < n; i += 1) for (let j = 0; j < n; j += 1) K[i][j] += (ks * ru[i] * ru[j] + kh * rn[i] * rn[j]) / L.area;
+      }
+      const Kee = [0, 1, 2].map((i) => [0, 1, 2].map((j) => K[i][j]));
+      const Kez = [0, 1, 2].map((i) => K[i].slice(3)), Kzz = K.slice(3).map((r) => r.slice(3));
+      const X = solve(Kzz, Kez[0].map((_, j) => Kez.map((r) => r[j])));
+      const C = Kee.map((r, i) => r.map((v, j) => v - Kez[i].reduce((s, kz, k) => s + kz * X[k][j], 0)));
+      const S = inv3(C), lam = eigSym3(C);
+      // split the null space into strain-carrying modes and strain-free (internal rotation) modes
+      const N0 = nullspace(comp, n);
+      let modes = N0;
+      if (N0.length) {
+        const Et = [0, 1, 2].map((r) => N0.map((v) => v[r]));
+        const rotC = nullspace(Et, N0.length, 1e-7);
+        const comb = (c) => N0[0].map((_, j) => c.reduce((s, ci, i) => s + ci * N0[i][j], 0));
+        const eye = N0.map((_, i) => N0.map((__, j) => (i === j ? 1 : 0)));
+        const strainC = gramSchmidt(rotC.concat(eye)).slice(rotC.length);
+        modes = strainC.map(comb).concat(rotC.map(comb));
+      }
+      const strainRank = modes.length ? rank(modes.map((m) => m.slice(0, 3))) : 0;
+      return { L, C, S, lam, modes, strainRank };
+    }
+    const MODE_NAMES = ["nullmode", "unimode", "bimode", "trimode"];
+
+    // paper's fitted analytical model, Eq. S10/S11 with Table S2 coefficients (measured data)
+    const FIT = { "2*22": [2.606, 3.018, 2.336, 0.072, 3.720, 4.908], "442": [2.868, 2.591, -0.120, -2.346, 2.753, 3.727] };
+    function fitS(sym, th) {
+      const c = FIT[sym], s2 = Math.sin(2 * th), c2 = Math.cos(2 * th);
+      if (sym === "2*22") return [[c[0] * s2 + c[1], c[2] * c2 + c[3], 0], [c[2] * c2 + c[3], c[1] - c[0] * s2, 0], [0, 0, c[4] * c2 + c[5]]];
+      return [[c[0], c[1] * c2 + c[2], c[3] * s2], [c[1] * c2 + c[2], c[0], -c[3] * s2], [c[3] * s2, -c[3] * s2, c[4] * c2 + c[5]]];
+    }
+    const eng = (S) => ({ E1: 1 / S[0][0], E2: 1 / S[1][1], G12: 1 / S[2][2], nu12: -S[0][1] / S[0][0], nu21: -S[0][1] / S[1][1], eta1: S[2][0] / S[0][0], eta2: S[2][1] / S[1][1] });
+
+    // ---------- state ----------
+    let state = null, view = { s: 90, x: 0, y: 0 }, phase = 0;
+    function params() { const kr = Number($("kr").value); return { sym: $("sym").value, th: Number($("th").value) * D2R, kh: 1, ks: 1 / kr, kr }; }
+    function update() {
+      const p = params();
+      $("thv").textContent = `${$("th").value}°`; $("krv").textContent = p.kr.toFixed(0);
+      state = analyse(p.sym, p.th, p.ks, p.kh);
+      const prev = $("mode").value;
+      $("mode").innerHTML = state.modes.map((m, k) => {
+        const strain = Math.hypot(m[0], m[1], m[2]) > 1e-6;
+        return `<option value="${k}">Zero mode ${k + 1}${strain ? "" : " (internal rotation only)"}</option>`;
+      }).join("") || `<option value="-1">no floppy motion</option>`;
+      if ([...$("mode").options].some((o) => o.value === prev)) $("mode").value = prev;
+      const lh = state.lam.map((l) => l / state.lam[2]), e = eng(state.S);
+      const strains = state.modes.map((m) => m.slice(0, 3)).filter((v) => Math.hypot(...v) > 1e-6);
+      const eig = gramSchmidt(strains);
+      const f = (v, d = 3) => (Math.abs(v) > 1e4 ? "∞" : v.toFixed(d));
+      $("out").textContent =
+        `${p.sym}  θ = ${$("th").value}°  →  ${MODE_NAMES[state.strainRank]} (${state.strainRank} zero-energy strain${state.strainRank === 1 ? "" : "s"})\n` +
+        `floppy motions incl. internal rotation: ${state.modes.length}\n` +
+        (eig.length ? `eigenstrains [εxx, εyy, γxy]:\n${eig.map((v) => "  [" + v.map((x) => (Math.abs(x) < 5e-4 ? 0 : x).toFixed(2).padStart(5)).join(", ") + "]").join("\n")}\n` : "") +
+        `normalized eigenvalues of C: λ̂₁ ${lh[0].toFixed(3)}, λ̂₂ ${lh[1].toFixed(3)}\n` +
+        `E₁ ${f(e.E1)}  E₂ ${f(e.E2)}  G₁₂ ${f(e.G12)}  (÷ k_h)\n` +
+        `ν₁₂ ${f(e.nu12, 2)}  ν₂₁ ${f(e.nu21, 2)}  η₁₂₁ ${f(e.eta1, 2)}  η₁₂₂ ${f(e.eta2, 2)}`;
+      drawChart(); drawGamut();
+    }
+
+    // ---------- chart across θ ----------
+    const chart = TRLChart.create($("chart"), { xlabel: "θ (deg)", ylabel: "" });
+    function drawChart() {
+      const p = params(), xs = [], cur = [[], [], []], fit = [[], [], []];
+      const kind = $("plot").value, useFit = $("fit").checked && FIT[p.sym];
+      const pick = (S, lamS) => {
+        const e = eng(S);
+        if (kind === "eig") { const l = lamS; return [l[0] / l[2], l[1] / l[2]]; }
+        if (kind === "nu") return [e.nu12, e.nu21];
+        if (kind === "eta") return [e.eta1, e.eta2];
+        return [Math.log10(e.E1), Math.log10(e.E2), Math.log10(e.G12)];
+      };
+      for (let d = 0; d <= 180; d += 1.5) {
+        const a = analyse(p.sym, d * D2R, p.ks, p.kh);
+        xs.push(d);
+        const v = pick(a.S, a.lam); v.forEach((y, i) => cur[i].push(Math.abs(y) > 20 ? NaN : y));
+        if (useFit) {
+          const S = fitS(p.sym, d * D2R), C = inv3(S);
+          const w = pick(S, eigSym3(C)); w.forEach((y, i) => fit[i].push(Math.abs(y) > 20 ? NaN : y));
+        }
+      }
+      const names = { eig: ["λ̂₁", "λ̂₂"], nu: ["ν₁₂", "ν₂₁"], eta: ["η₁₂₁", "η₁₂₂"], mod: ["log E₁", "log E₂", "log G₁₂"] }[kind];
+      const series = names.map((n, i) => ({ name: n, x: xs, y: cur[i], color: TRLChart.PALETTE[i] }));
+      if (useFit) names.forEach((n, i) => series.push({ name: `${n} paper fit`, x: xs, y: fit[i], color: ["#93b4ef", "#f0a29c", "#9fd5bb"][i] }));
+      const th = Number($("th").value);
+      const yAll = series.flatMap((s) => s.y.filter(Number.isFinite));
+      series.push({ name: "θ now", x: [th, th], y: [Math.min(...yAll), Math.max(...yAll)], color: css("--muted") || "#888" });
+      chart.setSeries(series, { ylabel: { eig: "λ / λ₃", nu: "Poisson's ratio", eta: "η", mod: "log₁₀ modulus" }[kind] });
+      $("chartnote").innerHTML = `Solid: this spring model (k<sub>h</sub>/k<sub>s</sub> = ${p.kr.toFixed(0)}). ` +
+        (useFit ? "Light: the paper's analytical model fitted to its measured 2×10 array (Eq. S10/S11, Table S2); moduli from that fit are in the fit's own units." : (FIT[p.sym] ? "" : "No measured fit exists for hexagonal lattices (FEA only at θ = 0°, 90° in the paper).")) +
+        " Drag to zoom, double-click to reset.";
+    }
+
+    // ---------- gamut inset (Fig. 3a) ----------
+    function drawGamut() {
+      const cv = $("gamut"), dpr = Math.min(devicePixelRatio || 1, 2), w = cv.clientWidth, h = cv.clientHeight;
+      cv.width = w * dpr; cv.height = h * dpr; const g = cv.getContext("2d"); g.setTransform(dpr, 0, 0, dpr, 0, 0);
+      const m = 26, s = Math.min(w, h) - m - 10, X = (x) => m + x * s, Y = (y) => 8 + (1 - y) * s;
+      g.clearRect(0, 0, w, h); g.font = "10px system-ui"; g.fillStyle = css("--muted"); g.strokeStyle = css("--line");
+      g.beginPath(); g.moveTo(X(0), Y(0)); g.lineTo(X(0), Y(1)); g.lineTo(X(1), Y(1)); g.closePath(); g.stroke();
+      g.strokeStyle = css("--accent"); g.lineWidth = 2; g.beginPath(); g.moveTo(X(0), Y(0)); g.lineTo(X(0), Y(1)); g.stroke(); g.lineWidth = 1;
+      g.fillText("bimode", X(0) + 3, Y(0) - 3); g.fillText("unimode", X(0) + 3, Y(1) + 11);
+      g.fillText("λ̂₁ →", X(0.62), Y(0) + 14); g.save(); g.translate(10, Y(0.35)); g.rotate(-Math.PI / 2); g.fillText("λ̂₂ →", 0, 0); g.restore();
+      const p = params();
+      g.strokeStyle = css("--muted"); g.beginPath();
+      for (let d = 0; d <= 180; d += 2) { const a = analyse(p.sym, d * D2R, p.ks, p.kh), x = a.lam[0] / a.lam[2], y = a.lam[1] / a.lam[2]; d ? g.lineTo(X(x), Y(y)) : g.moveTo(X(x), Y(y)); }
+      g.stroke();
+      const x = state.lam[0] / state.lam[2], y = state.lam[1] / state.lam[2];
+      g.fillStyle = css("--accent"); g.beginPath(); g.arc(X(x), Y(y), 4.5, 0, 2 * Math.PI); g.fill();
+      g.fillStyle = css("--ink"); g.fillText("gamut (Fig. 3a)", m, h - 2);
+    }
+
+    // ---------- lattice drawing ----------
+    const cv = $("view"), ctx = cv.getContext("2d");
+    function drawLattice() {
+      const dpr = Math.min(devicePixelRatio || 1, 2), w = cv.clientWidth, h = cv.clientHeight;
+      if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
+      const L = state.L, k = Number($("mode").value), m = state.modes[k];
+      const amp = Number($("amp").value) * ($("anim").checked ? Math.sin(phase) : 1);
+      let H = [[0, 0], [0, 0]], dl = [0, 0];
+      if (m) {
+        // scale so the largest relative bond motion is ~0.3 of a bond length
+        let mx = 1e-9; const Hm = [[m[0], m[2] / 2 - m[3]], [m[2] / 2 + m[3], m[1]]], dm = L.basis ? [m[4], m[5]] : [0, 0];
+        for (const { b, f } of L.bonds) mx = Math.max(mx, Math.hypot(Hm[0][0] * b[0] + Hm[0][1] * b[1] + f * dm[0], Hm[1][0] * b[0] + Hm[1][1] * b[1] + f * dm[1]));
+        const sc = (0.3 * amp) / mx; H = Hm.map((r) => r.map((v) => v * sc)); dl = dm.map((v) => v * sc);
+      }
+      const cx = w / 2 + view.x, cy = h / 2 + view.y, s = view.s;
+      const P = (x, f) => [cx + s * (x[0] + H[0][0] * x[0] + H[0][1] * x[1] + f * dl[0]), cy - s * (x[1] + H[1][0] * x[0] + H[1][1] * x[1] + f * dl[1])];
+      const R = Math.ceil(Math.hypot(w, h) / s / 1.4) + 2;
+      const nodes = [];
+      for (let i = -R; i <= R; i += 1) for (let j = -R; j <= R; j += 1) {
+        const x = [i * L.a1[0] + j * L.a2[0], i * L.a1[1] + j * L.a2[1]];
+        if (Math.abs(x[0]) * s > w / 2 + 2 * s + Math.abs(view.x) || Math.abs(x[1]) * s > h / 2 + 2 * s + Math.abs(view.y)) continue;
+        nodes.push(x);
+      }
+      const ink = css("--ink"), muted = css("--muted");
+      // bonds with SLM glyphs
+      for (const x of nodes) L.bonds.forEach(({ b, u, f }, bi) => {
+        const xa = x, xb = [x[0] + b[0], x[1] + b[1]];
+        const A = P(xa, 0), B = P(xb, f);
+        const ha = P([xa[0] + b[0] / 2, xa[1] + b[1] / 2], 0), hb = P([xb[0] - b[0] / 2, xb[1] - b[1] / 2], f);
+        ctx.strokeStyle = muted; ctx.lineWidth = 1.6;
+        ctx.beginPath(); ctx.moveTo(...A); ctx.lineTo(...ha); ctx.moveTo(...B); ctx.lineTo(...hb); ctx.stroke();
+        // SLM glyph: a slider aligned with u between the two half-bond ends
+        const mid = [(ha[0] + hb[0]) / 2, (ha[1] + hb[1]) / 2], ang = -Math.atan2(u[1], u[0]);
+        ctx.save(); ctx.translate(...mid); ctx.rotate(ang);
+        const gl = 0.26 * s, gw = 0.09 * s;
+        ctx.fillStyle = COLORS[bi % 3] + "33"; ctx.strokeStyle = COLORS[bi % 3]; ctx.lineWidth = 1.4;
+        ctx.beginPath(); ctx.rect(-gl / 2, -gw / 2, gl, gw); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(-gl / 2 + 2, 0); ctx.lineTo(gl / 2 - 2, 0); ctx.stroke();
+        for (const sg of [-1, 1]) { ctx.beginPath(); ctx.moveTo(sg * (gl / 2 - 2), 0); ctx.lineTo(sg * (gl / 2 - 2 - gw * 0.6), gw * 0.35); ctx.lineTo(sg * (gl / 2 - 2 - gw * 0.6), -gw * 0.35); ctx.closePath(); ctx.fillStyle = COLORS[bi % 3]; ctx.fill(); }
+        ctx.restore();
+        // dots at the half-bond ends to show the slide
+        ctx.fillStyle = ink; for (const q of [ha, hb]) { ctx.beginPath(); ctx.arc(q[0], q[1], 1.6, 0, 2 * Math.PI); ctx.fill(); }
+      });
+      ctx.fillStyle = ink;
+      for (const x of nodes) {
+        const A = P(x, 0); ctx.fillRect(A[0] - 3.5, A[1] - 3.5, 7, 7);
+        if (L.basis) { const B = P([x[0] + L.bvec[0][0], x[1] + L.bvec[0][1]], 1); ctx.beginPath(); ctx.arc(B[0], B[1], 3.8, 0, 2 * Math.PI); ctx.fill(); }
+      }
+      // axes key
+      ctx.strokeStyle = ink; ctx.fillStyle = ink; ctx.font = "12px system-ui"; ctx.lineWidth = 1.2;
+      ctx.beginPath(); ctx.moveTo(18, h - 46); ctx.lineTo(58, h - 46); ctx.moveTo(18, h - 46); ctx.lineTo(18, h - 86); ctx.stroke();
+      ctx.fillText("x₁", 62, h - 42); ctx.fillText("x₂", 12, h - 90);
+    }
+
+    // ---------- interaction ----------
+    let drag = null;
+    cv.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY }; cv.setPointerCapture(e.pointerId); });
+    cv.addEventListener("pointermove", (e) => { if (!drag) return; view.x += e.clientX - drag.x; view.y += e.clientY - drag.y; drag = { x: e.clientX, y: e.clientY }; });
+    cv.addEventListener("pointerup", () => { drag = null; });
+    cv.addEventListener("wheel", (e) => { e.preventDefault(); view.s = Math.max(25, Math.min(220, view.s * Math.exp(-e.deltaY * 0.0012))); }, { passive: false });
+    ["sym", "th", "kr"].forEach((id) => $(id).addEventListener("input", update));
+    ["plot", "fit"].forEach((id) => $(id).addEventListener("input", drawChart));
+    document.querySelectorAll("[data-th]").forEach((b) => b.addEventListener("click", () => { $("th").value = b.dataset.th; update(); }));
+    window.addEventListener("resize", () => { drawGamut(); });
+    update();
+    (function loop() { phase += 0.035; drawLattice(); requestAnimationFrame(loop); })();
+  })();
+  </script>
+</body>
+</html>

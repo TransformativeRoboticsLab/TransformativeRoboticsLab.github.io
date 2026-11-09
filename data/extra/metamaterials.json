@@ -1,0 +1,60 @@
+{
+  "TRUNC_carton_kowaleski": {
+    "summary": "Introduces torsionally rigid universal couplings (TRUNCs): spherical metamaterials tiled with 2*N point-group auxetic cells that act as soft constant-velocity joints. They bend up to 45° yet are 11× (equatorial) to 52× (truss) stiffer in twist than in bending. Chained and nested TRUNCs form extendable flex shafts that carry independent concentric torques. A cable-driven TRUNC arm reached 0.4 mm / 0.1° trajectory repeatability and, guided by a learned inverse-kinematics network, installed a light bulb, fastened bolts alongside a person and turned a valve.",
+    "project": "Torque-transmitting metamaterials",
+    "demo": "models/torque-lattice/",
+    "demoLabel": "Bend and spin a TRUNC",
+    "source": "full text",
+    "fulltext": "https://transformativerobotlab.com/assets/pdf/scirobotics_carton_kowalewski.pdf"
+  },
+  "torque_tubular_aisy_2025": {
+    "summary": "Proposes BETRs (bendable, extendable, torsionally rigid tubes) built by tiling flexure-based straight-line mechanisms on a cylinder. After comparing Roberts, Watt's, Peaucellier–Lipkin, Chebyshev and four-bar cells, the authors chose Watt's mechanism for its extension ratio, then mapped its design space with kinematic and FE sweeps. Paired with handed shearing auxetics in 25.4 mm tubes that keep 76% of the cross-section open, BETRs drove extending, expanding and bending tips. A 3-DoF tubular robot then demonstrated navigation, anchoring (up to 64.8 N) and positioning (0.26 mm error) in 3D-printed mock anatomy.",
+    "project": "Torque-transmitting metamaterials",
+    "demo": "models/torque-lattice/",
+    "demoLabel": "Stretch a Watt's-cell tube",
+    "source": "full text",
+    "fulltext": "https://advanced.onlinelibrary.wiley.com/doi/full/10.1002/aisy.202500110"
+  },
+  "zero_modes_2025": {
+    "summary": "Shows that one compliant straight-line mechanism (a double-sided Roberts linkage about 30× softer along its line than across it), placed on square or hexagonal lattices, lets planar symmetry coordinate the material's zero modes. Rotating each element in place by an angle θ reprogrammed the 2*22 and 442 square materials in experiments: from bimode to unimode, from negative to positive Poisson's ratio, and (for 442) chirality on or off. FEA shows that two hexagonal tilings reach all four isotropic extremal types: null-, uni-, bi- and trimode.",
+    "project": "Reprogrammable extremal metamaterials",
+    "demo": "models/zero-modes/",
+    "demoLabel": "Rotate the zero modes",
+    "source": "full text",
+    "fulltext": "https://arxiv.org/pdf/2407.04934"
+  },
+  "bistable_networks_2026": {
+    "summary": "Introduces transition-controlled metamaterials: lattices in which every joint carries a bistable encoding unit that sets its buckling direction, so under compression each cell expresses positive, negative or zero Poisson's ratio or shear. Units are programmed at about 0.5 N while the sheet is in tension, and the expressed shape then holds against more than 20 N. Valid encodings are extremely sparse (about 5.6×10^12 of 1.3×10^30 for a 10×10 array), so the authors built an O(N) inverse shape-matching pipeline and an automatic encoding machine. With them they expressed 2D profiles (a face and a beaker) and a stacked 3D heart surface.",
+    "project": "Transition-controlled metamaterials",
+    "demo": "models/bistable/",
+    "demoLabel": "Flip bistable cells",
+    "source": "full text",
+    "fulltext": "https://pmc.ncbi.nlm.nih.gov/articles/PMC13427233/"
+  },
+  "_demos": [
+    {
+      "id": "torque-lattice",
+      "title": "Torque-transmitting metamaterials",
+      "sub": "TRUNC joints and Watt's-mechanism BETR tubes",
+      "text": "Bend, stretch and spin two lab metamaterials that stay stiff in twist. A chain of TRUNC constant-velocity joints shows the measured twist–bend ratios (11 and 52), and a BETR tube is built from exact Watt's-linkage kinematics (Eq. 1–2) with a live extension-ratio sweep.",
+      "tags": ["metamaterials", "robots"],
+      "pubs": ["TRUNC_carton_kowaleski", "torque_tubular_aisy_2025"]
+    },
+    {
+      "id": "zero-modes",
+      "title": "Reprogrammable zero modes",
+      "sub": "One straight-line mechanism, four lattice symmetries",
+      "text": "Rotate every straight-line mechanism in a 2*22, 442 or hexagonal lattice and watch its floppy modes, computed from the lattice compatibility matrix, recompute and animate. Readouts track the extremal mode, Poisson's ratio and the eigenvalue gamut, with the paper's measured-data fit overlaid.",
+      "tags": ["metamaterials"],
+      "pubs": ["zero_modes_2025"]
+    },
+    {
+      "id": "bistable",
+      "title": "Bistable network shaper",
+      "sub": "Encode a shape, then compress to express it",
+      "text": "Click bistable encoding units to flip them and see the rigid-beam kinematics express the shape or flag frustrated crossbars. An inverse shape-matching routine generates valid encodings for target profiles, and an exact count shows how sparse the valid encodings are.",
+      "tags": ["metamaterials"],
+      "pubs": ["bistable_networks_2026"]
+    }
+  ]
+}

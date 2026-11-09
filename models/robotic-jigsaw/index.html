@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Robotic Jigsaw Planner</title>
+  <link rel="icon" href="../../assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../../assets/site.css" />
+  <style>
+    [hidden] { display: none !important; }
+    aside select { max-width: 100%; }
+    .split { position: absolute; inset: 0; display: grid; grid-template-rows: minmax(0, 1.5fr) minmax(0, 1fr); }
+    .split > div { position: relative; min-height: 0; overflow: hidden; }
+    .split canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: block; }
+    .chartbox { border-top: 1px solid var(--line); }
+    .chartbox canvas { left: 8px !important; top: 8px !important; width: calc(100% - 16px) !important; height: calc(100% - 16px) !important; }
+    .row { display: flex; gap: 6px; flex-wrap: wrap; margin: 6px 0; }
+    @media (max-width: 860px) { .model { grid-template-rows: auto auto; } .model .stage { height: 600px; } .split { grid-template-rows: 360px 240px; } }
+  </style>
+</head>
+<body>
+  <header class="site"><div class="wrap">
+    <a class="brand" href="../../"><img src="../../assets/icon.svg" alt="" />Transformative Robotics Lab</a>
+    <nav class="site"><a href="../../">Projects</a><a href="https://doi.org/10.1109/IROS51168.2021.9636066">Robotic Jigsaw paper (IROS 2021)</a></nav>
+  </div></header>
+  <main class="model">
+    <div class="stage">
+      <div class="split">
+        <div><canvas id="view" aria-label="Plywood sheet with cut path, drill holes and jigsaw"></canvas>
+          <div class="overlay">Orange: cuttable sections · red dots: corners the blade cannot turn · filled circles: chosen drill holes</div></div>
+        <div class="chartbox"><canvas id="chart" aria-label="Drill holes versus travel distance"></canvas></div>
+      </div>
+    </div>
+    <aside>
+      <h1>Robotic jigsaw</h1>
+      <p class="muted">Simplified model based on the abstract of Zhao, Talwekar, Lan, Sharma, Rus, Schulz &amp; Lipton, <i>Robotic Jigsaw: A Non-Holonomic Cutting Robot and Path Planning Algorithm</i> (IROS 2021). The full text was not available to us, so the steps below follow the abstract's description, not the paper's equations.</p>
+      <h2>Cut-out shape</h2>
+      <select id="shape" style="width:100%">
+        <option value="star">Five-point star</option>
+        <option value="rrect" selected>Rounded rectangle</option>
+        <option value="gear">Gear outline</option>
+        <option value="lshape">L-shaped opening</option>
+      </select>
+      <label>Shape size <b id="vsize"></b> mm <input id="size" type="range" min="120" max="400" step="10" value="260" /></label>
+      <label id="lrc">Corner radius <b id="vrc"></b> mm <input id="rc" type="range" min="0" max="80" step="2" value="30" /></label>
+      <h2>Blade kinematics</h2>
+      <label>Minimum turning radius r<sub>min</sub> <b id="vrmin"></b> mm <input id="rmin" type="range" min="5" max="80" step="1" value="25" /></label>
+      <h2>Drill-hole trade-off</h2>
+      <label>Cost of one hole = <b id="vw"></b> mm of travel <input id="w" type="range" min="0" max="600" step="10" value="150" /></label>
+      <div class="row"><button class="btn primary" id="play" type="button">Run cut</button></div>
+      <h2>Plan</h2>
+      <div class="readout" id="out"></div>
+      <h2>How this model works</h2>
+      <p class="muted" style="font-size:13px">1. <b>Non-holonomic blade.</b> A jigsaw blade only cuts along its heading, so it moves like a unicycle: ẋ = v cos θ, ẏ = v sin θ, θ̇ = κv with |κ| ≤ 1/r<sub>min</sub>. Wherever the contour's curvature exceeds 1/r<sub>min</sub> (sharp corners, tight fillets) the blade must stop.</p>
+      <p class="muted" style="font-size:13px">2. <b>Decomposition.</b> Those points split the contour into cuttable sections (abstract: “decomposes input shapes into cuttable sections”).</p>
+      <p class="muted" style="font-size:13px">3. <b>Drill holes as set coverage.</b> Candidate holes sit in the waste just inside each stop point. A section can start from a hole at either end; if its far end has no hole the blade backs out along its own kerf. Holes are chosen to cover every section while minimising (hole cost × holes) + cutting and back-out distance, the trade-off the abstract describes. This page solves it exactly by enumerating hole subsets; the chart shows the best travel distance for each number of holes.</p>
+      <p class="muted" style="font-size:13px">Assumptions of ours: only an interior cut-out is planned (waste inside), the robot's traversal between holes and the drilling step are not costed beyond the hole weight, and r<sub>min</sub> is a free parameter rather than the value of the authors' robot.</p>
+    </aside>
+  </main>
+  <script src="../../assets/chart.js"></script>
+  <script>
+  (function () {
+    const $ = (id) => document.getElementById(id);
+    const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+    const chart = TRLChart.create($("chart"), { xlabel: "number of drill holes", ylabel: "cut + back-out travel (mm)" });
+    let plan = null, anim = null, prog = -1;
+
+    // ---------- contour generation (closed polyline, counter-clockwise, ~2 mm spacing) ----------
+    function resample(pts, ds) {
+      const out = []; const n = pts.length;
+      for (let i = 0; i < n; i++) {
+        const a = pts[i], b = pts[(i + 1) % n], L = Math.hypot(b[0] - a[0], b[1] - a[1]), k = Math.max(1, Math.round(L / ds));
+        for (let j = 0; j < k; j++) out.push([a[0] + ((b[0] - a[0]) * j) / k, a[1] + ((b[1] - a[1]) * j) / k, j === 0]);
+      }
+      return out;
+    }
+    function roundedPoly(verts, r) { // fillet each convex/concave corner with radius r
+      if (r <= 0) return verts;
+      const out = [], n = verts.length;
+      for (let i = 0; i < n; i++) {
+        const p = verts[(i + n - 1) % n], c = verts[i], q = verts[(i + 1) % n];
+        const u = [p[0] - c[0], p[1] - c[1]], v = [q[0] - c[0], q[1] - c[1]], lu = Math.hypot(...u), lv = Math.hypot(...v);
+        const ang = Math.acos(Math.max(-1, Math.min(1, (u[0] * v[0] + u[1] * v[1]) / (lu * lv))));
+        let t = r / Math.tan(ang / 2); t = Math.min(t, lu * 0.49, lv * 0.49); const rr = t * Math.tan(ang / 2);
+        const A = [c[0] + (u[0] / lu) * t, c[1] + (u[1] / lu) * t], B = [c[0] + (v[0] / lv) * t, c[1] + (v[1] / lv) * t];
+        const bis = [u[0] / lu + v[0] / lv, u[1] / lu + v[1] / lv], lb = Math.hypot(...bis), dc = rr / Math.sin(ang / 2);
+        const O = [c[0] + (bis[0] / lb) * dc, c[1] + (bis[1] / lb) * dc];
+        let a0 = Math.atan2(A[1] - O[1], A[0] - O[0]), a1 = Math.atan2(B[1] - O[1], B[0] - O[0]);
+        let da = a1 - a0; while (da > Math.PI) da -= 2 * Math.PI; while (da < -Math.PI) da += 2 * Math.PI;
+        const m = Math.max(2, Math.ceil((Math.abs(da) * rr) / 2));
+        for (let j = 0; j <= m; j++) { const a = a0 + (da * j) / m; out.push([O[0] + rr * Math.cos(a), O[1] + rr * Math.sin(a)]); }
+      }
+      return out;
+    }
+    function contour() {
+      const s = +$("size").value, rc = +$("rc").value, type = $("shape").value, h = s / 2;
+      let v;
+      if (type === "rrect") v = roundedPoly([[-h, -h * 0.7], [h, -h * 0.7], [h, h * 0.7], [-h, h * 0.7]], rc);
+      else if (type === "lshape") v = roundedPoly([[-h, -h], [h, -h], [h, -h * 0.1], [0, -h * 0.1], [0, h], [-h, h]], rc);
+      else if (type === "star") { v = []; for (let i = 0; i < 10; i++) { const a = Math.PI / 2 + (i * Math.PI) / 5, r = i % 2 ? h * 0.42 : h; v.push([r * Math.cos(a), r * Math.sin(a)]); } v = roundedPoly(v, rc * 0.3); }
+      else { v = []; const n = 8; for (let i = 0; i < n * 4; i++) { const a = (i * 2 * Math.PI) / (n * 4), r = (i % 4 === 0 || i % 4 === 1) ? h : h * 0.78; v.push([r * Math.cos(a), r * Math.sin(a)]); } v = roundedPoly(v, rc * 0.25); }
+      return resample(v, 2);
+    }
+    // ---------- planner ----------
+    function planCut() {
+      const P = contour(), n = P.length, rmin = +$("rmin").value, w = +$("w").value;
+      // discrete curvature at each sample: turning angle / mean segment length
+      const kap = P.map((p, i) => {
+        const a = P[(i + n - 1) % n], b = P[(i + 1) % n];
+        const t1 = Math.atan2(p[1] - a[1], p[0] - a[0]), t2 = Math.atan2(b[1] - p[1], b[0] - p[0]);
+        let d = t2 - t1; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI;
+        const ds = (Math.hypot(p[0] - a[0], p[1] - a[1]) + Math.hypot(b[0] - p[0], b[1] - p[1])) / 2;
+        return Math.abs(d) / ds;
+      });
+      const bad = kap.map((k) => k > 1 / rmin + 1e-9);
+      // stop points: one per run of consecutive "bad" samples (its middle)
+      const stops = [];
+      if (bad.every(Boolean)) return null;
+      let start = bad.findIndex((b) => !b);
+      for (let k = 0; k < n; k++) {
+        const i = (start + k) % n;
+        if (bad[i] && !bad[(i + n - 1) % n]) { let j = i, len = 0; while (bad[j % n] && len < n) { j++; len++; } stops.push((i + Math.floor(len / 2)) % n); }
+      }
+      const segLen = (i, j) => { let L = 0; for (let k = i; k !== j; k = (k + 1) % n) { const a = P[k], b = P[(k + 1) % n]; L += Math.hypot(b[0] - a[0], b[1] - a[1]); } return L; };
+      const perim = segLen(0, 0) || P.reduce((s, p, i) => s + Math.hypot(P[(i + 1) % n][0] - p[0], P[(i + 1) % n][1] - p[1]), 0);
+      let sections, holesCand;
+      if (!stops.length) {
+        // smooth closed loop: one hole anywhere suffices, no back-out
+        sections = [{ a: 0, b: 0, L: perim, loop: true }]; holesCand = [0];
+      } else {
+        sections = stops.map((s, k) => { const e = stops[(k + 1) % stops.length]; return { a: s, b: e, L: stops.length === 1 ? perim : segLen(s, e) }; });
+        holesCand = stops.slice();
+      }
+      // exact set cover by enumeration over candidate holes (sections' endpoints are stops k and k+1)
+      const m = holesCand.length, best = {}; let opt = null;
+      if (m > 16) return { P, kap, bad, stops, sections, holesCand, tooMany: true, perim };
+      for (let mask = 1; mask < 1 << m; mask++) {
+        let ok = true, travel = 0;
+        const H = (k) => (mask >> (k % m)) & 1;
+        for (let k = 0; k < sections.length; k++) {
+          const s = sections[k];
+          if (s.loop) { travel += s.L; continue; }
+          const ha = H(k), hb = H(k + 1);
+          if (!ha && !hb) { ok = false; break; }
+          travel += ha && hb ? s.L : 2 * s.L; // cut, plus back out along the kerf if the far end has no hole
+        }
+        if (!ok) continue;
+        const nh = popcount(mask), cost = w * nh + travel;
+        if (!best[nh] || travel < best[nh].travel) best[nh] = { mask, travel };
+        if (!opt || cost < opt.cost) opt = { mask, travel, cost, nh };
+      }
+      return { P, kap, bad, stops, sections, holesCand, best, opt, perim, rmin };
+    }
+    function popcount(x) { let c = 0; while (x) { c += x & 1; x >>= 1; } return c; }
+    // ---------- order of operations for the chosen holes ----------
+    function sequence(pl) {
+      const m = pl.holesCand.length, H = (k) => (pl.opt.mask >> (k % m)) & 1, ops = [];
+      pl.sections.forEach((s, k) => {
+        if (s.loop) { ops.push({ from: s.a, dir: 1, len: s.L, back: false }); return; }
+        if (H(k)) ops.push({ from: s.a, dir: 1, len: s.L, back: !H(k + 1), sec: k });
+        else ops.push({ from: s.b, dir: -1, len: s.L, back: true, sec: k });
+      });
+      return ops;
+    }
+    // ---------- drawing ----------
+    function fit(cv) { const dpr = Math.min(devicePixelRatio || 1, 2), W = cv.clientWidth, H = cv.clientHeight; if (cv.width !== Math.round(W * dpr) || cv.height !== Math.round(H * dpr)) { cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr); } const c = cv.getContext("2d"); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.clearRect(0, 0, W, H); return [c, W, H]; }
+    function inward(P, i, d) { // point offset d into the waste (interior) from sample i
+      const n = P.length, a = P[(i + n - 3) % n], b = P[(i + 3) % n], c = P[i];
+      // interior direction ≈ toward centroid-weighted bisector; use centroid for robustness
+      const cx = P.reduce((s, p) => s + p[0], 0) / n, cy = P.reduce((s, p) => s + p[1], 0) / n;
+      const tx = b[0] - a[0], ty = b[1] - a[1], tl = Math.hypot(tx, ty) || 1; let nx = -ty / tl, ny = tx / tl;
+      if ((cx - c[0]) * nx + (cy - c[1]) * ny < 0) { nx = -nx; ny = -ny; }
+      return [c[0] + nx * d, c[1] + ny * d];
+    }
+    function draw() {
+      const [c, W, H] = fit($("view"));
+      if (!plan) return;
+      const P = plan.P, n = P.length, s = +$("size").value;
+      const sc = Math.min(W, H) / (s * 1.35), ox = W / 2, oy = H / 2, X = (p) => ox + p[0] * sc, Y = (p) => oy - p[1] * sc;
+      // plywood sheet
+      c.fillStyle = "rgba(217,130,43,0.10)"; c.strokeStyle = css("--line"); c.fillRect(ox - s * 0.62 * sc, oy - s * 0.62 * sc, s * 1.24 * sc, s * 1.24 * sc); c.strokeRect(ox - s * 0.62 * sc, oy - s * 0.62 * sc, s * 1.24 * sc, s * 1.24 * sc);
+      // contour
+      c.lineWidth = 3; c.lineCap = "round";
+      for (let i = 0; i < n; i++) { const a = P[i], b = P[(i + 1) % n]; c.strokeStyle = plan.bad[i] ? "#e0453a" : "#d9822b"; c.globalAlpha = 0.55; c.beginPath(); c.moveTo(X(a), Y(a)); c.lineTo(X(b), Y(b)); c.stroke(); }
+      c.globalAlpha = 1;
+      // cut progress overlay
+      if (prog >= 0 && plan.opt) {
+        const ops = sequence(plan); let rem = prog, done = false, tip = null, head = 0;
+        c.strokeStyle = css("--ink"); c.lineWidth = 2;
+        for (const op of ops) {
+          const steps = Math.round((op.len / plan.perim) * n) || n; let k = op.from;
+          const total = op.back ? steps * 2 : steps;
+          for (let t = 0; t < total && !done; t++) {
+            const fwd = t < steps, idx = fwd ? (k + op.dir * t + n * 4) % n : (k + op.dir * (2 * steps - t) + n * 4) % n;
+            const nxt = fwd ? (idx + op.dir + n) % n : (idx - op.dir + n) % n;
+            if (fwd) { c.beginPath(); c.moveTo(X(P[idx]), Y(P[idx])); c.lineTo(X(P[nxt]), Y(P[nxt])); c.stroke(); }
+            rem -= 1; if (rem <= 0) { done = true; tip = P[nxt]; head = Math.atan2(P[nxt][1] - P[idx][1], P[nxt][0] - P[idx][0]) + (fwd ? 0 : Math.PI); }
+          }
+          if (done) break;
+        }
+        if (tip) { // jigsaw footprint: unicycle with blade at the front
+          c.save(); c.translate(X(tip), Y(tip)); c.rotate(-head); c.fillStyle = css("--accent"); c.globalAlpha = 0.85; c.fillRect(-46, -12, 46, 24); c.globalAlpha = 1; c.fillStyle = css("--ink"); c.fillRect(-2, -2, 6, 4); c.restore();
+        }
+      }
+      // stops and holes
+      const m = plan.holesCand.length;
+      plan.holesCand.forEach((i, k) => {
+        const chosen = plan.opt && (plan.opt.mask >> k) & 1, q = inward(P, i, 8);
+        c.beginPath(); c.arc(X(q), Y(q), chosen ? 6 : 3, 0, 7); c.fillStyle = chosen ? css("--ink") : "transparent"; c.fill(); c.strokeStyle = css("--ink"); c.lineWidth = 1.2; c.stroke();
+      });
+      plan.stops.forEach((i) => { c.beginPath(); c.arc(X(P[i]), Y(P[i]), 3.5, 0, 7); c.fillStyle = "#e0453a"; c.fill(); });
+      // r_min reference circle
+      const rm = +$("rmin").value; c.strokeStyle = css("--muted"); c.setLineDash([4, 3]); c.beginPath(); c.arc(28 + rm * sc, H - 28 - rm * sc, rm * sc, 0, 7); c.stroke(); c.setLineDash([]);
+      c.fillStyle = css("--muted"); c.font = "11px system-ui, sans-serif"; c.fillText("r_min", 30 + 2 * rm * sc, H - 28 - rm * sc); void m;
+    }
+    function update() {
+      ["size", "rc", "rmin", "w"].forEach((k) => ($("v" + k).textContent = $(k).value));
+      plan = planCut(); prog = -1;
+      if (!plan) { $("out").textContent = "Every point of this contour is tighter than r_min: not cuttable with this blade."; draw(); chart.setSeries([]); return; }
+      if (plan.tooMany) { $("out").textContent = `${plan.stops.length} stop points: too many for exact enumeration here. Increase the corner radius or decrease r_min.`; draw(); return; }
+      const o = plan.opt, nS = plan.sections.length;
+      $("out").textContent = `contour length ${plan.perim.toFixed(0)} mm\nstop points (curvature > 1/r_min) ${plan.stops.length}\ncuttable sections ${nS}\nchosen drill holes ${o.nh} of ${plan.holesCand.length} candidates\ncut + back-out travel ${o.travel.toFixed(0)} mm (${(o.travel / plan.perim).toFixed(2)}× contour)\nobjective = ${$("w").value}·holes + travel = ${o.cost.toFixed(0)}`;
+      const xs = Object.keys(plan.best).map(Number).sort((a, b) => a - b);
+      chart.setSeries([{ name: "best travel for each hole count", x: xs, y: xs.map((k) => plan.best[k].travel) }, { name: "chosen", x: [o.nh, o.nh], y: [o.travel, o.travel + 1e-6] }], { xlabel: "number of drill holes", ylabel: "minimum cut + back-out travel (mm)" });
+      draw();
+    }
+    $("play").addEventListener("click", () => {
+      if (!plan || !plan.opt) return; cancelAnimationFrame(anim);
+      const ops = sequence(plan), n = plan.P.length; const total = ops.reduce((s, op) => s + (Math.round((op.len / plan.perim) * n) || n) * (op.back ? 2 : 1), 0);
+      const t0 = performance.now(), dur = 6000;
+      (function step(now) { prog = Math.min(total, ((now - t0) / dur) * total); draw(); if (prog < total) anim = requestAnimationFrame(step); })(t0);
+    });
+    $("shape").addEventListener("input", () => { $("lrc").hidden = false; update(); });
+    ["size", "rc", "rmin", "w"].forEach((k) => $(k).addEventListener("input", update));
+    window.addEventListener("resize", draw);
+    update();
+  })();
+  </script>
+</body>
+</html>

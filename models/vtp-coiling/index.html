@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>VTP Coiling Designer</title>
+  <link rel="icon" href="../../assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../../assets/site.css" />
+  <style>
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .maps { display: grid; grid-template-columns: 1fr; gap: 6px; }
+    .maps canvas { width: 100%; display: block; border: 1px solid var(--line); border-radius: 6px; background: var(--chip); touch-action: none; cursor: crosshair; }
+    .chartbox { width: 100%; height: 190px; display: block; }
+    .pair { border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; margin: 6px 0; }
+    .pair b { font-size: 13px; }
+    .model aside label output { float: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+    .model aside label input[type="range"] { width: 100%; }
+    .legend { position: absolute; right: 12px; top: 10px; font-size: 12px; color: var(--muted); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 4px 8px; }
+    .legend .bar { width: 140px; height: 8px; border-radius: 4px; margin: 3px 0; }
+    .btns { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+    .btns .btn { padding: 3px 8px; font-size: 12px; }
+    ol.eq { padding-left: 18px; font-size: 13px; margin: 6px 0; }
+    ol.eq li { margin: 4px 0; }
+    #ashby { width: 100%; height: auto; display: block; }
+  </style>
+</head>
+<body>
+  <header class="site"><div class="wrap">
+    <a class="brand" href="../../"><img src="../../assets/icon.svg" alt="" />Transformative Robotics Lab</a>
+    <nav class="site"><a href="../../">Projects</a><a href="../vtp/">VTP test data</a><a href="../fde-cells/">FDE unit cells</a></nav>
+  </div></header>
+  <main class="model">
+    <div class="stage" id="stage">
+      <div class="legend" id="legend"><div>relative density ρ/ρ<sub>s</sub></div><div class="bar" id="legendBar"></div><div style="display:flex;justify-content:space-between"><span>0</span><span>0.5</span><span>1</span></div></div>
+      <div class="overlay">Drag: orbit · Right-drag: pan · Wheel: zoom · Coils are drawn from the deposition kinematics, one line per thread</div>
+    </div>
+    <aside>
+      <h1>Viscous thread printing: coils to graded foam</h1>
+      <p class="muted">Illustrative model based on Lipton &amp; Lipson, <i>Sci. Rep.</i> 2016, and Emery et al., <i>Adv. Sci.</i> 2024 (Eqs. 1–2, Fig. 1, Fig. 7H). A thread falls from height H and coils as the head moves at F. The ratio of head speed to extrusion speed sets coil spacing, and nozzle height sets coil size. Grading these two parameters across a part grades its density and stiffness. Design a part below and the coils, density and stiffness update.</p>
+
+      <h2>Part design</h2>
+      <label>Preset <select id="preset" style="width:100%">
+        <option value="gradient">Linear gradient slab (Emery Fig. 3)</option>
+        <option value="steps">Discrete zones slab (Emery Fig. 3)</option>
+        <option value="finger" selected>Soft finger with sparse joints (RoboSoft 2025)</option>
+        <option value="fde">Dense/sparse rotating squares (FDE)</option>
+        <option value="uniform">Uniform block (dense pair only)</option>
+      </select></label>
+      <label id="jointRow">Joint shape <select id="joint"><option value="circle">circle</option><option value="triangle">triangle</option><option value="trapezoid" selected>trapezoid</option></select></label>
+      <label>Paint on the density map <select id="paint"><option value="off">off</option><option value="1">dense</option><option value="0.5">blend 50%</option><option value="0">sparse</option></select></label>
+      <div class="btns">
+        <button class="btn" type="button" id="pFDE">FDE paper parameters</button>
+        <button class="btn" type="button" id="pPLA">Emery Fig. 2F (PLA)</button>
+        <button class="btn" type="button" id="pSil">Lipton 2016 silicone</button>
+      </div>
+
+      <h2>Coiling parameters</h2>
+      <label>Material <select id="mat">
+        <option value="tpu">TPU (NinjaFlex), loaded in Z</option>
+        <option value="tpux">TPU (NinjaFlex), loaded in X</option>
+        <option value="pla">PLA, loaded in Z</option>
+        <option value="sil">Silicone 732 (Lipton 2016)</option>
+      </select></label>
+      <div class="pair"><b>Dense pair</b>
+        <label>V* = F / C <output id="vdO"></output><input id="vd" type="range" min="0.05" max="1.2" step="0.01" value="0.15" /></label>
+        <label>H* = H / D<sub>t</sub> <output id="hdO"></output><input id="hd" type="range" min="1" max="20" step="0.01" value="6.93" /></label>
+      </div>
+      <div class="pair"><b>Sparse pair</b>
+        <label>V* = F / C <output id="vsO"></output><input id="vs" type="range" min="0.05" max="1.2" step="0.01" value="0.40" /></label>
+        <label>H* = H / D<sub>t</sub> <output id="hsO"></output><input id="hs" type="range" min="1" max="20" step="0.01" value="14.81" /></label>
+      </div>
+      <div class="row2">
+        <label>Line spacing ΔL <output id="dLO"></output><input id="dL" type="range" min="0.6" max="4" step="0.05" value="1.2" /></label>
+        <label>Layer step ΔZ <output id="dZO"></output><input id="dZ" type="range" min="0.6" max="4" step="0.01" value="1.27" /></label>
+        <label>Nozzle D<sub>n</sub> <output id="dnO"></output><input id="dn" type="range" min="0.2" max="1.0" step="0.01" value="0.4" /></label>
+        <label>Die swell α <output id="alO"></output><input id="al" type="range" min="1" max="2" step="0.01" value="1.15" /></label>
+        <label>Extrusion C <output id="cO"></output><input id="c" type="range" min="5" max="100" step="1" value="40" /></label>
+        <label>Coil size κ <output id="kO"></output><input id="k" type="range" min="0.15" max="0.8" step="0.01" value="0.38" /></label>
+      </div>
+      <label>Layers drawn <output id="nlO"></output><input id="nl" type="range" min="1" max="8" step="1" value="4" /></label>
+      <label><input type="checkbox" id="anim" checked /> Animate the nozzle laying the top layer</label>
+      <div class="readout" id="pairs"></div>
+
+      <h2>Density and stiffness maps</h2>
+      <div class="maps">
+        <canvas id="mapRho" height="120" aria-label="Relative density map"></canvas>
+        <canvas id="mapE" height="120" aria-label="Stiffness map"></canvas>
+      </div>
+      <p class="muted" style="font-size:12px;margin:2px 0">Top: relative density ρ/ρ<sub>s</sub> (0–1). Bottom: modulus E, log colour scale from E<sub>s</sub>·10<sup>-4</sup> to E<sub>s</sub>. Hover for local values.</p>
+      <div class="readout" id="hover">Hover a map.</div>
+
+      <h2>Along the part (mid-line)</h2>
+      <canvas id="profile" class="chartbox" aria-label="Profile along part"></canvas>
+      <div class="muted" style="font-size:12px" id="profLeg"></div>
+
+      <h2>Density vs stiffness (log–log)</h2>
+      <svg id="ashby" viewBox="0 0 320 230" role="img" aria-label="Normalized modulus versus normalized density"></svg>
+      <p class="muted" style="font-size:12px;margin:2px 0">Lines: power laws E/E<sub>s</sub> = (ρ/ρ<sub>s</sub>)<sup>B</sup> reported by Emery et al. 2024 (Fig. 7H). Open circles: silicone foams reported in Lipton &amp; Lipson 2016 Table 1 (compression), normalised to bulk. Filled dots: this design's dense and sparse pairs.</p>
+
+      <h2>Layer height self-stabilization</h2>
+      <canvas id="stab" class="chartbox" aria-label="Layer height vs layer number"></canvas>
+      <div class="muted" style="font-size:12px" id="stabLeg"></div>
+      <p class="muted" style="font-size:12px;margin:2px 0">After Emery et al. Fig. 2F: cubes printed at H* = 3, 6, 9 all settle to H<sub>L</sub> = ΔZ, because a taller gap gives a taller layer. Here H<sub>L</sub> uses an <b>illustrative linear surrogate</b>, H<sub>L</sub> = ΔZ + 0.12 mm·(H* − H*<sub>dense</sub>). It assumes the dense pair lies on the homogeneous subspace, and each run starts at 0.5×, 1× or 1.5× the dense H*. The nozzle gap after each layer is gap + ΔZ − H<sub>L</sub>. The paper used a GPR model trained on 300 experiments.</p>
+
+      <h2>How this model works</h2>
+      <ol class="eq">
+        <li><b>Dimensionless controls</b> (Emery Eqs. 1–2; FDE §2.1): V* = F/C and H* = H/D<sub>t</sub>, with thread diameter D<sub>t</sub> = α·D<sub>n</sub> (die swell). The head speed F is V*·C and the nozzle gap H is H*·D<sub>t</sub>.</li>
+        <li><b>Coil kinematics</b> (geometric "sewing machine" picture, Brun et al. 2015, cited by both papers): the thread is laid at speed C around a coil of diameter D<sub>c</sub>. Coil frequency is f = C/(π D<sub>c</sub>) and the coil pitch along the path is λ<sub>c</sub> = F/f = π D<sub>c</sub> V*. This gives the paper's statement that V* sets linear coil density (§2.1).</li>
+        <li><b>Coil size</b>: the paper states D<sub>c</sub> ∝ H*. Here D<sub>c</sub> = κ·H*·D<sub>t</sub>, an <i>assumed</i> proportionality. The default κ = 0.38 gives the ~1.2 mm coil the FDE paper reports for its dense pair (H* = 6.93, §3.1).</li>
+        <li><b>Coiling regime</b> (Lipton Fig. 1; Emery Fig. 1C–D): translating coils → alternating loops → meanders → straight line as V* rises. Below H* ≈ 1.5 the thread cannot buckle. The boundaries used here (V* = 0.5, 0.7, 1.0) are approximate. Real boundaries also depend on viscosity.</li>
+        <li><b>Density</b> (mass conservation): thread length per unit path is 1/V*, so ρ/ρ<sub>s</sub> = (π D<sub>t</sub><sup>2</sup>/4)/(V*·ΔL·ΔZ). This holds when the layer height equals ΔZ, the paper's homogeneous subspace (§2.2). Values above 1 are flagged as over-packed: those layers would grow taller than ΔZ.</li>
+        <li><b>Stiffness</b>: E = E<sub>s</sub>(ρ/ρ<sub>s</sub>)<sup>B</sup>, with B = 3.57 (TPU, Z), 3.62 (TPU, X) and 3.87 (PLA, Z) from Emery Fig. 7H. For silicone, B is this demo's least-squares fit to Lipton Table 1.</li>
+        <li><b>Check against the paper</b>: at the FDE parameters (button above; α = 1.15 assumed) the model gives E ≈ 3.8 MPa for the dense pair and ≈ 0.12 MPa for the sparse pair, about 33:1. The FDE paper measured E<sub>HD</sub> ≈ 3.4 MPa and E<sub>LD</sub> ≈ 0.11 MPa (§6.2), about 30:1. The flow rate, ≈ 28 g/h, is close to the 30 g/h reported in RoboSoft 2025 §V.</li>
+        <li><b>Grading</b>: each map cell holds a blend d ∈ [0, 1]. V* and H* are interpolated linearly between the sparse and dense pairs, like the linear gradient in Emery Fig. 3C.</li>
+      </ol>
+      <p class="muted" style="font-size:12px">Simplified: no fluid simulation, no thread–thread contact, no GPR. Coil shapes for loops and meanders are schematic. E<sub>s</sub> for PLA (3 GPa) and the PLA density are typical datasheet values, not taken from the papers. E<sub>s</sub> for TPU (12 MPa, 1.19 g/cc) is from the FDE paper §6.1. For silicone, the bulk values (0.608 MPa compression, 1040 kg/m³) are from Lipton Table 1.</p>
+
+      <h2>Related</h2>
+      <p style="font-size:14px"><a href="../fde-cells/">FDE unit-cell homogenizer</a>: dense/sparse patterns → anisotropy and chirality.<br /><a href="../vtp/">VTP foam test data</a> and <a href="../fde/">FDE compression tests</a>: measured data explorers.</p>
+      <h2>Papers</h2>
+      <p class="muted" style="font-size:13px">Lipton &amp; Lipson, “3D Printing Variable Stiffness Foams Using Viscous Thread Instability”, <i>Sci. Rep.</i> 6, 29996 (2016). · Emery &amp; Revier, “Applied Viscous Thread Instability for Manufacturing 3D Printed Foams” (2022). · Emery et al., “Foams with 3D Spatially Programmed Mechanics Enabled by Autonomous Active Learning on VTP”, <i>Adv. Sci.</i> 11, 2408062 (2024). · Miske, Emery &amp; Lipton, “VTP for Production of Soft Robotic Fingers”, RoboSoft 2025. · Cao et al., “Demonstrating SensiPrint”, SCF Adjunct 2025.</p>
+    </aside>
+  </main>
+  <script src="../../assets/three.min.js"></script>
+  <script src="../../assets/chart.js"></script>
+  <script>
+  (function () {
+    "use strict";
+    const $ = (id) => document.getElementById(id), stage = $("stage");
+    const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+    // ---------- materials ----------
+    // Lipton & Lipson 2016 Table 1 (silicone 732, compression): density kg/m^3, effective modulus MPa
+    const LIPTON = [{ n: "Pattern 29", rho: 900, E: 0.38 }, { n: "Pattern 39", rho: 700, E: 0.077 }, { n: "Pattern 60", rho: 500, E: 0.0092 }];
+    const SIL_RHO = 1040, SIL_E = 0.608;
+    const silFit = (() => { // least squares slope through origin in log space: ln(E/Es) = B ln(rho/rhos)
+      let sxy = 0, sxx = 0;
+      for (const p of LIPTON) { const x = Math.log(p.rho / SIL_RHO), y = Math.log(p.E / SIL_E); sxy += x * y; sxx += x * x; }
+      return sxy / sxx;
+    })();
+    const MATS = {
+      tpu: { name: "TPU, Z", rho: 1.19, Es: 12, B: 3.57, src: "Emery Fig. 7H (TPU, Z)" },
+      tpux: { name: "TPU, X", rho: 1.19, Es: 12, B: 3.62, src: "Emery Fig. 7H (TPU, X)" },
+      pla: { name: "PLA, Z", rho: 1.24, Es: 3000, B: 3.87, src: "Emery Fig. 7H (PLA, Z)" },
+      sil: { name: "Silicone", rho: 1.04, Es: SIL_E, B: silFit, src: "fit to Lipton Table 1" },
+    };
+
+    // ---------- parameters ----------
+    const ids = ["vd", "hd", "vs", "hs", "dL", "dZ", "dn", "al", "c", "k", "nl"];
+    const fmtOut = { vd: (v) => v.toFixed(2), hd: (v) => v.toFixed(2), vs: (v) => v.toFixed(2), hs: (v) => v.toFixed(2), dL: (v) => v.toFixed(2) + " mm", dZ: (v) => v.toFixed(2) + " mm", dn: (v) => v.toFixed(2) + " mm", al: (v) => v.toFixed(2), c: (v) => v + " mm/s", k: (v) => v.toFixed(2), nl: (v) => String(v) };
+    const P = {};
+    function readParams() {
+      for (const id of ids) { P[id] = Number($(id).value); $(id + "O").textContent = fmtOut[id](P[id]); }
+      P.mat = MATS[$("mat").value];
+      P.Dt = P.al * P.dn; P.A = Math.PI * P.Dt * P.Dt / 4;
+    }
+    function setVals(o) { for (const [k, v] of Object.entries(o)) $(k).value = v; }
+
+    // local process state for blend d in [0,1]
+    function local(d) {
+      const V = P.vs + (P.vd - P.vs) * d, Hs = P.hs + (P.hd - P.hs) * d;
+      const H = Hs * P.Dt, Dc = P.k * Hs * P.Dt, R = Dc / 2;
+      let regime;
+      if (Hs < 1.5) regime = "no coiling (gap too small to buckle)";
+      else if (V >= 1) regime = "straight line (thread stretched)";
+      else if (V >= 0.7) regime = "meanders";
+      else if (V >= 0.5) regime = "alternating loops";
+      else regime = "translating coils";
+      const coiling = Hs >= 1.5 && V < 1;
+      const phiRaw = P.A / (V * P.dL * P.dZ), phi = Math.min(1, phiRaw);
+      const E = P.mat.Es * Math.pow(phi, P.mat.B);
+      const F = V * P.c, f = coiling ? P.c / (Math.PI * Dc) : 0, lam = Math.PI * Dc * V;
+      return { V, Hs, H, Dc, R, regime, coiling, phiRaw, phi, E, F, f, lam };
+    }
+
+    // ---------- design grid ----------
+    const G = { W: 60, H: 20, res: 1, nx: 60, ny: 20, d: null, mask: null };
+    function buildPreset() {
+      const pre = $("preset").value, joint = $("joint").value;
+      $("jointRow").style.display = pre === "finger" ? "" : "none";
+      let W = 60, Hh = 20, fn;
+      if (pre === "gradient") { fn = (x) => 1 - x / W; }
+      else if (pre === "steps") { fn = (x) => (x < W / 3 ? 1 : x < (2 * W) / 3 ? 0.5 : 0); }
+      else if (pre === "uniform") { W = 40; Hh = 40; fn = () => 1; }
+      else if (pre === "fde") {
+        W = 60; Hh = 60; const a = 20; // unit cell 20 mm, rotating squares: dense squares rotated 15 deg, sparse gaps
+        fn = (x, y) => {
+          const i = Math.floor(x / (a / 2)), j = Math.floor(y / (a / 2));
+          const cx = (i + 0.5) * (a / 2), cy = (j + 0.5) * (a / 2), th = ((i + j) % 2 ? 1 : -1) * 0.26;
+          const u = (x - cx) * Math.cos(th) + (y - cy) * Math.sin(th), v = -(x - cx) * Math.sin(th) + (y - cy) * Math.cos(th);
+          return Math.max(Math.abs(u), Math.abs(v)) < a * 0.205 ? 1 : 0;
+        };
+      } else { // finger, 90 x 20 mm, back (dorsal) at y < 5 dense, joints on palmar side
+        W = 90; Hh = 20;
+        const joints = [24, 50, 72], back = 5, wPalm = 10;
+        fn = (x, y) => {
+          if (y < back) return 1;
+          for (const xj of joints) {
+            const dx = x - xj, t = (y - back) / (Hh - back); // t: 0 at back edge, 1 at palm edge
+            if (joint === "circle" && Math.hypot(dx, y - Hh) < 9) return 0;
+            if (joint === "triangle" && Math.abs(dx) < (wPalm / 2 + 1) * t * 1.1) return 0;
+            if (joint === "trapezoid" && Math.abs(dx) < (2 + (wPalm / 2 + 1 - 2) * t)) return 0;
+          }
+          return 1;
+        };
+      }
+      G.W = W; G.H = Hh; G.nx = Math.round(W / G.res); G.ny = Math.round(Hh / G.res);
+      G.d = new Float32Array(G.nx * G.ny); G.mask = new Uint8Array(G.nx * G.ny);
+      for (let j = 0; j < G.ny; j++) for (let i = 0; i < G.nx; i++) {
+        const x = (i + 0.5) * G.res, y = (j + 0.5) * G.res;
+        let inside = true;
+        if (pre === "finger") { // rounded fingertip
+          const r = Hh / 2; if (x > W - r && Math.hypot(x - (W - r), y - r) > r) inside = false;
+        }
+        G.mask[j * G.nx + i] = inside ? 1 : 0;
+        G.d[j * G.nx + i] = inside ? fn(x, y) : 0;
+      }
+    }
+    const dAt = (x, y) => {
+      const i = Math.floor(x / G.res), j = Math.floor(y / G.res);
+      if (i < 0 || j < 0 || i >= G.nx || j >= G.ny) return -1;
+      const k = j * G.nx + i; return G.mask[k] ? G.d[k] : -1;
+    };
+
+    // ---------- colour ramps ----------
+    // perceptual-ish ramp (dark blue -> teal -> yellow), readable on light and dark backgrounds
+    const STOPS = [[0.18, 0.2, 0.55], [0.13, 0.45, 0.72], [0.15, 0.66, 0.6], [0.55, 0.8, 0.3], [0.98, 0.84, 0.2]];
+    function ramp(t) {
+      t = Math.max(0, Math.min(1, t)) * (STOPS.length - 1);
+      const i = Math.min(STOPS.length - 2, Math.floor(t)), f = t - i, a = STOPS[i], b = STOPS[i + 1];
+      return [a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f, a[2] + (b[2] - a[2]) * f];
+    }
+    const rgb = (c) => `rgb(${(c[0] * 255) | 0},${(c[1] * 255) | 0},${(c[2] * 255) | 0})`;
+    $("legendBar").style.background = `linear-gradient(90deg, ${[0, 0.25, 0.5, 0.75, 1].map((t) => rgb(ramp(t))).join(",")})`;
+
+    // ---------- three.js scene ----------
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(40, 1, 0.5, 5000); camera.up.set(0, 0, 1);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); stage.prepend(renderer.domElement);
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x555566, 1.1));
+    const dl = new THREE.DirectionalLight(0xffffff, 0.8); dl.position.set(50, -80, 120); scene.add(dl);
+    let foam = null, bed = null;
+    const nozzle = new THREE.Group();
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(2.2, 5, 24), new THREE.MeshStandardMaterial({ color: 0xc9a227, metalness: 0.6, roughness: 0.35 }));
+    cone.rotation.x = -Math.PI / 2; cone.position.z = 2.5; nozzle.add(cone);
+    const block = new THREE.Mesh(new THREE.BoxGeometry(6, 6, 4), new THREE.MeshStandardMaterial({ color: 0x8a8f99, metalness: 0.4, roughness: 0.5 }));
+    block.position.z = 7; nozzle.add(block);
+    scene.add(nozzle);
+    let thread = null;
+    const threadMat = new THREE.MeshStandardMaterial({ color: 0xef4b5f, roughness: 0.6 });
+
+    let topPath = null, topCount = 0, animIdx = 0;
+    function buildFoam() {
+      if (foam) { scene.remove(foam); foam.geometry.dispose(); }
+      if (bed) { scene.remove(bed); bed.geometry.dispose(); }
+      const pos = [], col = [], tp = [];
+      let nL = P.nl;
+      // estimate vertex budget
+      const lMean = local(0.5), stepsPerCoil = 10;
+      const ptsPerMm = lMean.coiling ? stepsPerCoil / Math.max(0.02, lMean.lam) : 2;
+      const pathPerLayer = (G.W * G.H) / P.dL;
+      while (nL > 1 && ptsPerMm * pathPerLayer * nL > 380000) nL--;
+      for (let L = 0; L < nL; L++) {
+        const horiz = L % 2 === 0, z0 = L * P.dZ;
+        const nLines = Math.floor((horiz ? G.H : G.W) / P.dL);
+        const span = horiz ? G.W : G.H;
+        let theta = 0;
+        const isTop = L === nL - 1;
+        for (let j = 0; j < nLines; j++) {
+          const off = (j + 0.5) * P.dL, dir = j % 2 === 0 ? 1 : -1; // serpentine toolpath
+          let s = dir > 0 ? 0 : span, prev = null;
+          while (dir > 0 ? s <= span : s >= 0) {
+            const x = horiz ? s : off, y = horiz ? off : s;
+            const d = dAt(x, y);
+            if (d < 0) { prev = null; s += dir * 0.5; continue; }
+            const q = local(d);
+            const tx = horiz ? dir : 0, ty = horiz ? 0 : dir, nx = -ty, ny = tx;
+            let px = x, py = y, pz = z0 + P.dZ * 0.5;
+            if (q.coiling) {
+              let a, b;
+              if (q.V < 0.5) { a = Math.cos(theta); b = Math.sin(theta); }
+              else if (q.V < 0.7) { a = 0.5 * Math.sin(2 * theta); b = Math.sin(theta); }
+              else { a = 0; b = Math.sin(theta); }
+              px += q.R * (a * tx + b * nx); py += q.R * (a * ty + b * ny);
+              pz += P.dZ * 0.32 * Math.cos(theta * 0.5);
+            }
+            const p = [px - G.W / 2, py - G.H / 2, pz];
+            const c = ramp(q.phi);
+            if (prev) { pos.push(...prev.p, ...p); col.push(...prev.c, ...c); if (isTop) tp.push([x - G.W / 2, y - G.H / 2, z0 + P.dZ, p]); }
+            prev = { p, c };
+            // advance along thread length: ds = R*2pi/steps; path advance = V* ds
+            if (q.coiling) { const ds = (2 * Math.PI * Math.max(q.R, 0.05)) / stepsPerCoil; theta += ds / Math.max(q.R, 0.05); s += dir * q.V * ds; }
+            else s += dir * 0.4;
+          }
+        }
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+      g.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
+      foam = new THREE.LineSegments(g, new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.9 }));
+      scene.add(foam);
+      // build plate outline
+      const bg = new THREE.PlaneGeometry(G.W + 16, G.H + 16);
+      bed = new THREE.Mesh(bg, new THREE.MeshBasicMaterial({ color: 0x7f8794, transparent: true, opacity: 0.18, side: THREE.DoubleSide }));
+      bed.position.z = -0.05; scene.add(bed);
+      topPath = tp; topCount = pos.length / 6; animIdx = 0;
+      P.nlShown = nL; P.totalVerts = pos.length / 3;
+    }
+
+    function updateThread() {
+      if (thread) { scene.remove(thread); thread.geometry.dispose(); thread = null; }
+      if (!topPath || !topPath.length) { nozzle.visible = false; return; }
+      const animOn = $("anim").checked;
+      const nTop = topPath.length, startTop = topCount - nTop;
+      if (!animOn) { foam.geometry.setDrawRange(0, Infinity); nozzle.visible = false; return; }
+      animIdx = (animIdx + Math.max(1, Math.round(nTop / 900))) % nTop;
+      foam.geometry.setDrawRange(0, (startTop + animIdx) * 2);
+      const [x, y, zTop, contact] = topPath[animIdx];
+      const d = dAt(x + G.W / 2, y + G.H / 2), q = local(Math.max(0, d));
+      const zN = zTop - P.dZ * 0.5 + q.H;
+      nozzle.visible = true; nozzle.position.set(x, y, zN);
+      const curve = new THREE.QuadraticBezierCurve3(new THREE.Vector3(x, y, zN), new THREE.Vector3(x, y, contact[2] + q.H * 0.25), new THREE.Vector3(contact[0], contact[1], contact[2]));
+      thread = new THREE.Mesh(new THREE.TubeGeometry(curve, 16, Math.max(0.12, P.Dt / 2), 6, false), threadMat);
+      scene.add(thread);
+    }
+
+    // camera controls (as in models/trunc)
+    const cam = { r: 120, az: -1.2, el: 0.75, target: new THREE.Vector3() };
+    function place() {
+      camera.position.set(cam.target.x + cam.r * Math.cos(cam.el) * Math.cos(cam.az), cam.target.y + cam.r * Math.cos(cam.el) * Math.sin(cam.az), cam.target.z + cam.r * Math.sin(cam.el));
+      camera.lookAt(cam.target);
+    }
+    function resize() { const w = stage.clientWidth, h = stage.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / Math.max(1, h); camera.updateProjectionMatrix(); }
+    let drag = null; const el = renderer.domElement;
+    el.addEventListener("contextmenu", (e) => e.preventDefault());
+    el.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY, pan: e.button === 2 || e.shiftKey }; el.setPointerCapture(e.pointerId); });
+    el.addEventListener("pointermove", (e) => {
+      if (!drag) return;
+      const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
+      if (drag.pan) { const s = cam.r / 700; cam.target.add(new THREE.Vector3(-Math.sin(cam.az), Math.cos(cam.az), 0).multiplyScalar(-dx * s)); cam.target.z += dy * s; }
+      else { cam.az -= dx * 0.008; cam.el = Math.max(-0.2, Math.min(1.5, cam.el + dy * 0.008)); }
+    });
+    el.addEventListener("pointerup", () => { drag = null; });
+    el.addEventListener("wheel", (e) => { e.preventDefault(); cam.r = Math.max(8, Math.min(600, cam.r * Math.exp(e.deltaY * 0.0012))); }, { passive: false });
+
+    // ---------- maps ----------
+    function drawMaps() {
+      const Es = P.mat.Es;
+      for (const [id, kind] of [["mapRho", "rho"], ["mapE", "E"]]) {
+        const cv = $(id), w = cv.clientWidth || 300, h = Math.round((w * G.H) / G.W);
+        const dpr = Math.min(devicePixelRatio || 1, 2);
+        cv.style.height = h + "px"; cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+        const ctx = cv.getContext("2d"); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
+        const sx = w / G.nx, sy = h / G.ny;
+        for (let j = 0; j < G.ny; j++) for (let i = 0; i < G.nx; i++) {
+          const k = j * G.nx + i; if (!G.mask[k]) continue;
+          const q = local(G.d[k]);
+          const t = kind === "rho" ? q.phi : (Math.log10(q.E / Es) + 4) / 4;
+          ctx.fillStyle = rgb(ramp(t));
+          ctx.fillRect(i * sx, h - (j + 1) * sy, sx + 0.6, sy + 0.6);
+        }
+        ctx.fillStyle = css("--ink"); ctx.font = "11px system-ui"; ctx.fillText(kind === "rho" ? "ρ/ρs" : "E (log)", 4, 12);
+      }
+    }
+    function mapEvent(e, paintNow) {
+      const cv = e.currentTarget, r = cv.getBoundingClientRect();
+      const x = ((e.clientX - r.left) / r.width) * G.W, y = (1 - (e.clientY - r.top) / r.height) * G.H;
+      const d = dAt(x, y);
+      if (paintNow && $("paint").value !== "off" && d >= 0) {
+        const val = Number($("paint").value), rad = 3;
+        for (let j = 0; j < G.ny; j++) for (let i = 0; i < G.nx; i++) {
+          const cx = (i + 0.5) * G.res, cy = (j + 0.5) * G.res;
+          if (Math.hypot(cx - x, cy - y) <= rad && G.mask[j * G.nx + i]) G.d[j * G.nx + i] = val;
+        }
+        schedule(true);
+      }
+      if (d < 0) { $("hover").textContent = "outside the part"; return; }
+      const q = local(d);
+      $("hover").textContent = `x ${x.toFixed(1)} mm, y ${y.toFixed(1)} mm, blend d = ${d.toFixed(2)}\nV* ${q.V.toFixed(2)}  H* ${q.Hs.toFixed(2)}  → ${q.regime}\nρ/ρs ${q.phi.toFixed(3)}${q.phiRaw > 1 ? " (over-packed)" : ""}  E ${fmtE(q.E)}`;
+    }
+    let painting = false;
+    for (const id of ["mapRho", "mapE"]) {
+      const cv = $(id);
+      cv.addEventListener("pointerdown", (e) => { painting = true; cv.setPointerCapture(e.pointerId); mapEvent(e, true); });
+      cv.addEventListener("pointermove", (e) => mapEvent(e, painting));
+      cv.addEventListener("pointerup", () => { painting = false; });
+      cv.addEventListener("pointerleave", () => { painting = false; });
+    }
+    const fmtE = (E) => (E >= 1 ? E.toFixed(2) + " MPa" : E >= 1e-3 ? (E * 1000).toFixed(1) + " kPa" : (E * 1e6).toFixed(0) + " Pa");
+
+    // ---------- charts ----------
+    const prof = TRLChart.create($("profile"), { xlabel: "position along part x (mm)", ylabel: "normalised value" });
+    function drawProfile() {
+      const xs = [], rho = [], Er = [], Vv = [];
+      const Ed = local(1).E;
+      const yMid = G.H / 2;
+      for (let i = 0; i < G.nx; i++) {
+        const x = (i + 0.5) * G.res, d = dAt(x, yMid); if (d < 0) continue;
+        const q = local(d); xs.push(x); rho.push(q.phi); Er.push(q.E / Ed); Vv.push(q.V);
+      }
+      legend("profLeg", prof.setSeries([{ name: "ρ/ρs", x: xs, y: rho }, { name: "E / E(dense pair)", x: xs, y: Er }, { name: "V*", x: xs, y: Vv }]));
+    }
+    const stab = TRLChart.create($("stab"), { xlabel: "layer number", ylabel: "layer height HL (mm)" });
+    function drawStab() {
+      const b = 0.12, series = [], Hd = P.hd;
+      const runs = [0.5, 1, 1.5].map((m) => +(Hd * m).toFixed(2));
+      for (const H0 of runs) {
+        let gap = H0 * P.Dt; const xs = [], ys = [];
+        for (let n = 1; n <= 20; n++) {
+          const Hs = gap / P.Dt, HL = Math.max(0.05, P.dZ + b * (Hs - Hd));
+          xs.push(n); ys.push(HL);
+          gap = Math.max(0.2 * P.Dt, gap + P.dZ - HL);
+        }
+        series.push({ name: `start H* = ${H0}`, x: xs, y: ys });
+      }
+      series.push({ name: "ΔZ", x: [1, 20], y: [P.dZ, P.dZ], color: css("--muted") });
+      legend("stabLeg", stab.setSeries(series));
+    }
+
+    function drawAshby() {
+      const svg = $("ashby"), W = 320, H = 230, L = 46, R = 10, T = 10, B = 34;
+      const x0 = -1.5, x1 = 0, y0 = -6, y1 = 0;
+      const sx = (v) => L + ((v - x0) / (x1 - x0)) * (W - L - R), sy = (v) => H - B - ((v - y0) / (y1 - y0)) * (H - T - B);
+      const ink = css("--ink"), muted = css("--muted"), line = css("--line"), acc = css("--accent");
+      let s = "";
+      for (let v = x0; v <= x1 + 1e-9; v += 0.5) s += `<line x1="${sx(v)}" x2="${sx(v)}" y1="${T}" y2="${H - B}" stroke="${line}"/><text x="${sx(v)}" y="${H - B + 14}" font-size="10" text-anchor="middle" fill="${muted}">${Math.pow(10, v).toPrecision(2).replace(/\.?0+$/, "")}</text>`;
+      for (let v = y0; v <= y1; v++) s += `<line x1="${L}" x2="${W - R}" y1="${sy(v)}" y2="${sy(v)}" stroke="${line}"/><text x="${L - 4}" y="${sy(v) + 3}" font-size="10" text-anchor="end" fill="${muted}">10^${v}</text>`;
+      s += `<text x="${(L + W - R) / 2}" y="${H - 4}" font-size="11" text-anchor="middle" fill="${ink}">relative density ρ/ρs</text>`;
+      s += `<text transform="translate(11 ${(T + H - B) / 2}) rotate(-90)" font-size="11" text-anchor="middle" fill="${ink}">E / Es</text>`;
+      const laws = [["TPU Z 3.57", 3.57, TRLChart.PALETTE[0]], ["TPU X 3.62", 3.62, TRLChart.PALETTE[2]], ["PLA Z 3.87", 3.87, TRLChart.PALETTE[3]], [`silicone fit ${silFit.toFixed(2)}`, silFit, TRLChart.PALETTE[4]]];
+      laws.forEach(([n, Bx, c], k) => {
+        const xa = Math.max(x0, y0 / Bx);
+        s += `<line x1="${sx(xa)}" y1="${sy(Bx * xa)}" x2="${sx(0)}" y2="${sy(0)}" stroke="${c}" stroke-width="${P.mat.B === Bx ? 2.6 : 1.2}" opacity="0.9"/>`;
+        s += `<text x="${L + 6}" y="${T + 12 + k * 12}" font-size="10" fill="${c}">B = ${n}</text>`;
+      });
+      for (const p of LIPTON) s += `<circle cx="${sx(Math.log10(p.rho / SIL_RHO))}" cy="${sy(Math.log10(p.E / SIL_E))}" r="4" fill="none" stroke="${TRLChart.PALETTE[4]}" stroke-width="1.5"><title>${p.n}, Lipton Table 1</title></circle>`;
+      for (const [d, lab] of [[1, "dense"], [0, "sparse"]]) {
+        const q = local(d), lx = Math.log10(q.phi), ly = Math.log10(q.E / P.mat.Es);
+        if (lx < x0) continue;
+        s += `<circle cx="${sx(lx)}" cy="${sy(Math.max(y0, ly))}" r="5" fill="${acc}"><title>${lab} pair</title></circle><text x="${sx(lx) + (lx > -0.25 ? -8 : 7)}" y="${sy(Math.max(y0, ly)) + 4}" font-size="10" text-anchor="${lx > -0.25 ? "end" : "start"}" fill="${ink}">${lab}</text>`;
+      }
+      svg.innerHTML = s;
+    }
+
+    function legend(id, list) {
+      $(id).innerHTML = list.map((x) => `<span style="white-space:nowrap;margin-right:10px"><span class="swatch" style="display:inline-block;vertical-align:-1px;background:${x.color}"></span> ${x.name}</span>`).join(" ");
+    }
+    function drawPairs() {
+      const D = local(1), S = local(0);
+      const row = (lab, f) => `${lab.padEnd(18)}${f(D).padStart(11)}${f(S).padStart(11)}`;
+      const flow = P.A * P.c, massRate = flow * P.mat.rho * 3.6; // mm^3/s -> g/h : mm^3 * g/cm^3 /1000 * 3600
+      $("pairs").textContent = [
+        `${"".padEnd(18)}${"dense".padStart(11)}${"sparse".padStart(11)}`,
+        row("V* / H*", (q) => `${q.V.toFixed(2)}/${q.Hs.toFixed(1)}`),
+        row("head speed F", (q) => q.F.toFixed(1) + " mm/s"),
+        row("nozzle gap H", (q) => q.H.toFixed(2) + " mm"),
+        row("coil diam. Dc", (q) => (q.coiling ? q.Dc.toFixed(2) + " mm" : "–")),
+        row("coil pitch λc", (q) => (q.coiling ? q.lam.toFixed(2) + " mm" : "–")),
+        row("coil freq. f", (q) => (q.coiling ? q.f.toFixed(1) + " Hz" : "–")),
+        row("ρ/ρs", (q) => q.phi.toFixed(3) + (q.phiRaw > 1 ? "!" : "")),
+        row("E", (q) => fmtE(q.E)),
+        `regime  dense: ${D.regime}\n        sparse: ${S.regime}`,
+        `stiffness ratio dense:sparse ≈ ${(D.E / S.E).toFixed(1)} : 1`,
+        `thread Dt = ${P.Dt.toFixed(2)} mm; flow ${flow.toFixed(1)} mm³/s ≈ ${massRate.toFixed(0)} g/h`,
+        (D.phiRaw > 1 || S.phiRaw > 1) ? "! over-packed: layers would grow taller than ΔZ" : "",
+        `drawn: ${P.nlShown} layer(s), ${(P.totalVerts / 1000).toFixed(0)}k vertices`,
+      ].filter(Boolean).join("\n");
+    }
+
+    // ---------- update loop ----------
+    let pending = false, geomDirty = false;
+    function schedule(geom) { geomDirty = geomDirty || geom; if (!pending) { pending = true; requestAnimationFrame(update); } }
+    function update() {
+      pending = false; readParams();
+      if (geomDirty) { buildFoam(); geomDirty = false; }
+      drawMaps(); drawProfile(); drawStab(); drawAshby(); drawPairs();
+      cam.r = cam.r || 120;
+    }
+    function fitCamera() { cam.r = Math.max(G.W, G.H) * 1.5; cam.target.set(0, 0, P.dZ * P.nl * 0.4); }
+
+    ids.forEach((id) => $(id).addEventListener("input", () => schedule(true)));
+    $("mat").addEventListener("input", () => schedule(true));
+    $("preset").addEventListener("input", () => { buildPreset(); readParams(); fitCamera(); schedule(true); });
+    $("joint").addEventListener("input", () => { buildPreset(); schedule(true); });
+    $("anim").addEventListener("change", () => { if (!$("anim").checked && foam) foam.geometry.setDrawRange(0, Infinity); });
+    $("pFDE").addEventListener("click", () => { setVals({ mat: "tpu", vd: 0.15, hd: 6.93, vs: 0.4, hs: 14.81, dL: 1.2, dZ: 1.27, dn: 0.4, al: 1.15 }); schedule(true); });
+    $("pPLA").addEventListener("click", () => { setVals({ mat: "pla", vd: 0.3, hd: 6, vs: 0.5, hs: 9, dL: 1.5, dZ: 2.2, dn: 0.4, al: 1.15 }); schedule(true); });
+    $("pSil").addEventListener("click", () => { setVals({ mat: "sil", dn: 0.41, al: 1.0, vd: 0.25, hd: 7.3, vs: 0.5, hs: 12.2, dL: 0.9, dZ: 0.8 }); schedule(true); });
+    window.addEventListener("resize", () => { resize(); schedule(false); });
+
+    buildPreset(); readParams(); fitCamera(); buildFoam(); resize(); update();
+    let frame = 0;
+    (function loop() {
+      requestAnimationFrame(loop);
+      if (++frame % 2 === 0 && foam) updateThread();
+      place(); renderer.render(scene, camera);
+    })();
+    window.__vtp = { local, P, G };
+  })();
+  </script>
+</body>
+</html>

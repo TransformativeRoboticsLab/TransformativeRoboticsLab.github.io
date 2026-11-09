@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Torsion-Resistant Strain Limiting Layer</title>
+  <link rel="icon" href="../../assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../../assets/site.css" />
+  <style>
+    .chart-box { height: 230px; border: 1px solid var(--line); border-radius: 8px; margin-top: 6px; }
+    .chart-box canvas { width: 100%; height: 100%; display: block; }
+    .note { font-size: 12.5px; }
+    aside select { width: 100%; }
+    aside input[type="range"] { width: 100%; }
+  </style>
+</head>
+<body>
+  <header class="site"><div class="wrap">
+    <a class="brand" href="../../"><img src="../../assets/icon.svg" alt="" />Transformative Robotics Lab</a>
+    <nav class="site"><a href="../../">Projects</a></nav>
+  </div></header>
+  <main class="model">
+    <div class="stage" id="stage">
+      <div class="overlay">Drag: orbit · Right-drag: pan · Wheel: zoom · Twist is exaggerated ×<span id="exLbl">1</span></div>
+    </div>
+    <aside>
+      <h1>Twist a strain limiting layer</h1>
+      <p class="muted note">Illustrative model based on Good, Balaji &amp; Lipton, "Torsion Resistant Strain Limiting Layers Enable High Grip Strength of Electrically-Driven HSA Grippers" (RoboSoft 2026, arXiv 2412.07976), Eqs. 1–7 and Table I, and "Enhancing the Performance of Pneu-net Actuators Using a TR-SLL" (arXiv 2311.02454), Eqs. 1–5.</p>
+
+      <h2>Strain limiting layer</h2>
+      <select id="layer"></select>
+      <label id="thickWrap">Flat-layer thickness: <b id="tLbl"></b>
+        <input id="thick" type="range" min="0" max="7" step="1" value="1" /></label>
+
+      <h2>Grasp</h2>
+      <label>Payload mass: <b id="mLbl"></b><input id="mass" type="range" min="0" max="1500" step="10" value="300" /></label>
+      <label>Lever arm r<sub>t</sub> (neutral axis → object): <b id="rLbl"></b><input id="rt" type="range" min="5" max="50" step="1" value="20" /></label>
+      <label>Normal force F<sub>n</sub>: <b id="fnLbl"></b><input id="fn" type="range" min="0" max="12" step="0.1" value="3" /></label>
+      <label><input type="checkbox" id="hsa" checked /> Add the HSA torque term (Eq. 6): c<sub>τ</sub> = 0.21 N·mm/°, φ = 120°, r<sub>h</sub> = 17.1 mm</label>
+      <label><input type="checkbox" id="exag" checked /> Exaggerate twist for visibility</label>
+
+      <h2>Readout</h2>
+      <div class="readout" id="out"></div>
+      <div class="chart-box"><canvas id="chart" aria-label="Supported load versus slip displacement"></canvas></div>
+      <p class="muted note">Load the layer can hold against twisting versus vertical slip x of the object (Eq. 5/6) for every layer the papers report. The flat dashed level is the friction limit μF<sub>n</sub> (Eq. 1). The grasp fails at whichever limit is lower.</p>
+
+      <h2>How this model works</h2>
+      <p class="note">A soft finger grasping an object antipodally can fail three ways (2026 paper, Sec. III, Fig. 2): it slips because normal force is too low, it twists out of plane, or the soft pad shears.</p>
+      <p class="note"><b>Slip:</b> F<sub>static</sub> = μF<sub>n</sub> (Eq. 1), with μ = 1.27 for Ecoflex on painted Vero (Sec. VI-A).<br>
+      <b>Twist:</b> the payload's weight F<sub>g</sub> at lever arm r makes a moment M = F<sub>g</sub>r (Eq. 2), resisted by the layer's torsional stiffness κ: M = κθ (Eq. 3). With slip x = rθ (Eq. 4), F<sub>g</sub> = (κ / r²)·x (Eq. 5).<br>
+      <b>HSA gripper:</b> the HSA's own reaction torque adds c<sub>τ</sub>φ / r<sub>h</sub> (Eq. 6–7) when its chirality is chosen to resist slip.</p>
+      <p class="note"><b>κ values are the papers' FEA results</b> for PA-6 layers 100–102 mm long, computed with κ = M/θ (Eq. 7 / Eq. 9). Flat layers come from Table I (2026, 102 × 25 mm). The TR-SLL values come from the text: 518.7 and 964.76 N·mm/rad for 2 and 5 triangles (2026), and 366.6 and 265.5 N·mm/rad for 2 and 30 triangles (Pneu-net paper). The two papers used slightly different geometries, so values for the same triangle count differ. Only the reported designs are offered, and no curve is interpolated between them.</p>
+      <p class="note"><b>Assumptions:</b> r<sub>t</sub> defaults to 20 mm, which is not reported. r<sub>h</sub> = 17.1 mm is back-computed from the paper's predicted HSA contribution of 1.47 N with c<sub>τ</sub> = 0.21 N·mm/° at 120° (Sec. VI-A). The model is linear, so large flat-layer twists (beyond about 30°) are outside its validity. The 3D view twists the layer uniformly along its length about its base.</p>
+      <p class="note muted">Reported results: 5.8 N peak pinch and 14.6 N planar caging hold, with grasp stiffness 1.64 and 3.06 N/mm over the first 3 mm (2026, Sec. VI-A). 37/43 YCB objects succeeded, and 5 kg was lifted through the skeleton. The Pneu-net TRL reduced out-of-plane bending by up to 97.7% (2023 abstract).</p>
+    </aside>
+  </main>
+  <script src="../../assets/three.min.js"></script>
+  <script src="../../assets/chart.js"></script>
+  <script>
+  (function () {
+    "use strict";
+    const $ = (id) => document.getElementById(id), stage = $("stage");
+    // 2026 paper Table I: flat SLL 102 x 25 mm (PA-6). torsional stiffness N·mm/rad, bending stiffness 1e-3 N/mm
+    const FLAT = [
+      [0.3, 1.04, 0.23], [0.4, 2.30, 0.47], [0.5, 4.44, 0.87], [0.6, 7.62, 1.47],
+      [0.7, 12.05, 2.23], [0.8, 17.93, 3.46], [0.9, 25.46, 4.93], [1.0, 34.81, 6.67],
+    ];
+    const LAYERS = [
+      { id: "flat", name: "Flat SLL (Table I, 2026)", tri: 0 },
+      { id: "t2", name: "TR-SLL, 2 triangles (2026): κ = 518.7", tri: 2, kappa: 518.7 },
+      { id: "t5", name: "TR-SLL, 5 triangles (2026): κ = 964.76", tri: 5, kappa: 964.76 },
+      { id: "p2", name: "TRL, 2 triangles (Pneu-net 2023): κ = 366.6", tri: 2, kappa: 366.6 },
+      { id: "p30", name: "TRL, 30 triangles (Pneu-net 2023): κ = 265.5", tri: 30, kappa: 265.5 },
+    ];
+    LAYERS.forEach((l) => $("layer").insertAdjacentHTML("beforeend", `<option value="${l.id}">${l.name}</option>`));
+    $("layer").value = "t5";
+    const MU = 1.27, CTAU = 0.21, PHI = 120, RH = 17.1, g = 9.81;
+
+    function kappaOf(l) { return l.id === "flat" ? FLAT[Number($("thick").value)][1] : l.kappa; }
+
+    // ---- scene ----
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(40, 1, 1, 5000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
+    stage.prepend(renderer.domElement);
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x445566, 0.9));
+    const dl = new THREE.DirectionalLight(0xffffff, 0.7); dl.position.set(60, 120, 90); scene.add(dl);
+    const grid = new THREE.GridHelper(200, 10, 0x888888, 0x888888); grid.material.transparent = true; grid.material.opacity = 0.2; grid.position.y = -40; scene.add(grid);
+
+    const baseMat = new THREE.MeshStandardMaterial({ color: 0x9aa3b2, side: THREE.DoubleSide, roughness: 0.6 });
+    const triMat = new THREE.MeshStandardMaterial({ color: 0x2f6fde, side: THREE.DoubleSide, roughness: 0.5 });
+    const ghostMat = new THREE.MeshBasicMaterial({ color: 0x888888, wireframe: true, transparent: true, opacity: 0.25 });
+    let baseMesh = null, triMesh = null, ghost = null;
+    const objMesh = new THREE.Mesh(new THREE.SphereGeometry(6, 20, 14), new THREE.MeshStandardMaterial({ color: 0xe0453a }));
+    scene.add(objMesh);
+    const arrow = new THREE.ArrowHelper(new THREE.Vector3(0, -1, 0), new THREE.Vector3(), 30, 0xe0453a, 8, 5); scene.add(arrow);
+    const clamp = new THREE.Mesh(new THREE.BoxGeometry(8, 30, 40), new THREE.MeshStandardMaterial({ color: 0x4b5563 })); clamp.position.set(-4, 4, 0); scene.add(clamp);
+
+    const LEN = 100, W = 25, H = 12;
+    function quadStrip(pts, twist) {
+      // pts: list of [x,y] along a line; extruded across width z, then twisted about the x axis
+      const pos = [], idx = [];
+      pts.forEach(([x, y], i) => {
+        for (const z of [-W / 2, W / 2]) {
+          const a = twist * (x / LEN), c = Math.cos(a), s = Math.sin(a);
+          pos.push(x, y * c - z * s, y * s + z * c);
+        }
+        if (i > 0) { const k = 2 * i; idx.push(k - 2, k - 1, k, k - 1, k + 1, k); }
+      });
+      return { pos, idx };
+    }
+    function merge(parts) {
+      const pos = [], idx = []; let off = 0;
+      for (const p of parts) { pos.push(...p.pos); idx.push(...p.idx.map((i) => i + off)); off += p.pos.length / 3; }
+      const geo = new THREE.BufferGeometry(); geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals();
+      return geo;
+    }
+    function line(x0, y0, x1, y1, n) { const o = []; for (let i = 0; i <= n; i += 1) o.push([x0 + ((x1 - x0) * i) / n, y0 + ((y1 - y0) * i) / n]); return o; }
+
+    function build(layer, twist) {
+      [baseMesh, triMesh, ghost].forEach((m) => { if (m) { scene.remove(m); m.geometry.dispose(); } });
+      baseMesh = new THREE.Mesh(merge([quadStrip(line(0, 0, LEN, 0, 50), twist)]), baseMat); scene.add(baseMesh);
+      ghost = new THREE.Mesh(merge([quadStrip(line(0, 0, LEN, 0, 10), 0)]), ghostMat); scene.add(ghost);
+      if (layer.tri > 0) {
+        const parts = [], n = layer.tri, step = LEN / n, seg = Math.max(2, Math.round(40 / n));
+        for (let i = 0; i < n; i += 1) {
+          const x0 = i * step, xm = x0 + step / 2, x1 = x0 + step;
+          parts.push(quadStrip(line(x0, 0, xm, H, seg), twist), quadStrip(line(xm, H, x1, 0, seg), twist));
+        }
+        parts.push(quadStrip(line(0, H, LEN, H, 50).map(([x, y]) => [x, y]), twist)); // contact pad along apexes
+        triMesh = new THREE.Mesh(merge(parts), triMat); scene.add(triMesh);
+      }
+    }
+
+    const chart = TRLChart.create($("chart"), {});
+    function update() {
+      const layer = LAYERS.find((l) => l.id === $("layer").value);
+      const ti = Number($("thick").value), m = Number($("mass").value) / 1000, rt = Number($("rt").value), Fn = Number($("fn").value), useH = $("hsa").checked;
+      $("thickWrap").style.display = layer.id === "flat" ? "" : "none";
+      $("tLbl").textContent = `${FLAT[ti][0].toFixed(1)} mm`;
+      $("mLbl").textContent = `${(m * 1000).toFixed(0)} g`; $("rLbl").textContent = `${rt} mm`; $("fnLbl").textContent = `${Fn.toFixed(1)} N`;
+      const kappa = kappaOf(layer), Fg = m * g, M = Fg * rt; // N·mm
+      const hsaF = useH ? (CTAU * PHI) / RH : 0;              // N, Eq. 6 second term
+      const Mnet = Math.max(0, M - hsaF * rt); // (F_g − HSA term)·r, rearranged Eq. 6
+      const theta = Mnet / kappa, x = rt * theta, keff = kappa / (rt * rt);
+      const fric = MU * Fn;
+      const exag = $("exag").checked ? Math.max(1, Math.min(40, 0.35 / Math.max(theta, 1e-6))) : 1;
+      const vis = Math.min(Math.PI / 2, theta * (theta < 0.35 ? exag : 1));
+      $("exLbl").textContent = theta < 0.35 && $("exag").checked ? exag.toFixed(1) : "1";
+      build(layer, vis);
+      const a = vis;
+      objMesh.position.set(LEN, -rt * Math.cos(a), -rt * Math.sin(a));
+      arrow.position.copy(objMesh.position); arrow.setLength(10 + Math.min(40, Fg * 4), 8, 5);
+      const mode = theta > 0.52 ? "twist exceeds ~30°: outside the linear model, the object twists out" : x > 10 ? "slip > 10 mm" : "holds against twist";
+      let s = `κ (torsional stiffness)   ${kappa.toFixed(kappa < 100 ? 2 : 1)} N·mm/rad\n`;
+      if (layer.id === "flat") s += `bending stiffness (T. I)  ${FLAT[ti][2].toFixed(2)}×10⁻³ N/mm\n`;
+      s += `effective stiffness κ/r²  ${keff.toFixed(3)} N/mm (Eq. 5)\n`;
+      s += `payload weight F_g        ${Fg.toFixed(2)} N   moment ${M.toFixed(0)} N·mm\n`;
+      if (useH) s += `HSA term c_τφ/r_h          ${hsaF.toFixed(2)} N (Eq. 6)\n`;
+      s += `twist θ                   ${((theta * 180) / Math.PI).toFixed(theta < 0.1 ? 2 : 1)}°\n`;
+      s += `slip x = r·θ              ${x.toFixed(x < 1 ? 2 : 1)} mm\n`;
+      s += `friction limit μF_n       ${fric.toFixed(2)} N (Eq. 1)\n`;
+      s += `→ ${Fg > fric ? "slips: weight exceeds μF_n" : mode}`;
+      $("out").textContent = s;
+
+      const xs = []; for (let v = 0; v <= 10.0001; v += 0.25) xs.push(v);
+      const series = LAYERS.map((l) => {
+        const k = kappaOf(l); return { name: l.id === "flat" ? `flat ${FLAT[ti][0]} mm` : l.name.split(":")[0], x: xs, y: xs.map((v) => (k / (rt * rt)) * v + hsaF) };
+      });
+      series.push({ name: "friction limit μFn", x: [0, 10], y: [fric, fric], color: "#9aa3b2" });
+      chart.setSeries(series, { xlabel: "Slip displacement x (mm)", ylabel: "Supported load F_g (N)" });
+    }
+    ["layer", "thick", "mass", "rt", "fn", "hsa", "exag"].forEach((id) => $(id).addEventListener("input", update));
+
+    // camera
+    const cam = { r: 230, az: 0.9, el: 0.35, target: new THREE.Vector3(50, 0, 0) };
+    function place() { camera.position.set(cam.target.x + cam.r * Math.cos(cam.el) * Math.sin(cam.az), cam.target.y + cam.r * Math.sin(cam.el), cam.target.z + cam.r * Math.cos(cam.el) * Math.cos(cam.az)); camera.lookAt(cam.target); }
+    function resize() { const w = stage.clientWidth, h = stage.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / Math.max(1, h); camera.updateProjectionMatrix(); }
+    let drag = null; const el = renderer.domElement; el.style.touchAction = "none";
+    el.addEventListener("contextmenu", (e) => e.preventDefault());
+    el.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY, pan: e.button === 2 || e.shiftKey }; el.setPointerCapture(e.pointerId); });
+    el.addEventListener("pointermove", (e) => {
+      if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
+      if (drag.pan) { const s = cam.r / 700; cam.target.x -= Math.cos(cam.az) * dx * s; cam.target.z += Math.sin(cam.az) * dx * s; cam.target.y += dy * s; }
+      else { cam.az -= dx * 0.008; cam.el = Math.max(-1.3, Math.min(1.4, cam.el + dy * 0.008)); }
+    });
+    el.addEventListener("pointerup", () => { drag = null; });
+    el.addEventListener("wheel", (e) => { e.preventDefault(); cam.r = Math.max(60, Math.min(1500, cam.r * Math.exp(e.deltaY * 0.0012))); }, { passive: false });
+    window.addEventListener("resize", resize);
+    update(); resize();
+    (function loop() { requestAnimationFrame(loop); place(); renderer.render(scene, camera); })();
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Flat-Plane Mechanism Geometry</title>
+  <link rel="icon" href="../../assets/icon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../../assets/site.css" />
+  <style>
+    .model aside input[type="range"] { width: 100%; }
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .chartbox { height: 220px; } .chartbox canvas { width: 100%; height: 100%; display: block; }
+    details.how { font-size: 13px; } details.how p, details.how li { font-size: 13px; }
+    .label-ill { font-size: 12px; border-left: 3px solid var(--accent); padding: 4px 8px; background: var(--chip); border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <header class="site"><div class="wrap">
+    <a class="brand" href="../../"><img src="../../assets/icon.svg" alt="" />Transformative Robotics Lab</a>
+    <nav class="site"><a href="../../">Projects</a><a href="../fpm/">Measured FPM probe data</a><a href="https://arxiv.org/abs/2602.06294">Paper (arXiv)</a></nav>
+  </div></header>
+  <main class="model">
+    <div class="stage" id="stage">
+      <div class="overlay">Drag: orbit · Right-drag: pan · Wheel: zoom</div>
+    </div>
+    <aside>
+      <h1>Flat-Plane Mechanism: planarity from geometry</h1>
+      <p class="label-ill">Illustrative model based on Kowalewski et al., <i>Robots That Generate Planarity Through Geometry</i> (arXiv 2602.06294), Supplementary Text (FPM proof, Eqs. 5–8; design parameters; Eq. 1).</p>
+      <p class="muted">Thirteen links and six joints. The control link FB holds joint B on a sphere through the grounded joint O. The bipyramid inverts B through a sphere centred on O, so the endpoint D can only move on a plane. For measured data from the lab's robotic FPM, see <a href="../fpm/">FPM surface probing</a>.</p>
+      <h2>Design parameters (Fig. 2A)</h2>
+      <label>Characteristic length L<sub>c</sub> <output id="LcOut"></output><input id="Lc" type="range" min="100" max="1000" step="2.5" value="487.5" /></label>
+      <label>H / L<sub>c</sub> <output id="HOut"></output><input id="H" type="range" min="0.05" max="0.45" step="0.005" value="0.25" /></label>
+      <label>R / L<sub>c</sub> <output id="ROut"></output><input id="R" type="range" min="0.15" max="1.2" step="0.01" value="0.5" /></label>
+      <label>γ <output id="gOut"></output><input id="g" type="range" min="30" max="300" step="1" value="90" /></label>
+      <label>Control-link ratio FB / OF <output id="ratioOut"></output><input id="ratio" type="range" min="0.8" max="1.2" step="0.005" value="1" /></label>
+      <button class="btn" id="optimum" type="button">Reset to the paper's optimum (H* = 1/4, R* = 1/2, γ* = π/2)</button>
+      <h2>Drive the endpoint</h2>
+      <label>Path <select id="path"><option value="spiral">Spiral over the workspace</option><option value="circle">Circle at the rim</option><option value="raster">Raster scan</option><option value="manual">Manual (sliders)</option></select></label>
+      <label>Workspace diameter W<sub>d</sub> <output id="WdOut"></output><input id="Wd" type="range" min="20" max="600" step="5" value="200" /></label>
+      <div class="row2">
+        <label>target x <output id="txOut"></output><input id="tx" type="range" min="-0.5" max="0.5" step="0.005" value="0.2" /></label>
+        <label>target y <output id="tyOut"></output><input id="ty" type="range" min="-0.5" max="0.5" step="0.005" value="0" /></label>
+      </div>
+      <label><input type="checkbox" id="showSphere" checked /> Show the control sphere through O</label>
+      <label><input type="checkbox" id="showPlane" checked /> Show the output plane</label>
+      <h2>Live readout</h2>
+      <div class="readout" id="read">…</div>
+      <h2>Fabrication error and flatness (Eq. 1)</h2>
+      <label>Link-length error σ (% of L<sub>c</sub>) <output id="sigOut"></output><input id="sig" type="range" min="0.01" max="0.5" step="0.01" value="0.05" /></label>
+      <label>Chart <select id="chartMode"><option value="H">S<sub>k</sub> vs H / L<sub>c</sub> (R, γ fixed)</option><option value="R">S<sub>k</sub> vs R / L<sub>c</sub> (H, γ fixed)</option><option value="W">S<sub>k</sub> vs relative workspace W<sub>d</sub> / L<sub>c</sub></option></select></label>
+      <button class="btn primary" id="run" type="button">Run Monte Carlo</button>
+      <div class="readout" id="mc" style="margin-top:8px">Press “Run Monte Carlo”.</div>
+      <div class="chartbox"><canvas id="chart"></canvas></div>
+      <h2>How this model works</h2>
+      <details class="how" open>
+        <summary>Geometry, equations and what is simplified</summary>
+        <ul>
+          <li><b>Link lengths</b> from the design parameters (Supplementary Text, “FPM Design Parameters”): A = (L<sub>c</sub> − 2H)/2 for OF and FB; B = √(H² + R²) for the six bipyramid links to B and D; C = √((L<sub>c</sub> − H)² + R²) for OA, OC, OE; D = √((R + R cos(γ/2))² + (R sin(γ/2))²) for AE, AC.</li>
+          <li><b>Why D stays flat</b> (proof, Eqs. 5–8): O, B, D are collinear and OB·OD = OE² − ED² = k² is fixed, so D is the inverse of B in a sphere of radius k about O. Because FB = OF, B rides on a sphere through O, and that sphere inverts to a plane. Change FB / OF and the readout shows D moving on a sphere instead (Supplementary “Inversion between two spheres”).</li>
+          <li><b>Forward kinematics.</b> The demo places A, E, C on the circles where spheres about O and B intersect, uses AE and AC to fix their spacing, and then finds D as the intersection of three spheres. This follows the structure of the paper's forward kinematics (Eqs. 15–44) but is coded directly in vectors. The idle spin of the bipyramid about the OB axis is fixed by a gauge (A is kept in the plane of OB and the x axis).</li>
+          <li><b>Driving the endpoint.</b> Targets on the plane are mapped back to the control-link angles with ideal inversion (B = k²·D/|D|²), then run through the forward kinematics. The lab's robot uses two motors and revolute joints for this (Eqs. 45–78), which the demo does not model.</li>
+          <li><b>Sensitivity S<sub>k</sub></b> (Eq. 1) = RMS plane residual ÷ RMS link-length error. As in the paper's Methods: σ is a percentage of L<sub>c</sub> on all 13 links, the endpoint visits n = 50 points over a disc of W<sub>d</sub>/L<sub>c</sub>, and the result is averaged over random instances (50 for the single run, 20 per point on the chart). The paper reports a global minimum S<sub>k,min</sub> = 0.072 at H* = 1/4, R* = 1/2, γ* = π/2 (Fig. 2B). This simplified Monte Carlo finds about 0.05–0.06 there. Its point layout, gauge and plane fit differ from the paper's, so compare trends, not exact values.</li>
+          <li>Reported numbers you can compare against (paper text, not computed here): centimeter-scale FPMs with mean link-length RMSE 141.8 µm gave 15.6 µm flatness RMSE (Fig. 2D). The robotic FPM has L<sub>c</sub> = 487.5 mm and W<sub>d</sub> = 200 mm (Fig. 3).</li>
+        </ul>
+      </details>
+    </aside>
+  </main>
+  <script src="../../assets/three.min.js"></script>
+  <script src="../../assets/chart.js"></script>
+  <script>
+// FPM core math (shared between page and tests)
+const V = {
+  add:(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]], sub:(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]],
+  mul:(a,s)=>[a[0]*s,a[1]*s,a[2]*s], dot:(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2],
+  cross:(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],
+  len:(a)=>Math.hypot(a[0],a[1],a[2]), unit:(a)=>{const l=Math.hypot(a[0],a[1],a[2]);return [a[0]/l,a[1]/l,a[2]/l];}
+};
+function linkSet(p){ // p: {Lc,H,R,gamma,ratio}
+  const A=(p.Lc-2*p.H)/2, B=Math.hypot(p.H,p.R), C=Math.hypot(p.Lc-p.H,p.R), D=Math.hypot(p.R+p.R*Math.cos(p.gamma/2),p.R*Math.sin(p.gamma/2));
+  // order: OF, FB, BC, BA, BE, CD, AD, ED, OC, OA, OE, AE, AC
+  return {A,B,C,D,L:[A,A*(p.ratio||1),B,B,B,B,B,B,C,C,C,D,D]};
+}
+function trilaterate(P1,r1,P2,r2,P3,r3,away){
+  const ex=V.unit(V.sub(P2,P1)), d=V.len(V.sub(P2,P1));
+  const i=V.dot(ex,V.sub(P3,P1)); const ey=V.unit(V.sub(V.sub(P3,P1),V.mul(ex,i)));
+  const ez=V.cross(ex,ey), j=V.dot(ey,V.sub(P3,P1));
+  const x=(r1*r1-r2*r2+d*d)/(2*d), y=(r1*r1-r3*r3+i*i+j*j)/(2*j)-(i/j)*x;
+  const z2=r1*r1-x*x-y*y; if(z2<0) return null; const z=Math.sqrt(z2);
+  const base=V.add(P1,V.add(V.mul(ex,x),V.mul(ey,y)));
+  const s1=V.add(base,V.mul(ez,z)), s2=V.sub(base,V.mul(ez,z));
+  return V.dot(V.sub(s1,s2),away)>=0?s1:s2;
+}
+// forward kinematics: control link direction (theta, phi) -> joint positions
+function fk(L,theta,phi){
+  const [OF,FB,BC,BA,BE,CD,AD,ED,OC,OA,OE,AE,AC]=L;
+  const O=[0,0,0], F=[0,0,OF];
+  const u=[Math.sin(theta)*Math.cos(phi),Math.sin(theta)*Math.sin(phi),Math.cos(theta)];
+  const B=V.add(F,V.mul(u,FB)); const Lb=V.len(B), e=V.unit(B);
+  let ref=[1,0,0]; if(Math.abs(e[0])>0.9) ref=[0,1,0];
+  const p=V.unit(V.sub(ref,V.mul(e,V.dot(ref,e)))), q=V.cross(e,p);
+  const circ=(c,b)=>{const t=(Lb*Lb+c*c-b*b)/(2*Lb); const r2=c*c-t*t; return r2>0?{t,r:Math.sqrt(r2)}:null;};
+  const cA=circ(OA,BA), cE=circ(OE,BE), cC=circ(OC,BC); if(!cA||!cE||!cC) return null;
+  const at=(c,ang)=>V.add(V.mul(e,c.t),V.add(V.mul(p,c.r*Math.cos(ang)),V.mul(q,c.r*Math.sin(ang))));
+  const ang=(c1,c2,d)=>{const cs=(c1.r*c1.r+c2.r*c2.r+(c1.t-c2.t)**2-d*d)/(2*c1.r*c2.r); return Math.abs(cs)>1?null:Math.acos(cs);};
+  const pE=ang(cA,cE,AE), pC=ang(cA,cC,AC); if(pE==null||pC==null) return null;
+  const Ap=at(cA,0), Ep=at(cE,pE), Cp=at(cC,-pC);
+  const Dp=trilaterate(Ap,AD,Ep,ED,Cp,CD,e); if(!Dp) return null;
+  return {O,F,B,A:Ap,E:Ep,C:Cp,D:Dp};
+}
+// ideal inverse: target endpoint (x,y) on plane z = Lc -> control link angles
+function ik(ls,Lc,x,y){
+  const k2=2*ls.A*Lc, Dt=[x,y,Lc], d2=V.dot(Dt,Dt), Bt=V.mul(Dt,k2/d2);
+  const u=V.unit(V.sub(Bt,[0,0,ls.A])); return {theta:Math.acos(Math.max(-1,Math.min(1,u[2]))),phi:Math.atan2(u[1],u[0])};
+}
+function sunflower(n,rad){const out=[],g=Math.PI*(3-Math.sqrt(5));for(let i=0;i<n;i++){const r=rad*Math.sqrt((i+0.5)/n);out.push([r*Math.cos(i*g),r*Math.sin(i*g)]);}return out;}
+function planeFit(P){ // least squares z = a x + b y + c, returns rms residual
+  let Sxx=0,Sxy=0,Syy=0,Sx=0,Sy=0,Sz=0,Sxz=0,Syz=0,n=P.length;
+  for(const [x,y,z] of P){Sxx+=x*x;Sxy+=x*y;Syy+=y*y;Sx+=x;Sy+=y;Sz+=z;Sxz+=x*z;Syz+=y*z;}
+  const M=[[Sxx,Sxy,Sx],[Sxy,Syy,Sy],[Sx,Sy,n]], r=[Sxz,Syz,Sz];
+  const det=(m)=>m[0][0]*(m[1][1]*m[2][2]-m[1][2]*m[2][1])-m[0][1]*(m[1][0]*m[2][2]-m[1][2]*m[2][0])+m[0][2]*(m[1][0]*m[2][1]-m[1][1]*m[2][0]);
+  const D0=det(M); const sol=[0,1,2].map(k=>det(M.map((row,i)=>row.map((v,j)=>j===k?r[i]:v)))/D0);
+  let s=0; for(const [x,y,z] of P){const e=z-(sol[0]*x+sol[1]*y+sol[2]); s+=e*e;} return {rms:Math.sqrt(s/n),coef:sol};
+}
+function gauss(rng){let u=0,v=0;while(u===0)u=rng();v=rng();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+// kinematic sensitivity Sk (Eq. 1): mean over instances
+function sensitivity(p,{sigma=0.0005,instances=50,npts=50,wd=0.4,seed=1}={}){
+  const ls=linkSet({...p,ratio:1}), rng=mulberry(seed);
+  const pts=sunflower(npts,wd*p.Lc/2).map(([x,y])=>ik(ls,p.Lc,x,y));
+  let acc=0,cnt=0,flat=0;
+  for(let k=0;k<instances;k++){
+    const dl=ls.L.map(()=>gauss(rng)*sigma*p.Lc), L=ls.L.map((v,i)=>v+dl[i]);
+    const P=[]; for(const a of pts){const s=fk(L,a.theta,a.phi); if(!s){P.length=0;break;} P.push(s.D);}
+    if(P.length<npts) continue;
+    const rmsLink=Math.sqrt(dl.reduce((s,v)=>s+v*v,0)/13);
+    const f=planeFit(P).rms; acc+=f/rmsLink; flat+=f; cnt++;
+  }
+  return {Sk:acc/cnt,flat:flat/cnt,valid:cnt};
+}
+  (function () {
+    "use strict";
+    const $ = (id) => document.getElementById(id), stage = $("stage");
+    const P = () => ({ Lc: +$("Lc").value, H: +$("H").value * +$("Lc").value, R: +$("R").value * +$("Lc").value, gamma: (+$("g").value * Math.PI) / 180, ratio: +$("ratio").value });
+
+    // ---------- three.js scene ----------
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(40, 1, 1, 100000); camera.up.set(0, 0, 1);
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2)); stage.prepend(renderer.domElement);
+    scene.add(new THREE.HemisphereLight(0xffffff, 0x556070, 0.9));
+    const dl = new THREE.DirectionalLight(0xffffff, 0.6); dl.position.set(1, -2, 3); scene.add(dl);
+
+    const COL = { A: 0x2f6fde, B: 0x2e9d6b, C: 0x8a4fd6, D: 0xd9822b, ground: 0x888888 };
+    const linkDefs = [["O", "F", "ground"], ["F", "B", "A"], ["B", "C", "B"], ["B", "A", "B"], ["B", "E", "B"], ["C", "D", "B"], ["A", "D", "B"], ["E", "D", "B"], ["O", "C", "C"], ["O", "A", "C"], ["O", "E", "C"], ["A", "E", "D"], ["A", "C", "D"]];
+    const unitCyl = new THREE.CylinderGeometry(1, 1, 1, 14, 1);
+    const links = linkDefs.map(([, , t]) => { const m = new THREE.Mesh(unitCyl, new THREE.MeshStandardMaterial({ color: COL[t], roughness: 0.5, metalness: 0.1 })); scene.add(m); return m; });
+    const jointGeo = new THREE.SphereGeometry(1, 20, 14);
+    const jointNames = ["O", "F", "B", "A", "E", "C", "D"];
+    const joints = {}; jointNames.forEach((n) => { joints[n] = new THREE.Mesh(jointGeo, new THREE.MeshStandardMaterial({ color: n === "D" ? 0xe0453a : n === "O" || n === "F" ? 0x444444 : 0xcfd5de, metalness: 0.4, roughness: 0.3 })); scene.add(joints[n]); });
+    // labels
+    function makeLabel(text) {
+      const c = document.createElement("canvas"); c.width = 64; c.height = 64; const g = c.getContext("2d");
+      g.font = "bold 40px system-ui"; g.fillStyle = "#ffffff"; g.strokeStyle = "#000"; g.lineWidth = 6; g.textAlign = "center"; g.textBaseline = "middle"; g.strokeText(text, 32, 34); g.fillText(text, 32, 34);
+      const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false })); s.renderOrder = 5; scene.add(s); return s;
+    }
+    const labels = {}; jointNames.forEach((n) => (labels[n] = makeLabel(n)));
+    const sphereMesh = new THREE.Mesh(new THREE.SphereGeometry(1, 36, 24), new THREE.MeshBasicMaterial({ color: COL.A, wireframe: true, transparent: true, opacity: 0.18 })); scene.add(sphereMesh);
+    const planeMesh = new THREE.Mesh(new THREE.CircleGeometry(1, 64), new THREE.MeshBasicMaterial({ color: 0xd9822b, transparent: true, opacity: 0.12, side: THREE.DoubleSide, depthWrite: false })); scene.add(planeMesh);
+    const planeRing = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(Array.from({ length: 96 }, (_, i) => new THREE.Vector3(Math.cos((i / 96) * 2 * Math.PI), Math.sin((i / 96) * 2 * Math.PI), 0))), new THREE.LineBasicMaterial({ color: 0xd9822b })); scene.add(planeRing);
+    const MAXTR = 1500;
+    function trail(color) { const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.BufferAttribute(new Float32Array(MAXTR * 3), 3)); g.setDrawRange(0, 0); const l = new THREE.Line(g, new THREE.LineBasicMaterial({ color })); scene.add(l); return { l, g, n: 0 }; }
+    const trD = trail(0xe0453a), trB = trail(0x2e9d6b);
+    function pushTrail(t, p) { const a = t.g.attributes.position; if (t.n >= MAXTR) { a.array.copyWithin(0, 3); t.n = MAXTR - 1; } a.setXYZ(t.n, p[0], p[1], p[2]); t.n++; a.needsUpdate = true; t.g.setDrawRange(0, t.n); }
+    function clearTrails() { trD.n = 0; trB.n = 0; trD.g.setDrawRange(0, 0); trB.g.setDrawRange(0, 0); dev.max = 0; dev.sum = 0; dev.cnt = 0; }
+
+    const up = new THREE.Vector3(0, 1, 0);
+    function setLink(m, a, b, r) {
+      const va = new THREE.Vector3(...a), vb = new THREE.Vector3(...b), d = vb.clone().sub(va), L = d.length();
+      m.position.copy(va).add(vb).multiplyScalar(0.5); m.scale.set(r, L, r); m.quaternion.setFromUnitVectors(up, d.normalize());
+    }
+
+    // ---------- state ----------
+    let ls = null, lc = 0, dev = { max: 0, sum: 0, cnt: 0 }, t0 = performance.now(), plane0 = 0;
+    function rebuild() {
+      const p = P(); ls = linkSet(p); lc = p.Lc;
+      $("LcOut").textContent = `${p.Lc.toFixed(1)} mm`; $("HOut").textContent = `${(+$("H").value).toFixed(3)}  (H = ${p.H.toFixed(1)} mm)`;
+      $("ROut").textContent = `${(+$("R").value).toFixed(2)}  (R = ${p.R.toFixed(1)} mm)`; $("gOut").textContent = `${$("g").value}°`;
+      $("ratioOut").textContent = (+$("ratio").value).toFixed(3) + (+$("ratio").value === 1 ? " (plane)" : " (sphere)");
+      $("WdOut").textContent = `${(+$("Wd").value).toFixed(0)} mm  (W_d/L_c = ${(+$("Wd").value / p.Lc).toFixed(2)})`;
+      $("sigOut").textContent = `${(+$("sig").value).toFixed(2)} %  (${((+$("sig").value / 100) * p.Lc * 1000).toFixed(0)} µm)`;
+      const OF = ls.L[0], FB = ls.L[1];
+      sphereMesh.scale.setScalar(FB); sphereMesh.position.set(0, 0, OF);
+      const wd = +$("Wd").value / 2; planeMesh.scale.setScalar(wd); planeRing.scale.setScalar(wd);
+      planeMesh.position.set(0, 0, p.Lc); planeRing.position.set(0, 0, p.Lc); plane0 = p.Lc;
+      clearTrails();
+    }
+
+    function targetAt(t) {
+      const r = +$("Wd").value / 2, mode = $("path").value;
+      if (mode === "manual") return [+$("tx").value * lc, +$("ty").value * lc];
+      if (mode === "circle") return [r * Math.cos(t * 0.8), r * Math.sin(t * 0.8)];
+      if (mode === "raster") { const T = 24, s = ((t * 0.25) % T) / T, rows = 8, row = Math.floor(s * rows), f = s * rows - row, x = (row % 2 ? 1 - f : f) * 2 - 1, y = (row / (rows - 1)) * 2 - 1; return [x * r * 0.7, y * r * 0.7]; }
+      const s = (Math.sin(t * 0.12) + 1) / 2; return [r * Math.sqrt(s) * Math.cos(t * 1.3), r * Math.sqrt(s) * Math.sin(t * 1.3)];
+    }
+
+    function frame(t) {
+      const [x, y] = targetAt(t), a = ik(ls, lc, x, y), s = fk(ls.L, a.theta, a.phi);
+      if (!s) { $("read").textContent = "This design cannot assemble at this pose (a triangle fails to close).\nTry H/Lc < 0.5 or a different R or γ."; links.forEach((m) => (m.visible = false)); return; }
+      links.forEach((m) => (m.visible = true));
+      const r = lc * 0.007;
+      linkDefs.forEach(([p, q], i) => setLink(links[i], s[p], s[q], linkDefs[i][2] === "ground" ? r * 1.6 : r));
+      jointNames.forEach((n) => { joints[n].scale.setScalar(r * 2.4); joints[n].position.set(...s[n]); labels[n].position.set(s[n][0] + r * 4, s[n][1], s[n][2] + r * 4); labels[n].scale.setScalar(lc * 0.05); });
+      pushTrail(trD, s.D); pushTrail(trB, s.B);
+      const dz = s.D[2] - plane0; dev.max = Math.max(dev.max, Math.abs(dz)); dev.sum += dz * dz; dev.cnt++;
+      const OB = V.len(s.B), OD = V.len(s.D), col = V.len(V.cross(V.unit(s.B), V.unit(s.D)));
+      const A = ls.A, B = ls.B, C = ls.C;
+      const valid = 4 * A * A + B * B < C * C && C < 2 * A + B;
+      $("read").textContent =
+        `links  A = ${A.toFixed(2)}  B = ${B.toFixed(2)}  C = ${C.toFixed(2)}  D = ${ls.D.toFixed(2)} mm\n` +
+        `control link θ = ${((a.theta * 180) / Math.PI).toFixed(2)}°  φ = ${((a.phi * 180) / Math.PI).toFixed(1)}°\n` +
+        `endpoint D = (${s.D[0].toFixed(2)}, ${s.D[1].toFixed(2)}, ${s.D[2].toFixed(4)}) mm\n` +
+        `OB·OD = ${(OB * OD).toFixed(3)} mm²   k² = OE²−ED² = ${(C * C - B * B).toFixed(3)} mm²  (Eq. 8)\n` +
+        `O, B, D collinear: |sin∠| = ${col.toExponential(1)}\n` +
+        `D height off z = L_c: now ${dz.toExponential(2)} mm, max on path ${dev.max.toExponential(2)} mm\n` +
+        `non-singular link check 4A²+B² < C² < (2A+B)²: ${valid ? "yes" : "no"}`;
+    }
+
+    // ---------- camera controls ----------
+    const cam = { r: 1400, az: -0.9, el: 0.35, target: new THREE.Vector3(0, 0, 250) };
+    function place() { camera.position.set(cam.target.x + cam.r * Math.cos(cam.el) * Math.cos(cam.az), cam.target.y + cam.r * Math.cos(cam.el) * Math.sin(cam.az), cam.target.z + cam.r * Math.sin(cam.el)); camera.lookAt(cam.target); }
+    function resize() { const w = stage.clientWidth, h = stage.clientHeight; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); }
+    let drag = null; const el = renderer.domElement; el.style.touchAction = "none";
+    el.addEventListener("contextmenu", (e) => e.preventDefault());
+    el.addEventListener("pointerdown", (e) => { drag = { x: e.clientX, y: e.clientY, pan: e.button === 2 || e.shiftKey }; el.setPointerCapture(e.pointerId); });
+    el.addEventListener("pointermove", (e) => {
+      if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; drag.x = e.clientX; drag.y = e.clientY;
+      if (drag.pan) { const s = cam.r / 700; cam.target.add(new THREE.Vector3(-Math.sin(cam.az), Math.cos(cam.az), 0).multiplyScalar(-dx * s)); cam.target.z += dy * s; }
+      else { cam.az -= dx * 0.008; cam.el = Math.max(-1.4, Math.min(1.5, cam.el + dy * 0.008)); }
+    });
+    el.addEventListener("pointerup", () => (drag = null));
+    el.addEventListener("wheel", (e) => { e.preventDefault(); cam.r = Math.max(50, cam.r * Math.exp(e.deltaY * 0.0012)); }, { passive: false });
+
+    // ---------- Monte Carlo + chart ----------
+    const chart = TRLChart.create($("chart"), { xlabel: "H / Lc", ylabel: "S_k" });
+    function runMC() {
+      const p = P(), sigma = +$("sig").value / 100, wd = +$("Wd").value / p.Lc;
+      const one = sensitivity({ ...p }, { sigma, instances: 50, npts: 50, wd });
+      const mode = $("chartMode").value, xs = [], ys = [];
+      const grid = mode === "H" ? Array.from({ length: 17 }, (_, i) => 0.05 + i * 0.025) : mode === "R" ? Array.from({ length: 19 }, (_, i) => 0.15 + i * 0.05) : Array.from({ length: 16 }, (_, i) => 0.05 + i * 0.05);
+      for (const v of grid) {
+        const q = { ...p }; let w = wd;
+        if (mode === "H") q.H = v * p.Lc; else if (mode === "R") q.R = v * p.Lc; else w = v;
+        const r = sensitivity(q, { sigma, instances: 20, npts: 50, wd: w, seed: 7 });
+        if (Number.isFinite(r.Sk)) { xs.push(v); ys.push(r.Sk); }
+      }
+      const cur = mode === "H" ? p.H / p.Lc : mode === "R" ? p.R / p.Lc : wd;
+      chart.setSeries([{ name: "simulated S_k", x: xs, y: ys }, { name: "current design", x: [cur, cur], y: [0, Math.max(...ys, one.Sk || 0)], color: "#e0453a" }], { xlabel: mode === "H" ? "H / Lc" : mode === "R" ? "R / Lc" : "Wd / Lc", ylabel: "S_k (RMS flatness / RMS link error)" });
+      $("mc").textContent = Number.isFinite(one.Sk)
+        ? `S_k = ${one.Sk.toFixed(3)} over ${one.valid} random instances\nRMS link error σ = ${(sigma * p.Lc * 1000).toFixed(0)} µm → RMS flatness ≈ ${(one.flat * 1000).toFixed(1)} µm\n(paper's optimum: S_k,min = 0.072, Fig. 2B)`
+        : "No instance assembled. This design is near a singular boundary.";
+    }
+
+    ["Lc", "H", "R", "g", "ratio", "Wd", "sig"].forEach((id) => $(id).addEventListener("input", rebuild));
+    ["path", "tx", "ty", "showSphere", "showPlane"].forEach((id) => $(id).addEventListener("input", () => { clearTrails(); sphereMesh.visible = $("showSphere").checked; planeMesh.visible = planeRing.visible = $("showPlane").checked; $("txOut").textContent = (+$("tx").value).toFixed(3) + "·Lc"; $("tyOut").textContent = (+$("ty").value).toFixed(3) + "·Lc"; }));
+    $("chartMode").addEventListener("input", runMC); $("run").addEventListener("click", runMC);
+    $("optimum").addEventListener("click", () => { $("H").value = 0.25; $("R").value = 0.5; $("g").value = 90; $("ratio").value = 1; rebuild(); });
+    $("txOut").textContent = "0.200·Lc"; $("tyOut").textContent = "0.000·Lc";
+    window.addEventListener("resize", resize);
+    rebuild(); resize(); runMC();
+    (function loop() { requestAnimationFrame(loop); const t = (performance.now() - t0) / 1000; frame(t); place(); renderer.render(scene, camera); })();
+  })();
+  </script>
+</body>
+</html>
